@@ -1,0 +1,414 @@
+# Entity Design
+
+This document derives the MVP v1 entity design from the business rules, bounded contexts, and aggregate boundaries.
+
+This is a design document only. It does not define C# code, repositories, controllers, handlers, EF configurations, or migrations.
+
+MVP v1 scope:
+
+- No authentication, authorization, Identity, login/register, JWT, admins, or restaurant owners.
+- No payment, delivery drivers, notifications, coupons, or reviews.
+- Assume one normal customer profile.
+- Restaurants and products are seeded for testing.
+- Cart is not created until the first item is added.
+
+## Restaurant
+
+### Context
+
+Catalog Context.
+
+### Role
+
+`Restaurant` is the Catalog aggregate root. It groups products under one restaurant and protects catalog rules around active state, opening hours, product ownership, product availability, and product prices.
+
+### Identity
+
+A restaurant is identified by its restaurant id.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Restaurant id | Primitive | Distinguishes one seeded restaurant from another and lets carts/orders reference the restaurant. | BR-CAT-002, BR-CART-004, BR-ORD-002 |
+| Name | Primitive | Needed so customers can browse and recognize restaurants. | BR-CAT-001 |
+| Description | Primitive | Supports catalog display for seeded restaurant data. | BR-CAT-001 |
+| Opening hours | Value Object | Encapsulates valid opening-hours data and checkout open/closed checks. | BR-CAT-005, BR-ORD-003 |
+| Active state | Primitive | Determines whether a restaurant appears to customers and whether checkout can proceed. | BR-CAT-001, BR-ORD-002 |
+| Products | Collection | Products are child entities owned by the restaurant. External code should not create orphan products. | BR-CAT-002, aggregate invariant: product belongs to one restaurant |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Check whether restaurant is open at a given time | BR-CAT-005, BR-ORD-003 | Opening hours belong to the restaurant, so the restaurant should answer whether it can accept checkout at a time. | Query |
+| Activate restaurant | BR-CAT-001, BR-ORD-002 | Active state belongs to the restaurant aggregate. | Command |
+| Deactivate restaurant | BR-CAT-001, BR-ORD-002 | Active state changes must stay inside the aggregate so visibility and checkout rules use one source of truth. | Command |
+| Add product | BR-CAT-002, BR-CAT-004 | Product belongs to one restaurant, so product creation should happen through the restaurant aggregate. | Command |
+| Update product price | BR-CAT-004, BR-ORD-005 | The current catalog price is owned by Catalog and must remain non-negative. | Command |
+| Mark product available | BR-CAT-003, BR-CART-008, BR-ORD-004 | Product availability is catalog state owned by the restaurant/product aggregate. | Command |
+| Mark product unavailable | BR-CAT-003, BR-CART-008, BR-ORD-004 | Product availability affects menu visibility, cart add, and checkout validation. | Command |
+
+### Encapsulation Rules
+
+- External code must not directly add or remove products from the product collection.
+- External code must not directly set product price.
+- External code must not directly toggle product availability.
+- Product creation should go through the restaurant aggregate.
+- Catalog mutation behavior may exist for completeness and seeding/testing, but MVP v1 exposes no public catalog-management API.
+
+### Value Object Candidates
+
+- `Money`: product price is a value because it is defined by amount, has no identity, and must reject negative values.
+- `TimeRange`: opening hours are a value because they are defined by start/end times and contain the "is this time inside the range" rule.
+
+### Notes
+
+Restaurants and products are seeded for MVP v1. There is no admin or restaurant owner workflow.
+
+## Product
+
+### Context
+
+Catalog Context.
+
+### Role
+
+`Product` is a child entity inside the Restaurant aggregate. It represents the current catalog menu item, not a cart item and not an order item.
+
+### Identity
+
+A product is identified by its product id. It also belongs to exactly one restaurant.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Product id | Primitive | Identifies the menu item so Basket can snapshot it and Ordering can keep historical product references. | BR-CAT-002, BR-CART-007, BR-ORD-006 |
+| Restaurant id | Entity reference id | Enforces that a product belongs to one restaurant and supports the one-restaurant-per-cart check. | BR-CAT-002, BR-CART-004 |
+| Name | Primitive | Copied into CartItem and OrderItem snapshots so later catalog changes do not rewrite history. | BR-CART-007, BR-ORD-006 |
+| Description | Primitive | Supports menu display for seeded catalog data. | BR-CAT-003 |
+| Current price | Value Object | Represents the current catalog price used when adding to cart and validating checkout. | BR-CAT-004, BR-CART-007, BR-ORD-005 |
+| Availability state | Primitive | Determines whether customers can see/add/order the product. | BR-CAT-003, BR-CART-008, BR-ORD-004 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Change current price | BR-CAT-004, BR-ORD-005 | Current product price belongs to Catalog; price changes must preserve the non-negative price invariant. | Command |
+| Mark available | BR-CAT-003, BR-CART-008, BR-ORD-004 | Availability is part of product state. | Command |
+| Mark unavailable | BR-CAT-003, BR-CART-008, BR-ORD-004 | Availability changes affect visibility, cart add, and checkout validation. | Command |
+| Report whether product is available | BR-CAT-003, BR-CART-008, BR-ORD-004 | Other workflows need to know availability without mutating product state. | Query |
+
+### Encapsulation Rules
+
+- Product may contain internal behavior such as changing price or availability, but application use cases should access those behaviors through the Restaurant aggregate root, not by loading or modifying Product directly.
+- Product price must not be represented as a raw unvalidated amount.
+- Product availability should not be changed by Basket or Ordering.
+
+### Value Object Candidates
+
+- `Money`: price is a value object because equality and validity are based on amount, not identity.
+
+### Notes
+
+Product in Catalog is current menu data. CartItem and OrderItem store snapshots derived from Product but are not Product.
+
+## Cart
+
+### Context
+
+Basket Context.
+
+### Role
+
+`Cart` is the Basket aggregate root. It represents the customer's active pre-checkout selection and protects cart invariants such as expiry, status, one restaurant per cart, positive quantities, duplicate merging, and price snapshots.
+
+### Identity
+
+A cart is identified by its cart id. In MVP v1, a cart is created only when the first item is added.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Cart id | Primitive | Identifies the cart aggregate once the first item is added. | BR-CART-001 |
+| Customer id | Entity reference id | Links the cart to the single MVP customer profile. | BR-CART-001, BR-CUS-001 |
+| Restaurant id | Entity reference id | Assigned from the first item and used to enforce one restaurant per cart. | BR-CART-004 |
+| Created time | Primitive | Supports the 1-hour expiry rule. | BR-CART-002, BR-CART-003 |
+| Status | Enum | Distinguishes Active, CheckedOut, and Cleared carts so only active carts can be modified. | Aggregate invariant: only Active carts can be modified |
+| Items | Collection | CartItem children hold selected products, quantities, and price snapshots. | BR-CART-005, BR-CART-006, BR-CART-007 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Add item from product snapshot | BR-CART-004, BR-CART-005, BR-CART-006, BR-CART-007, BR-CART-008 | Add item enforces multiple cart-wide invariants and must see existing items. | Command |
+| Remove item | BR-CART-002, BR-CART-009 | Removing an item mutates the cart and must respect expiry/status. | Command |
+| Update item quantity | BR-CART-002, BR-CART-005 | Quantity changes must preserve positive quantity and active cart rules. | Command |
+| Clear cart | BR-CART-009 | Clearing cart contents is a cart aggregate operation. | Command |
+| Check whether cart is expired | BR-CART-002, BR-CART-003 | Expiry is based on cart creation/expiry state. | Query |
+| Calculate total | BR-CART-007 | Total uses cart item price snapshots, not current catalog prices. | Query |
+| Mark checked out | Aggregate invariant: only Active carts can be modified | Checkout lifecycle changes the cart status and prevents later mutation. | Command |
+
+### Encapsulation Rules
+
+- External code must not directly add, remove, or update CartItem children.
+- External code must not directly set quantity, restaurant id, unit price snapshot, or status.
+- Application use cases should load Cart, call Cart behavior, then save.
+- Cart must not receive the Catalog Product entity directly. It should receive a simple product snapshot containing product id, restaurant id, product name, current price, and availability.
+
+### Value Object Candidates
+
+- `Money`: cart totals and unit price snapshots are amounts with validation and value equality.
+- `CatalogProductSnapshot`: add-to-cart input is a value-like snapshot crossing from Catalog to Basket.
+
+### Notes
+
+`Cart.RestaurantId` comes from the first added item. An empty active cart should not be created or persisted before the first item is added.
+
+For MVP v1, cart expiration is calculated from CreatedAt and currentTime. ExpiresAt is not stored to avoid inconsistency.
+
+`ExpiresAt` may be considered later if expiration needs to be persisted for querying or reporting, but it should not be part of the MVP v1 main cart state.
+
+## CartItem
+
+### Context
+
+Basket Context.
+
+### Role
+
+`CartItem` is a child entity inside the Cart aggregate. It stores the customer's selected product snapshot and quantity at add-to-cart time.
+
+### Identity
+
+Database identity: CartItemId. Business uniqueness inside a Cart: ProductId. Duplicate detection should use ProductId within the Cart.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Cart item id | Primitive | Identifies the child row inside the cart aggregate. | Aggregate access rule: child owned by Cart |
+| Cart id | Entity reference id | Links the item to its owning cart. | Database protection: CartItem belongs to one Cart |
+| Product id | Entity reference id | Identifies which catalog product was selected and enables duplicate merging. | BR-CART-006, BR-CART-007 |
+| Product name snapshot | Primitive | Preserves the product name from add-to-cart time. | BR-CART-007 |
+| Quantity | Primitive | Tracks selected amount and must stay greater than zero. | BR-CART-005, BR-CART-006 |
+| Unit price snapshot | Value Object | Preserves the product price from add-to-cart time. | BR-CART-007, BR-ORD-005 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Increase quantity | BR-CART-006, BR-CART-005 | Duplicate merge changes the existing line quantity while preserving positive quantity. | Command |
+| Set quantity | BR-CART-005 | Quantity validation belongs where quantity is stored, while Cart decides whether the operation is allowed. | Command |
+| Calculate line total | BR-CART-007 | Line total is based on the item quantity and its unit price snapshot. | Query |
+| Match selected product id | BR-CART-006 | Cart needs to find existing items for duplicate merging. | Query |
+
+### Encapsulation Rules
+
+- Application code must not query or update CartItem directly.
+- CartItem quantity should only change through Cart behavior.
+- Unit price snapshot and product name snapshot should not be overwritten casually after creation.
+
+### Value Object Candidates
+
+- `Money`: unit price snapshot and line total are monetary values, not raw numbers.
+
+### Notes
+
+CartItem is not a Product. It is Basket's snapshot of a selected product.
+
+A database unique constraint on CartId + ProductId can protect against duplicate cart lines.
+
+## Order
+
+### Context
+
+Ordering Context.
+
+### Role
+
+`Order` is the Ordering aggregate root. It represents the immutable result of successful checkout and owns historical item snapshots, delivery address snapshot, and total calculation.
+
+### Identity
+
+An order is identified by its order id.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Order id | Primitive | Identifies the historical order record. | BR-ORD-008 |
+| Customer id | Entity reference id | Links the order to the MVP customer profile and scopes order history. | BR-ORD-008, BR-CUS-001 |
+| Restaurant id | Entity reference id | Records which restaurant the order belongs to. | BR-ORD-002, BR-ORD-003 |
+| Created time | Primitive | Records when checkout succeeded. | BR-ORD-006 |
+| Delivery address snapshot | Value Object | Preserves delivery address at checkout time even if the customer later changes addresses. | BR-CUS-005, aggregate invariant: order must contain delivery address snapshot |
+| Items | Collection | OrderItem children store immutable product and price snapshots. | BR-ORD-006, BR-ORD-007 |
+| Total amount | Value Object | Stores the total calculated from order items, not caller input. | BR-ORD-007 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Create from checkout snapshots | BR-ORD-001, BR-ORD-006, BR-ORD-007, BR-CUS-005 | Order creation is where immutable item and delivery snapshots become the historical record. | Command |
+| Calculate total from order items | BR-ORD-007 | Order owns its items and should not trust caller-provided totals. | Query |
+
+### Encapsulation Rules
+
+- External code must not directly add, remove, or update OrderItem children.
+- External code must not directly set total amount.
+- External code must not replace item snapshots or delivery address snapshot after creation.
+- Order should not depend directly on CartItem. The checkout flow should pass checkout item snapshots.
+
+### Value Object Candidates
+
+- `Money`: order total, item unit prices, and line totals are monetary values.
+- `DeliveryAddressSnapshot`: delivery address at checkout is a value because the order needs the copied address data, not a mutable address identity.
+- `CheckoutItemSnapshot`: checkout input is an immutable input model used to create OrderItems from checkout data. It is not necessarily a persisted value object.
+
+### Notes
+
+Order stores historical facts. It should not point only to CustomerAddress for delivery data, because old orders must remain correct after address edits.
+
+Order query handlers can read Order data and map it to order history DTOs. This is application/read-model behavior, not core domain behavior.
+
+## OrderItem
+
+### Context
+
+Ordering Context.
+
+### Role
+
+`OrderItem` is a child entity inside the Order aggregate. It stores immutable historical product, quantity, unit price, and line total data.
+
+### Identity
+
+An order item is identified by its order item id inside the order aggregate.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Order item id | Primitive | Identifies the child row inside the order aggregate. | Aggregate access rule: child owned by Order |
+| Order id | Entity reference id | Links the item to its owning order. | Database protection: OrderItem belongs to one Order |
+| Product id snapshot | Entity reference id | Preserves which catalog product was ordered. | BR-ORD-006 |
+| Product name snapshot | Primitive | Preserves the product name at checkout time. | BR-ORD-006 |
+| Unit price snapshot | Value Object | Preserves the accepted unit price at checkout time. | BR-ORD-006, BR-ORD-005 |
+| Quantity | Primitive | Preserves the ordered quantity. | BR-ORD-006 |
+| Line total | Value Object | Preserves unit price multiplied by quantity for total calculation. | BR-ORD-006, BR-ORD-007 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Calculate line total at creation | BR-ORD-006, BR-ORD-007 | The line total belongs to the order line and should be derived from its own unit price and quantity. | Query during creation |
+| Expose immutable snapshot data | BR-ORD-006 | Order history needs item details without relying on current Catalog data. | Query |
+
+### Encapsulation Rules
+
+- Application code must not query or update OrderItem directly.
+- OrderItem state should be created through Order and then remain immutable.
+- Unit price, quantity, product name, and line total should not be changed after order creation.
+
+### Value Object Candidates
+
+- `Money`: unit price and line total are monetary values with non-negative validation.
+
+### Notes
+
+OrderItem is not Product and not CartItem. It is Ordering's immutable historical line.
+
+## Customer
+
+### Context
+
+Customer Context.
+
+### Role
+
+`Customer` is the Customer aggregate root. In MVP v1 it is a simple profile that owns addresses and links carts/orders to the single normal customer.
+
+### Identity
+
+A customer is identified by its customer id. There is no IdentityUserId in MVP v1.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Customer id | Primitive | Links carts, orders, and addresses to the MVP customer profile. | BR-CUS-001, BR-CART-001, BR-ORD-008 |
+| Addresses | Collection | Customer owns multiple address children and enforces default/duplicate rules. | BR-CUS-002, BR-CUS-003, BR-CUS-004 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Add address | BR-CUS-002, BR-CUS-004 | Customer owns the address collection and can detect duplicates. | Command |
+| Remove address | BR-CUS-002 | Removing an address changes the customer-owned collection. | Command |
+| Set default address | BR-CUS-003 | Only Customer can coordinate all addresses so exactly one is default. | Command |
+| Get default address | BR-CUS-003, BR-CUS-005 | Checkout needs a valid delivery address selection. | Query |
+| Check whether address belongs to customer | BR-CUS-005 | The application validates selected delivery address ownership through Customer data. | Query |
+
+### Encapsulation Rules
+
+- External code must not directly add or remove CustomerAddress children.
+- External code must not directly set default flags on addresses.
+- Customer must not contain authentication or authorization data.
+- Address changes should go through Customer behavior.
+
+### Value Object Candidates
+
+- `Address`: address details are value-like because they are defined by street/city/building/floor fields, not by separate identity.
+
+### Notes
+
+Customer is a profile, not an authenticated identity user. Do not add password, login, JWT, role, email-confirmation, admin, or restaurant-owner concepts for MVP v1.
+
+## CustomerAddress
+
+### Context
+
+Customer Context.
+
+### Role
+
+`CustomerAddress` is a child entity inside the Customer aggregate. It represents one saved delivery address for the MVP customer profile.
+
+### Identity
+
+A customer address is identified by its customer address id inside the Customer aggregate.
+
+### State / Properties
+
+| Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
+|---|---|---|---|
+| Customer address id | Primitive | Identifies one address in the customer's address collection. | BR-CUS-002 |
+| Customer id | Entity reference id | Links the address to its owning customer. | Database protection: Customer address belongs to one Customer |
+| Address details | Value Object | Groups non-empty address fields and supports duplicate detection. | BR-CUS-004, invariant: address data cannot be empty |
+| Default flag | Primitive | Marks the one address used by default when checkout needs delivery data. | BR-CUS-003, BR-CUS-005 |
+
+### Behavior
+
+| Behavior | Source rule | Why this entity owns it | Command or Query |
+|---|---|---|---|
+| Mark as default | BR-CUS-003 | The flag lives on the address, but Customer coordinates that only one address is default. | Command |
+| Mark as non-default | BR-CUS-003 | Other addresses must become non-default when one address is selected. | Command |
+| Compare address details for duplicate detection | BR-CUS-004 | Duplicate detection depends on address value equality. | Query |
+| Expose address snapshot data for checkout | BR-CUS-005 | Ordering needs delivery address data copied into the order. | Query |
+
+### Encapsulation Rules
+
+- Application code must not directly change CustomerAddress default flags.
+- Application code must not add duplicate addresses directly to the database.
+- CustomerAddress should be modified through Customer as the aggregate root.
+
+### Value Object Candidates
+
+- `Address`: street, city, building, floor, and similar fields form a value object because equality and validation come from the fields.
+- `DeliveryAddressSnapshot`: checkout/order should copy address details into an immutable order snapshot rather than depending only on CustomerAddress identity.
+
+### Notes
+
+CustomerAddress belongs to Customer. Ordering can use a copied delivery address snapshot, but it should not mutate CustomerAddress.
