@@ -22,7 +22,7 @@
 2. Rewrite each as a testable scenario:
    - *Given* a cart older than 1 hour, *When* customer adds an item, *Then* reject with `CartExpiredException`.
    - *Given* a cart with Restaurant A items, *When* customer adds a Restaurant B product, *Then* reject with `CrossRestaurantCartException`.
-   - *Given* a product price changed after being added to cart, *When* customer checks out, *Then* reject and return changed items.
+   - *Given* a product price changed after being added to cart, *When* customer views the cart or checks out, *Then* use the current Catalog price.
 3. Identify edge cases and document decisions for each:
    - What if restaurant closes *during* checkout?
    - What if a product is deleted while sitting in a cart?
@@ -65,13 +65,13 @@
 ```
 
 2. Document how contexts communicate:
-   - Basket reads from Catalog (product prices) — direct reference (same DB for MVP).
+   - Basket reads product identity, restaurant, name, and availability from Catalog when adding items. Application/read flows load current prices separately.
    - Ordering reads from Basket + Catalog at checkout time.
    - Identity provides CustomerId — referenced by Basket and Ordering but not owned by them.
 
 **Deliverable:** Context Map diagram (above) + a table of context responsibilities.
 
-**Key DDD learning:** "Product" means different things in different contexts. In Catalog it has full details. In Basket it's just a price snapshot. They are NOT the same class.
+**Key DDD learning:** "Product" means different things in different contexts. Catalog owns current product data and price. Basket stores only a selected product reference and quantity.
 
 ---
 
@@ -87,7 +87,7 @@
 | `Restaurant` | `Product` | Products belong to exactly one restaurant. Restaurant has opening hours. |
 | `Cart` | `CartItem` | One active cart per customer. All items from same restaurant. Cart expires after 1 hour. Quantity > 0. Duplicate products merge. |
 | `Order` | `OrderItem` | Immutable after creation. Stores price snapshots. |
-| `Customer` | `CustomerAddress` | Multiple addresses. One default address. |
+| `Customer` | `CustomerAddress` | Required full name, positive age, optional phone. Multiple addresses. One default address. |
 
 2. Write down the 8 business invariants that MUST live in the domain:
    1. One active cart per customer
@@ -96,7 +96,7 @@
    4. Quantity > 0
    5. Duplicate products increase quantity
    6. Expired carts cannot be modified
-   7. Checkout validates current prices
+   7. Checkout uses current Catalog prices
    8. Orders store immutable prices
 
 **Deliverable:** Aggregate boundary diagrams + invariant list.
@@ -150,7 +150,7 @@ Methods:     AddItem(product, quantity) → void  [CORE METHOD - enforces all ca
              UpdateItemQuantity(productId, newQuantity) → void
              IsExpired() → bool
              Clear() → void
-             GetTotal() → Money
+             GetTotal(currentPrices) → Money
 Constructor: Cart(customerId, restaurantId)
 Rules:       - CreatedAt set once in constructor (UTC)
              - Every mutation checks IsExpired() first
@@ -158,12 +158,12 @@ Rules:       - CreatedAt set once in constructor (UTC)
 
 #### CartItem (Entity, child of Cart)
 ```
-Properties:  Id, ProductId, ProductName, Quantity (int), UnitPriceSnapshot (Money)
+Properties:  Id, ProductId, ProductName, Quantity (int)
 Methods:     IncreaseQuantity(amount) → void
              SetQuantity(newQuantity) → void
-Constructor: internal CartItem(productId, productName, quantity, unitPrice)
+Constructor: internal CartItem(productId, productName, quantity)
 Rules:       - Quantity always > 0
-             - UnitPriceSnapshot set at creation, updated only on explicit price acceptance
+             - No product price is stored in CartItem
 ```
 
 #### Order (Aggregate Root)
@@ -188,12 +188,16 @@ Rules:       - LineTotal = UnitPrice × Quantity (calculated in constructor)
 
 #### Customer (Aggregate Root)
 ```
-Properties:  Id, IdentityUserId (string), FirstName, LastName,
+Properties:  Id, FullName, Age, PhoneNumber (optional),
              Addresses (IReadOnlyCollection<CustomerAddress>)
-Methods:     AddAddress(street, city, building, floor) → CustomerAddress
+Methods:     UpdateProfile(fullName, age, phoneNumber) → void
+             AddAddress(street, city, building, floor) → CustomerAddress
              RemoveAddress(addressId) → void
              SetDefaultAddress(addressId) → void
-Constructor: Customer(identityUserId, firstName, lastName)
+Constructor: Customer(fullName, age, phoneNumber = null)
+Rules:       - FullName is required and trimmed
+             - Age > 0
+             - No authentication or identity fields
 ```
 
 #### CustomerAddress (Entity, child of Customer)
@@ -259,25 +263,19 @@ Cart.AddItem(Product product, int quantity):
   4. IF !product.IsAvailable → throw ProductUnavailableException
   5. existingItem = Items.FirstOrDefault(i => i.ProductId == product.Id)
   6. IF existingItem != null → existingItem.IncreaseQuantity(quantity)
-  7. ELSE → Items.Add(new CartItem(product.Id, product.Name, quantity, product.Price))
+  7. ELSE → Items.Add(new CartItem(product.Id, product.Name, quantity))
 ```
 
 **Domain Service — `CheckoutService.Checkout()`:**
 ```
-CheckoutService.Checkout(Cart cart, IRestaurantRepository restaurantRepo):
-  1. IF cart.IsExpired() → throw CartExpiredException
-  2. IF cart.Items.Count == 0 → throw EmptyCartCheckoutException
-  3. restaurant = restaurantRepo.GetById(cart.RestaurantId)
-  4. IF !restaurant.IsActive → throw RestaurantInactiveException
-  5. IF !restaurant.IsCurrentlyOpen() → throw RestaurantClosedException
-  6. changedItems = []
-  7. FOR each cartItem in cart.Items:
-       product = restaurant.Products.Find(cartItem.ProductId)
-       IF !product.IsAvailable → add to changedItems
-       IF product.Price ≠ cartItem.UnitPriceSnapshot → add to changedItems
-  8. IF changedItems.Any() → return PriceChangedResult(changedItems)
-  9. order = new Order(cart.CustomerId, cart.RestaurantId, cart.Items, ...)
-  10. return OrderCreatedResult(order)
+CheckoutDomainService.Validate(Cart cart, Restaurant restaurant, DeliveryAddressSnapshot address, currentTime):
+  1. Ensure cart is active, not expired, and not empty
+  2. Ensure restaurant is active and open
+  3. Ensure delivery address snapshot exists
+  4. Find unavailable products using current Catalog data
+  5. IF unavailable products exist → return CheckoutProductsUnavailable
+  6. Create CheckoutItemSnapshot values using current Product prices
+  7. return CheckoutValidationSucceeded(checkoutItems)
 ```
 
 **Deliverable:** Pseudocode for all domain methods with complete guard clauses.
@@ -299,7 +297,6 @@ Talabat.Domain/Exceptions/
 ├── ProductUnavailableException.cs
 ├── RestaurantClosedException.cs
 ├── RestaurantInactiveException.cs
-├── PriceChangedException.cs
 ├── EmptyCartCheckoutException.cs
 ├── DuplicateAddressException.cs
 └── EntityNotFoundException.cs      ← generic "not found" with entity name
@@ -377,9 +374,9 @@ Talabat.Application/
 │   └── Queries/
 │       ├── GetOrderDetails/
 │       └── GetCustomerOrders/
-└── Identity/
+└── Customer/
     ├── Commands/
-    │   ├── RegisterCustomer/
+    │   ├── UpdateCustomerProfile/
     │   ├── AddAddress/
     │   └── RemoveAddress/
     └── Queries/
@@ -514,13 +511,12 @@ dotnet add tests/Talabat.Application.Tests reference src/Talabat.Application
 **Objective:** EF Core DbContext, entity configurations, repository implementations.
 
 **Implementation order:**
-1. Install NuGet packages: `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`
-2. Create `TalabatDbContext` inheriting from `IdentityDbContext<ApplicationUser>`
+1. Install NuGet package: `Microsoft.EntityFrameworkCore.SqlServer`
+2. Create `TalabatDbContext` inheriting from `DbContext`
 3. Create `Configurations/` folder with one `IEntityTypeConfiguration<T>` per entity
 4. Implement each repository class
 5. Implement `UnitOfWork` class wrapping `DbContext.SaveChangesAsync()`
-6. Create `ApplicationUser : IdentityUser` class
-7. Add `DependencyInjection.cs` for registering DbContext, repositories, Identity
+6. Add `DependencyInjection.cs` for registering DbContext and repositories
 
 **Key EF configurations:**
 - `Restaurant` → HasMany Products, cascade delete
@@ -560,9 +556,8 @@ dotnet ef database update -s src/Talabat.API
 3. Create `RestaurantsController` → 3 endpoints
 4. Create `CartController` → 4 endpoints
 5. Create `OrdersController` → 3 endpoints
-6. Create `AuthController` → 2 endpoints (register, login)
+6. Create `CustomerController` for the single MVP profile and addresses
 7. Add Swagger/OpenAPI configuration
-8. Add JWT authentication configuration
 
 **Error mapping middleware:**
 | Exception | HTTP Status | Response |
@@ -570,7 +565,6 @@ dotnet ef database update -s src/Talabat.API
 | `EntityNotFoundException` | 404 | `{ error: "..." }` |
 | `CartExpiredException` | 409 Conflict | `{ error: "..." }` |
 | `CrossRestaurantCartException` | 400 Bad Request | `{ error: "..." }` |
-| `PriceChangedException` | 409 Conflict | `{ error: "...", changedItems: [...] }` |
 | `RestaurantClosedException` | 422 Unprocessable | `{ error: "..." }` |
 | Other `DomainException` | 400 Bad Request | `{ error: "..." }` |
 | Unhandled | 500 Internal | `{ error: "An error occurred" }` |

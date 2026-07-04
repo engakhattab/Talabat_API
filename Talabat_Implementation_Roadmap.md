@@ -46,16 +46,16 @@
 | Context | Responsibility | Key Language |
 |---------|---------------|--------------|
 | **Catalog** | Restaurants & Products (the "menu") | Restaurant, Product, Availability |
-| **Basket** | Active shopping cart with price snapshots | Cart, CartItem, UnitPriceSnapshot |
+| **Basket** | Active shopping cart with product selections and quantities | Cart, CartItem, Quantity |
 | **Ordering** | Immutable order records | Order, OrderItem, LineTotal |
-| **Identity** | Authentication & customer profile | Customer, CustomerAddress |
+| **Customer** | Simple customer profile and addresses | Customer, CustomerAddress |
 
 **Context relationships (MVP):**
-- `Basket` → depends on `Catalog` (reads product prices).
-- `Ordering` → depends on `Basket` (converts cart to order) and `Catalog` (final price validation).
-- `Identity` → `Basket` and `Ordering` reference CustomerId but don't own Customer.
+- `Basket` → depends on `Catalog` for product identity, restaurant, name, and availability when adding items.
+- `Ordering` → depends on `Basket` (converts cart to order) and `Catalog` (uses current prices).
+- `Customer` → `Basket` and `Ordering` reference CustomerId but do not own the profile.
 
-**DDD reasoning:** Each context owns its own models. `Product` in Catalog has full details; `CartItem` in Basket only stores a price snapshot — they are *not* the same object.
+**DDD reasoning:** Each context owns its own models. `Product` in Catalog has current details and price; `CartItem` in Basket stores only a product reference and quantity.
 
 **Common beginner mistakes:**
 - Making one giant `Product` entity used everywhere.
@@ -91,7 +91,7 @@ Ordering Context:
   └── Order (Aggregate Root)
         └── OrderItem (Entity, owned by Order)
 
-Identity Context:
+Customer Context:
   └── Customer (Aggregate Root)
         └── CustomerAddress (Entity, owned by Customer)
 ```
@@ -131,15 +131,15 @@ Identity Context:
 
 **Product** — Properties: `Id`, `Name`, `Description`, `Price (decimal)`, `IsAvailable`, `RestaurantId`. Methods: `UpdatePrice()`, `MarkUnavailable()`.
 
-**Cart** — Properties: `Id`, `CustomerId`, `RestaurantId`, `CreatedAt`, `Items (list)`. Methods: `AddItem()`, `RemoveItem()`, `UpdateQuantity()`, `IsExpired()`, `Clear()`.
+**Cart** — Properties: `Id`, `CustomerId`, `RestaurantId`, `CreatedAt`, `Items (list)`. Methods: `AddItem()`, `RemoveItem()`, `UpdateQuantity()`, `IsExpired()`, `Clear()`, `GetTotal(currentPrices)`. Cart stores no prices or total.
 
-**CartItem** — Properties: `Id`, `ProductId`, `ProductName`, `Quantity`, `UnitPriceSnapshot`. Methods: `IncreaseQuantity()`, `SetQuantity()`.
+**CartItem** — Properties: `Id`, `ProductId`, `ProductName`, `Quantity`. Methods: `IncreaseQuantity()`, `SetQuantity()`. It stores no price.
 
 **Order** — Properties: `Id`, `CustomerId`, `RestaurantId`, `OrderDate`, `Status`, `TotalAmount`, `Items (list)`. Read-only after creation.
 
 **OrderItem** — Properties: `Id`, `ProductId`, `ProductName`, `UnitPrice`, `Quantity`, `LineTotal`. Fully immutable.
 
-**Customer** — Properties: `Id`, `IdentityUserId`, `FirstName`, `LastName`, `Addresses (list)`. Methods: `AddAddress()`, `RemoveAddress()`, `SetDefaultAddress()`.
+**Customer** — Properties: `Id`, `FullName`, `Age`, optional `PhoneNumber`, `Addresses (list)`. Methods: `UpdateProfile()`, `AddAddress()`, `RemoveAddress()`, `SetDefaultAddress()`. It contains no authentication identity.
 
 **CustomerAddress** — Properties: `Id`, `Street`, `City`, `BuildingNumber`, `Floor`, `IsDefault`.
 
@@ -165,7 +165,7 @@ Identity Context:
 
 | Value Object | Used In | Why |
 |-------------|---------|-----|
-| `Money` | Product.Price, CartItem.UnitPriceSnapshot, OrderItem.UnitPrice | Prevents raw `decimal` mistakes, prepares for multi-currency later. |
+| `Money` | Product.Price, OrderItem.UnitPrice, Order totals | Prevents raw `decimal` mistakes, prepares for multi-currency later. |
 | `Address` | CustomerAddress | Groups street/city/building into a cohesive concept. |
 | `TimeRange` | Restaurant.OpensAt + ClosesAt | Encapsulates "is now within range?" logic. |
 
@@ -201,7 +201,7 @@ Identity Context:
 - Guard: `!product.IsAvailable` → throw `ProductUnavailableException`
 - Guard: `quantity <= 0` → throw `InvalidQuantityException`
 - If product already in cart → increase quantity
-- Else → add new `CartItem` with price snapshot
+- Else → add new `CartItem` without price
 
 **`Cart.IsExpired()`**
 - Returns `DateTime.UtcNow - CreatedAt > TimeSpan.FromHours(1)`
@@ -212,8 +212,8 @@ Identity Context:
 **`CheckoutService.Checkout(Cart cart)` (Domain Service)**
 - Validate restaurant is open
 - Validate all products still available
-- Compare current prices with cart snapshots
-- If any price changed → return `PriceChangedResult` with details
+- Load current Catalog prices for all available products
+- Create checkout item snapshots with those current prices
 - If all valid → create `Order` with immutable snapshots, clear cart
 
 **DDD reasoning:** `Cart.AddItem()` lives on `Cart` (the aggregate root) because it enforces cross-item invariants. A standalone service can't guarantee consistency.
@@ -245,7 +245,6 @@ DomainException (abstract base)
 ├── ProductUnavailableException
 ├── RestaurantClosedException
 ├── RestaurantInactiveException
-├── PriceChangedException
 ├── EmptyCartCheckoutException
 ├── DuplicateAddressException
 └── CustomerNotFoundException
@@ -292,7 +291,6 @@ IOrderRepository
 
 ICustomerRepository
   - GetByIdAsync(int id)
-  - GetByIdentityUserIdAsync(string identityUserId)
   - AddAsync(Customer customer)
   - Update(Customer customer)
 ```
@@ -329,9 +327,9 @@ ICustomerRepository
 
 **Basket:** GetActiveCart, AddItemToCart, RemoveItemFromCart, UpdateCartItemQuantity, ClearCart.
 
-**Ordering:** Checkout (validate prices → create order), GetOrderDetails, GetCustomerOrders.
+**Ordering:** Checkout (use current prices → create order), GetOrderDetails, GetCustomerOrders.
 
-**Identity:** RegisterCustomer, GetCustomerProfile, AddAddress, RemoveAddress.
+**Customer:** GetCustomerProfile, UpdateCustomerProfile, AddAddress, RemoveAddress.
 
 **DDD reasoning:** The application layer is *thin*. It loads aggregates via repositories, calls domain methods, and saves. Example:
 
@@ -501,10 +499,10 @@ Talabat.sln
 | POST | `/api/orders/checkout` | Checkout |
 | GET | `/api/orders` | GetCustomerOrders |
 | GET | `/api/orders/{id}` | GetOrderDetails |
-| POST | `/api/auth/register` | RegisterCustomer |
-| POST | `/api/auth/login` | Login |
+| GET | `/api/customer` | GetCustomerProfile |
+| PUT | `/api/customer` | UpdateCustomerProfile |
 
-**API layer responsibilities:** Map HTTP → Commands/Queries, handle auth, map `DomainException` → HTTP status codes via middleware.
+**API layer responsibilities:** Map HTTP → Commands/Queries and map `DomainException` → HTTP status codes via middleware. Authentication and authorization are out of scope for MVP v1.
 
 ---
 

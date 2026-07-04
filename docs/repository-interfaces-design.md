@@ -92,14 +92,15 @@ Load seeded restaurants and products for browsing, add-to-cart, and checkout val
 |---|---|---|
 | `GetActiveRestaurants` | Customer browsing should show only active restaurants. This is read filtering over the Catalog aggregate. | BrowseRestaurants |
 | `GetById` | Some use cases need restaurant details or restaurant state by id. | Restaurant details, checkout restaurant validation |
-| `GetByIdWithProducts` | Basket and Ordering need product data from the Restaurant aggregate for validation. | AddItemToCart, Checkout |
-| `GetProductSnapshot` | Optional convenience method that returns the data needed to build `CatalogProductSnapshot`. This is an application/query helper, not Product aggregate access. | AddItemToCart |
+| `GetByIdWithProducts` | Basket, cart read flows, and Ordering need current product data for validation and pricing. | AddItemToCart, GetCartDetails, Checkout |
+| `GetProductSnapshot` | Optional convenience method that returns the price-free data needed to build `CatalogProductSnapshot`. This is an application/query helper, not Product aggregate access. | AddItemToCart |
 | `Exists` | Optional, only if a use case needs a lightweight existence check. | Validation/setup workflows if needed |
 
 ### Important Notes
 
 - Product is a child entity of Restaurant, so Product access should happen through Restaurant-oriented methods.
 - `GetProductSnapshot` should not become a back door for modifying Product directly.
+- Cart detail and checkout flows must obtain current Product prices from Catalog-oriented reads; CartItem stores no price.
 - MVP v1 has seeded catalog data and no public catalog-management API.
 
 ## ICartRepository
@@ -150,7 +151,7 @@ Save created orders and load order history.
 
 ### Purpose
 
-Load the MVP customer profile and addresses.
+Load the MVP customer profile data and addresses.
 
 ### Conceptual Methods
 
@@ -160,11 +161,12 @@ Load the MVP customer profile and addresses.
 | `GetById` | Optional if the MVP customer id is stored in configuration/seed data. | Internal setup or explicit customer lookup if needed |
 | `GetByIdWithAddresses` | Address management and checkout need the Customer aggregate with its address collection. | AddAddress, RemoveAddress, SetDefaultAddress, Checkout |
 | `Add` | Used only for seeding/setup if needed. | Seed/setup |
-| `Update` | Address changes mutate the Customer aggregate and need persistence. | AddAddress, RemoveAddress, SetDefaultAddress |
+| `Update` | Profile or address changes mutate the Customer aggregate and need persistence. | UpdateCustomerProfile, AddAddress, RemoveAddress, SetDefaultAddress |
 
 ### Important Notes
 
 - No IdentityUserId in MVP v1.
+- Customer profile includes required FullName, positive Age, and optional PhoneNumber.
 - Do not expose methods that update CustomerAddress directly.
 - CustomerAddress must be loaded and changed through Customer.
 
@@ -214,8 +216,9 @@ Every repository method should come from a use case.
 Examples:
 
 - BrowseRestaurants needs `GetActiveRestaurants`.
-- AddItemToCart needs active cart lookup and product snapshot/current product data.
-- Checkout needs active cart, restaurant with products, customer with addresses, order add, and unit of work save.
+- AddItemToCart needs active cart lookup and a price-free catalog product snapshot.
+- GetCartDetails needs Cart selections plus current Catalog product prices, which the Application layer supplies to `Cart.GetTotal(currentPrices)`.
+- Checkout needs active cart, restaurant with current products and prices, customer with addresses, order add, and unit of work save.
 - GetOrders needs orders by customer.
 - Address management needs customer with addresses.
 

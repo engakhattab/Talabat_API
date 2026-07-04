@@ -9,9 +9,9 @@ MVP v1 does not include authentication, authorization, Identity, login/register,
 | Context | Aggregate Root | Child Entities | Main Invariants |
 |---|---|---|---|
 | Catalog | `Restaurant` | `Product` | Product belongs to one restaurant; product price cannot be negative; opening hours must be valid; product availability is controlled through catalog behavior. |
-| Basket | `Cart` | `CartItem` | Cart belongs to one customer; only active carts can be modified; cart contains items from one restaurant; cart expires after 1 hour; quantities are positive; duplicate products merge; cart items store price snapshots. |
+| Basket | `Cart` | `CartItem` | Cart belongs to one customer; only active carts can be modified; cart contains items from one restaurant; cart expires after 1 hour; quantities are positive; duplicate products merge; cart stores no product prices. |
 | Ordering | `Order` | `OrderItem` | Order belongs to one customer and one restaurant; order cannot be created from an empty cart; order items are immutable snapshots; total is calculated from items; delivery address is snapshotted. |
-| Customer | `Customer` | `CustomerAddress` | Customer can have multiple addresses; only one default address is allowed; duplicate addresses are rejected; address data cannot be empty. |
+| Customer | `Customer` | `CustomerAddress` | Full name is required; age is positive; phone is optional; multiple addresses are allowed; only one default address is allowed; duplicate addresses are rejected. |
 
 ## Restaurant Aggregate
 
@@ -66,10 +66,9 @@ Root: `Cart`
 Children: `CartItem`  
 Context: Basket
 
-### Value Objects Used
+### Input Models Used
 
-- `Money` for cart item unit price snapshots and cart total.
-- `ProductSnapshot` or `CatalogProductSnapshot` as input to add-to-cart behavior.
+- `CatalogProductSnapshot` as price-free input to add-to-cart behavior.
 
 ### Concepts Used
 
@@ -88,7 +87,8 @@ Context: Basket
 - Expired cart cannot be modified.
 - Quantity must be greater than zero.
 - Duplicate products are merged.
-- Product name and unit price are snapshotted when added.
+- CartItem stores ProductId and Quantity, with ProductName optional for simple display.
+- CartItem does not store product price.
 - Unavailable products cannot be added.
 
 `IsExpired(currentTime)` may be calculated from `CreatedAt` plus the expiry duration or from a stored `ExpiresAt` value. `Status` tracks lifecycle state: whether the cart is `Active`, `CheckedOut`, or `Cleared`.
@@ -102,7 +102,7 @@ Context: Basket
 - `UpdateQuantity(productId, quantity, currentTime)`
 - `Clear(currentTime)`
 - `IsExpired(currentTime)`
-- `GetTotal()`
+- `GetTotal(currentPrices)`
 - `MarkCheckedOut(currentTime)`
 
 ### Important Input Boundary
@@ -112,7 +112,6 @@ Do not pass the Catalog `Product` entity directly into `Cart`. Use a small input
 - `ProductId`
 - `RestaurantId`
 - `ProductName`
-- `CurrentPrice`
 - `IsAvailable`
 
 This prevents sharing Catalog entities directly across bounded contexts.
@@ -121,7 +120,6 @@ This prevents sharing Catalog entities directly across bounded contexts.
 
 - External code must not directly add, remove, or update `CartItem` rows.
 - External code must not directly change cart item quantity.
-- External code must not directly overwrite unit price snapshots.
 - External code must not bypass cart expiry checks.
 - External code must not modify a `CheckedOut` or `Cleared` cart.
 - Application use cases should call `Cart` methods instead of changing child entities.
@@ -135,8 +133,9 @@ This prevents sharing Catalog entities directly across bounded contexts.
 - Cart status should be persisted if the system needs to distinguish active, checked-out, and cleared carts.
 - If cart status is used, one active cart per customer should be protected by a filtered unique index.
 - Quantity should have a database check constraint greater than zero.
-- Unit price snapshot should be stored as an owned value object or mapped columns for `Money`.
 - Cart item collection should be backed by a private field and exposed as a read-only collection.
+
+Cart stores no price or total. A later Application/read flow loads current Product prices from Catalog and supplies them to `Cart.GetTotal(currentPrices)`, which multiplies each supplied price by the CartItem quantity and returns a transient total. The checkout flow also loads current Catalog prices and uses them when creating `CheckoutItemSnapshot` values.
 
 ## Order Aggregate
 
@@ -212,6 +211,9 @@ Context: Customer
 - Customer can have only one default address.
 - Duplicate addresses are rejected.
 - Address data cannot be empty.
+- FullName is required and cannot be empty.
+- Age must be greater than zero.
+- PhoneNumber is optional in MVP v1.
 
 ### Methods That Should Exist On The Aggregate Root
 
@@ -219,10 +221,13 @@ Context: Customer
 - `RemoveAddress(addressId)`
 - `SetDefaultAddress(addressId)`
 - `GetDefaultAddress()`
+- `UpdateProfile(fullName, age, phoneNumber)`
 
 ### Important MVP v1 Boundary
 
 Customer is a simple profile in MVP v1. Do not include `IdentityUserId`, password, email confirmation, roles, JWT, or login data.
+
+The Customer constructor or factory requires `FullName` and `Age`, accepts an optional `PhoneNumber`, and starts with an encapsulated address collection. Profile behavior must trim and reject an empty full name and reject age less than or equal to zero.
 
 Customer owns customer addresses and protects address invariants. Checkout requiring a delivery address is not only a Customer aggregate invariant; it is a cross-aggregate checkout rule that the application layer validates before Ordering creates an order with a `DeliveryAddressSnapshot`.
 
@@ -247,7 +252,7 @@ Customer owns customer addresses and protects address invariants. Checkout requi
 Some rules cannot be enforced by one aggregate alone:
 
 - One active cart per customer requires application, repository, and database support.
-- Checkout price validation requires Cart data plus current Catalog data.
+- Checkout pricing requires Cart quantities plus current Catalog prices; there is no old cart price comparison.
 - Checkout product availability validation requires Cart data plus current Catalog data.
 - Checkout restaurant open/active validation requires Catalog data.
 - Checkout delivery address validation requires Customer data.

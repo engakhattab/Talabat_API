@@ -16,13 +16,13 @@ Without a formal tactical design, the implementation phase risks becoming ad-hoc
 ## User Scenarios & Testing
 
 ### Primary Scenarios
-- **Given** a valid cart and checkout request, **When** all prices match snapshots and products are available, **Then** create an immutable order and clear the cart.
+- **Given** a valid cart and checkout request, **When** products are available, **Then** use current Catalog prices to create an immutable order and clear the cart.
 - **Given** an attempt to add a product to a cart, **When** the product belongs to a different restaurant, **Then** reject with `CrossRestaurantCartException`.
 - **Given** an attempt to modify an expired cart, **When** adding or removing items, **Then** reject with `CartExpiredException`.
 
 ### Edge Cases
 - **Given** a restaurant closes during an active checkout, **When** checkout is processed, **Then** reject with `RestaurantClosedException`.
-- **Given** a product price changes while sitting in a cart, **When** checkout is requested, **Then** reject with `PriceChangedException` and return the changed items.
+- **Given** a product price changes while sitting in a cart, **When** cart details or checkout are requested, **Then** use the current Catalog price without comparing an old cart price.
 
 ## Functional Requirements
 1. The domain model must encapsulate all state mutations within private setters and exposed domain methods.

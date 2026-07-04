@@ -17,14 +17,14 @@ MVP v1 does not include authentication or authorization. There is no login, regi
 | BR-CART-004 | Cart can contain items from only one restaurant | Domain Rule | Cart add-item behavior | This is a core Cart aggregate invariant. |
 | BR-CART-005 | Quantity must be greater than zero | Cross-layer Rule | Cart and CartItem quantity rules / database check constraint | The domain should reject invalid quantities, and the database should prevent invalid persisted rows. |
 | BR-CART-006 | Duplicate products are merged | Domain Rule | Cart add-item behavior | The Cart aggregate should merge duplicate products by increasing quantity. |
-| BR-CART-007 | Product price is snapshotted in cart | Domain Rule | Cart add-item behavior / CartItem creation | CartItem should store product name and unit price at the moment the item is added. |
+| BR-CART-007 | Cart uses current catalog price for display and checkout | Cross-layer Rule | Application loads prices; Cart calculates from supplied prices | Cart stores no price and queries nothing. Application/read flows supply current Catalog prices to `Cart.GetTotal(currentPrices)`. |
 | BR-CART-008 | Unavailable products cannot be added to cart | Domain Rule | Cart add-item behavior using product availability | The application loads product data, but the domain rejects unavailable products. |
 | BR-CART-009 | Customer can clear cart | Domain Rule | Cart clear behavior | Clearing cart items is aggregate behavior. |
 | BR-ORD-001 | Empty cart cannot be checked out | Cross-layer Rule | Checkout use case delegates to checkout domain validation | Checkout starts in the application layer, but empty-cart rejection is business validation. |
 | BR-ORD-002 | Restaurant must be active during checkout | Cross-layer Rule | Checkout use case delegates to restaurant/domain validation | The application loads the restaurant; the domain decides whether inactive restaurants can be checked out. |
 | BR-ORD-003 | Restaurant must be open during checkout | Cross-layer Rule | Checkout use case delegates to restaurant opening-hours validation | Time-based restaurant availability should stay in the domain model or a domain service. |
 | BR-ORD-004 | Checkout validates product availability again | Cross-layer Rule | Checkout use case delegates to checkout domain service | This protects against stale cart state after catalog availability changes. |
-| BR-ORD-005 | Checkout validates current prices | Cross-layer Rule | Checkout use case delegates to checkout domain service | Current-price comparison is business validation, but checkout orchestration belongs to the application layer. |
+| BR-ORD-005 | Checkout uses current catalog prices | Cross-layer Rule | Checkout use case and checkout domain service | Application loads current Catalog data; the domain service uses those prices to create checkout item snapshots without old-price comparison. |
 | BR-ORD-006 | Order stores immutable item snapshots | Domain Rule | Order and OrderItem creation | The order aggregate should preserve historical product name, price, quantity, and line total. |
 | BR-ORD-007 | Order total is calculated from order items | Domain Rule | Order creation / order total calculation | The domain should calculate totals instead of trusting caller-provided totals. |
 | BR-ORD-008 | Customer can only view their own orders | Application Rule | Order query filtering by the MVP customer profile | MVP v1 has one normal customer profile, so order reads should be scoped to that profile without authentication. |
@@ -33,6 +33,9 @@ MVP v1 does not include authentication or authorization. There is no login, regi
 | BR-CUS-003 | Customer can have only one default address | Cross-layer Rule | Customer set-default-address behavior / database filtered unique index | The domain should unset other defaults; the database should prevent conflicting default rows. |
 | BR-CUS-004 | Duplicate address should be rejected | Domain Rule | Customer add-address behavior | The Customer aggregate should compare against existing addresses before adding a new one. |
 | BR-CUS-005 | Checkout requires a delivery address | Application Rule | Checkout use case validation before order creation | The application should ensure a selected customer address exists before creating the order. |
+| BR-CUS-006 | Customer full name is required | Domain Rule | Customer construction and profile-update behavior | The Customer aggregate should trim the name and reject empty or whitespace values. |
+| BR-CUS-007 | Customer age must be greater than zero | Cross-layer Rule | Customer construction/profile update and database check constraint | The domain rejects invalid ages; persistence should later protect stored profile data. |
+| BR-CUS-008 | Customer phone number is optional | Domain Rule | Customer construction and profile-update behavior | Missing phone data is valid in MVP v1 and has no authentication meaning. |
 
 ## Rules That Need Database Protection
 
@@ -46,6 +49,7 @@ MVP v1 does not include authentication or authorization. There is no login, regi
 - One default address per customer.
 - One active cart per customer, if using cart status.
 - Customer address belongs to one `Customer`.
+- Customer age greater than zero.
 
 ## Out of Scope For MVP v1
 

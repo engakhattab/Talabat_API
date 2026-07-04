@@ -35,10 +35,9 @@ Use aggregate methods when the rule belongs to one aggregate:
 Use a Domain Service when the rule needs multiple aggregates or cross-context data:
 
 - Checkout validation.
-- Comparing cart item price snapshots with current catalog prices.
 - Checking product availability again during checkout.
 - Checking restaurant active/open state during checkout.
-- Preparing checkout item snapshots for Order creation.
+- Preparing checkout item snapshots with current Catalog prices for Order creation.
 
 The design rule is simple: keep behavior on the aggregate when one aggregate owns the rule; use a Domain Service only when the business decision spans multiple aggregates.
 
@@ -82,11 +81,11 @@ The domain service should:
 - Ensure cart is not empty.
 - Ensure restaurant is active.
 - Ensure restaurant is open at current time.
+- Ensure a delivery address snapshot is present before Order creation.
 - Validate every cart item against current catalog product data.
-- Detect price changes.
 - Detect products that became unavailable.
-- Return structured checkout results for price changes and unavailable products.
-- Produce checkout item snapshots that can be passed to `Order.CreateFromCheckout` when checkout is valid.
+- Return a structured checkout result for unavailable products.
+- Produce checkout item snapshots using current Catalog names and prices when checkout is valid.
 
 ### Suggested Validation Order
 
@@ -95,21 +94,15 @@ The domain service should:
 3. Ensure cart is not empty.
 4. Ensure restaurant is active.
 5. Ensure restaurant is open at current time.
-6. Validate product availability using current catalog data.
-7. Validate current prices against cart price snapshots.
-8. If valid, produce checkout item snapshots.
+6. Ensure a delivery address snapshot exists.
+7. Validate product availability using current catalog data.
+8. If valid, produce checkout item snapshots using current Catalog prices.
 
-Earlier failures should stop later checks when later checks are unnecessary. For example, there is no reason to compare prices if the cart is expired, and there is no reason to create checkout item snapshots if the restaurant is closed.
+Earlier failures should stop later checks when later checks are unnecessary. For example, there is no reason to inspect product availability if the cart is expired, and there is no reason to create checkout item snapshots if the restaurant is closed or the delivery address is missing.
 
 ### Multiple Checkout Problems
 
-MVP v1 decision:
-
-- If one or more products became unavailable, return `CheckoutProductsUnavailable` first.
-- Only check and return `CheckoutPriceChanged` when all products are still available.
-- If all products are available and prices match, checkout validation succeeds.
-
-Reason: unavailable products cannot be ordered at all, so availability has priority over price changes.
+MVP v1 returns `CheckoutProductsUnavailable` when one or more products became unavailable. If all products remain available, checkout validation succeeds and uses their current Catalog prices. There is no price-change comparison or price-change result because Cart stores no old price.
 
 ### What It Should NOT Do
 
@@ -134,14 +127,6 @@ It should not:
 
 - Contains checkout item snapshots.
 
-`CheckoutPriceChanged`
-
-- Contains changed items:
-- ProductId.
-- ProductName.
-- OldCartPrice.
-- CurrentCatalogPrice.
-
 `CheckoutProductsUnavailable`
 
 - Contains unavailable items:
@@ -149,7 +134,7 @@ It should not:
 - ProductName.
 - Reason.
 
-Price changes and unavailable products are expected checkout outcomes, so they should be returned as structured results.
+Unavailable products are an expected checkout outcome, so they should be returned as a structured result. Current Catalog prices are not a failure outcome; they become `CheckoutItemSnapshot.UnitPrice` values.
 
 Invalid operations such as expired cart or empty cart can still throw domain exceptions.
 
@@ -163,7 +148,7 @@ Invalid operations such as expired cart or empty cart can still throw domain exc
 | Load/validate selected customer address | Application + Customer aggregate | Application requests it, Customer owns address collection rule. |
 | Create DeliveryAddressSnapshot | Application or Customer method | It copies address value for Order. |
 | Run checkout domain validation | CheckoutDomainService | Cross-aggregate business validation. |
-| If price changed or products unavailable, return checkout result | Application returns service result | UI needs structured details. |
+| If products are unavailable, return checkout result | Application returns service result | UI needs structured unavailable-item details. |
 | If valid, create Order | Order aggregate factory | Order owns OrderItems, total calculation, and immutable snapshots. |
 | Mark Cart checked out | Cart aggregate | Cart owns its lifecycle/status. |
 | Save changes | Application + UnitOfWork | Transaction persistence is not domain logic. |
@@ -172,7 +157,7 @@ Invalid operations such as expired cart or empty cart can still throw domain exc
 
 Controllers should map HTTP requests to application commands/queries.
 
-Controllers should not enforce cart rules, price checks, or order creation rules. Those rules belong in domain entities, aggregate roots, or domain services.
+Controllers should not enforce cart rules, product availability checks, current-price selection, or order creation rules. Those responsibilities belong in application orchestration, domain entities, aggregate roots, or domain services.
 
 Putting business rules in controllers makes them hard to test and easy to bypass. The same checkout logic may later be used by another delivery mechanism, such as a background process or different API surface. If the rules live in controllers, they are tied to HTTP instead of the domain.
 
@@ -182,7 +167,7 @@ The Application handler should orchestrate.
 
 It can decide workflow order: load cart, load restaurant data, load customer address, call the domain service, create the order, mark the cart checked out, and save through UnitOfWork.
 
-Business rules should remain in Domain entities or Domain Services. The handler can coordinate the workflow, but it should delegate business decisions such as cart expiry, restaurant open state, product availability, price changes, order creation, and cart lifecycle changes.
+Business rules should remain in Domain entities or Domain Services. The handler can coordinate the workflow, but it should delegate business decisions such as cart expiry, restaurant open state, product availability, order creation, and cart lifecycle changes. The handler loads current Catalog prices; Cart may calculate a transient total only from prices supplied by the caller.
 
 This keeps the Application layer thin and keeps the business model testable without API or persistence concerns.
 
@@ -201,6 +186,6 @@ This design also keeps transaction boundaries clear. The Application layer contr
 - Letting CheckoutDomainService become a god service.
 - Injecting DbContext into Domain Service.
 - Returning HTTP response objects from Domain Service.
-- Throwing exceptions for price changes instead of returning structured checkout result.
+- Comparing current Catalog prices with an old cart price that no longer exists.
 - Passing CartItem directly into Order instead of checkout item snapshots.
 - Passing Catalog Product entity directly into Cart instead of catalog product snapshots.

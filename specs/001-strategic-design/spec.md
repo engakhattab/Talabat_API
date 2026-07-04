@@ -29,10 +29,10 @@ Building a complex system without a clear domain model leads to scattered busine
 - *When* the customer attempts to add a product from Restaurant B,
 - *Then* the system must reject the operation and require the cart to be cleared first.
 
-**Scenario 3: Validating Price Snapshots at Checkout**
-- *Given* an active cart with a product added at a historical price of $10,
-- *When* the customer proceeds to checkout and the current catalog price has changed to $12,
-- *Then* the checkout must fail, returning the changed items and requiring explicit customer acceptance of the new price.
+**Scenario 3: Using Current Catalog Prices**
+- *Given* an active cart containing a product whose Catalog price changed,
+- *When* the customer views cart details or proceeds to checkout,
+- *Then* the system uses the current Catalog price because Cart stores no historical price.
 
 **Scenario 4: Merging Duplicate Products**
 - *Given* an active cart containing 2 units of Product A,
@@ -54,7 +54,7 @@ Building a complex system without a clear domain model leads to scattered busine
 ## Functional Requirements
 
 1. **Business Rule Formalization**: All requirements must be captured as Given/When/Then scenarios.
-2. **Context Mapping**: The domain must be divided into Catalog, Basket, Ordering, and Identity contexts, with documented data dependencies between them.
+2. **Context Mapping**: The domain must be divided into Catalog, Basket, Ordering, and Customer contexts, with documented data dependencies between them.
 3. **Aggregate Definition**: Four primary aggregate roots must be defined: Restaurant, Cart, Order, and Customer.
 4. **Invariant Assignment**: The 8 core business invariants (e.g., "Quantity > 0", "Orders store immutable prices") must be explicitly assigned to their responsible aggregate root.
 5. **Ubiquitous Language**: A glossary must be produced defining terminology per bounded context (e.g., differentiating `Product` in Catalog from `CartItem` in Basket).
@@ -66,7 +66,7 @@ While implementation is deferred to Phase 2, the following strategic entities ar
 - **Catalog Context**: `Restaurant` (Aggregate Root), `Product` (Entity)
 - **Basket Context**: `Cart` (Aggregate Root), `CartItem` (Entity)
 - **Ordering Context**: `Order` (Aggregate Root), `OrderItem` (Entity)
-- **Identity Context**: `Customer` (Aggregate Root), `CustomerAddress` (Entity)
+- **Customer Context**: `Customer` (Aggregate Root), `CustomerAddress` (Entity)
 
 ## Success Criteria
 
@@ -116,6 +116,6 @@ Implementation is explicitly in scope because learning how to transform architec
 ## Assumptions
 
 - The MVP operates in a single timezone for restaurant opening hours.
-- Product prices may change at any time, requiring snapshotting in the Basket and historical preservation in Ordering.
+- Product prices may change at any time. Basket stores no price; cart reads and checkout use current Catalog prices, while Ordering preserves the accepted checkout price historically.
 - The MVP requires only a single currency, deferring multi-currency support.
 - Carts are aggressively expired (1 hour) to reduce stale price conflicts.

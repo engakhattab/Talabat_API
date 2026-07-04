@@ -2,7 +2,7 @@
 
 ## Dependency Graph
 1. **Phase 1 (Setup)** → 2. **Phase 2 (Foundational)**
-2. **Phase 2** → **US1 (Catalog)** & **US2 (Identity)**
+2. **Phase 2** → **US1 (Catalog)** & **US2 (Customer)**
 3. **US1** & **US2** → **US3 (Basket)**
 4. **US3** → **US4 (Ordering)**
 5. **US4** → **US5 (Checkout Service)**
@@ -14,7 +14,7 @@
 - [X] T003 Delete default `Class1.cs` from `src/Talabat.Domain`
 - [X] T004 Create `src/Talabat.Domain/Common/` and `src/Talabat.Domain/Exceptions/` directories
 - [X] T005 [P] Create `src/Talabat.Domain/ValueObjects/`, `src/Talabat.Domain/Entities/`, and `src/Talabat.Domain/Interfaces/` directories
-- [X] T005a Create `docs/glossary.md` defining ubiquitous language (Customer, Restaurant, Product, Cart, Cart Item, Order, Order Item, Checkout, Aggregate, Aggregate Root, Entity, Value Object, Price Snapshot, Current Price, Immutable Order Price, Availability, Restaurant Opening Hours)
+- [X] T005a Create `docs/glossary.md` defining ubiquitous language (Customer, Restaurant, Product, Cart, Cart Item, Order, Order Item, Checkout, Aggregate, Aggregate Root, Entity, Value Object, Checkout Item Snapshot, Current Price, Immutable Order Price, Availability, Restaurant Opening Hours)
 - [X] T005b Create `docs/domain-invariants.md` documenting all business invariants enforced by the Domain layer (Cart, Order, Restaurant rules)
 
 ## Phase 2: Foundational
@@ -32,19 +32,19 @@
 - [ ] T013 [US1] Implement `Restaurant` aggregate root with `TimeRange` opening hours, `IsCurrentlyOpen`, and product management methods in `src/Talabat.Domain/Entities/Catalog/Restaurant.cs`
 - [ ] T014 [P] [US1] Implement `IRestaurantRepository` interface in `src/Talabat.Domain/Interfaces/IRestaurantRepository.cs`
 
-## Phase 4: [US2] Identity Domain Model
-- **Goal**: Implement the Identity bounded context for customer profiles.
-- **Independent Test Criteria**: Customer can manage multiple addresses and specify one default address.
-- [ ] T015 [P] [US2] Implement `CustomerAddress` entity with private setters in `src/Talabat.Domain/Entities/Identity/CustomerAddress.cs`
-- [ ] T016 [US2] Implement `Customer` aggregate root with `AddAddress` and `SetDefaultAddress` invariants in `src/Talabat.Domain/Entities/Identity/Customer.cs`
+## Phase 4: [US2] Customer Domain Model
+- **Goal**: Implement the Customer bounded context for the simple MVP profile.
+- **Independent Test Criteria**: Customer requires FullName and positive Age, allows an optional PhoneNumber, manages multiple addresses, rejects duplicates, and permits one default address.
+- [ ] T015 [P] [US2] Implement `CustomerAddress` entity with private setters in `src/Talabat.Domain/Customer/CustomerAddress.cs`
+- [ ] T016 [US2] Implement `Customer` aggregate root with profile and address invariants in `src/Talabat.Domain/Customer/Customer.cs`
 - [ ] T017 [P] [US2] Implement `ICustomerRepository` interface in `src/Talabat.Domain/Interfaces/ICustomerRepository.cs`
 
 ## Phase 5: [US3] Basket Domain Model
 - **Goal**: Implement the Basket bounded context including cart expiration and cross-restaurant validation invariants.
 - **Independent Test Criteria**: Cart enforces exactly one restaurant per cart, positive quantities, and rejects modification if 1 hour has passed since creation.
 - [ ] T018 [US3] Implement `CartExpiredException`, `CrossRestaurantCartException`, `InvalidQuantityException`, and `ProductUnavailableException` in `src/Talabat.Domain/Exceptions/`
-- [ ] T019 [P] [US3] Implement `CartItem` entity tracking `ProductId`, `Quantity`, and `UnitPriceSnapshot` (`Money`) in `src/Talabat.Domain/Entities/Basket/CartItem.cs`
-- [ ] T020 [US3] Implement `Cart` aggregate root with `AddItem()` in `src/Talabat.Domain/Entities/Basket/Cart.cs`. The `AddItem()` method must explicitly: reject products from another restaurant, merge duplicate products by increasing quantity, validate Quantity > 0, store a UnitPriceSnapshot, and preserve all cart invariants (including 1-hour expiration).
+- [ ] T019 [P] [US3] Implement `CartItem` entity tracking `ProductId`, optional `ProductName`, and `Quantity` without price in `src/Talabat.Domain/Basket/CartItem.cs`
+- [ ] T020 [US3] Implement `Cart` aggregate root with `AddItem()` in `src/Talabat.Domain/Basket/Cart.cs`. The method must reject products from another restaurant, merge duplicates, validate Quantity > 0, reject unavailable products, enforce active/non-expired state, and never store product price.
 - [ ] T021 [P] [US3] Implement `ICartRepository` interface in `src/Talabat.Domain/Interfaces/ICartRepository.cs`
 
 ## Phase 6: [US4] Ordering Domain Model
@@ -55,10 +55,10 @@
 - [ ] T024 [P] [US4] Implement `IOrderRepository` interface in `src/Talabat.Domain/Interfaces/IOrderRepository.cs`
 
 ## Phase 7: [US5] Checkout Domain Service
-- **Goal**: Implement the complex cross-aggregate invariant that validates current prices against cart snapshots.
-- **Independent Test Criteria**: Service throws `PriceChangedException` containing detailed item differences if catalog prices differ from cart snapshots.
-- [ ] T025 [US5] Implement `PriceChangedException` and `EmptyCartCheckoutException` in `src/Talabat.Domain/Exceptions/`
-- [ ] T026 [US5] Implement `CheckoutService` orchestrating `Cart`, `Restaurant`, and `Product` validations in `src/Talabat.Domain/Services/CheckoutService.cs`
+- **Goal**: Implement cross-aggregate checkout validation and create checkout item snapshots with current Catalog prices.
+- **Independent Test Criteria**: Service reports unavailable products, requires a delivery address, and produces CheckoutItemSnapshot values using current Product prices without old-price comparison.
+- [ ] T025 [US5] Implement `EmptyCartCheckoutException` and `MissingDeliveryAddressException` in `src/Talabat.Domain/Exceptions/`
+- [ ] T026 [US5] Implement `CheckoutDomainService` orchestrating `Cart`, `Restaurant`, `Product`, and delivery-address validations in `src/Talabat.Domain/Services/CheckoutDomainService.cs`
 
 ## Final Phase: Polish & Cross-Cutting Concerns
 - [ ] T027 Verify `Talabat.Domain.csproj` contains absolutely zero NuGet package references.

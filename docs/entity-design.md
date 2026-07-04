@@ -84,18 +84,18 @@ A product is identified by its product id. It also belongs to exactly one restau
 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
-| Product id | Primitive | Identifies the menu item so Basket can snapshot it and Ordering can keep historical product references. | BR-CAT-002, BR-CART-007, BR-ORD-006 |
+| Product id | Primitive | Identifies the menu item so Basket can reference current Catalog data and Ordering can keep historical product references. | BR-CAT-002, BR-CART-007, BR-ORD-006 |
 | Restaurant id | Entity reference id | Enforces that a product belongs to one restaurant and supports the one-restaurant-per-cart check. | BR-CAT-002, BR-CART-004 |
-| Name | Primitive | Copied into CartItem and OrderItem snapshots so later catalog changes do not rewrite history. | BR-CART-007, BR-ORD-006 |
+| Name | Primitive | Supplies current Catalog display data and is copied into immutable OrderItem history at checkout. | BR-CART-007, BR-ORD-006 |
 | Description | Primitive | Supports menu display for seeded catalog data. | BR-CAT-003 |
-| Current price | Value Object | Represents the current catalog price used when adding to cart and validating checkout. | BR-CAT-004, BR-CART-007, BR-ORD-005 |
+| Current price | Value Object | Represents the current Catalog price used for cart display and final checkout pricing. | BR-CAT-004, BR-CART-007, BR-ORD-005 |
 | Availability state | Primitive | Determines whether customers can see/add/order the product. | BR-CAT-003, BR-CART-008, BR-ORD-004 |
 
 ### Behavior
 
 | Behavior | Source rule | Why this entity owns it | Command or Query |
 |---|---|---|---|
-| Change current price | BR-CAT-004, BR-ORD-005 | Current product price belongs to Catalog; price changes must preserve the non-negative price invariant. | Command |
+| Change current price | BR-CAT-004, BR-CART-007, BR-ORD-005 | Current product price belongs to Catalog; price changes must preserve the non-negative price invariant. | Command |
 | Mark available | BR-CAT-003, BR-CART-008, BR-ORD-004 | Availability is part of product state. | Command |
 | Mark unavailable | BR-CAT-003, BR-CART-008, BR-ORD-004 | Availability changes affect visibility, cart add, and checkout validation. | Command |
 | Report whether product is available | BR-CAT-003, BR-CART-008, BR-ORD-004 | Other workflows need to know availability without mutating product state. | Query |
@@ -112,7 +112,7 @@ A product is identified by its product id. It also belongs to exactly one restau
 
 ### Notes
 
-Product in Catalog is current menu data. CartItem and OrderItem store snapshots derived from Product but are not Product.
+Product in Catalog is current menu data. CartItem references a selected product but stores no price. OrderItem stores an immutable historical snapshot created from current Product data at checkout.
 
 ## Cart
 
@@ -122,7 +122,7 @@ Basket Context.
 
 ### Role
 
-`Cart` is the Basket aggregate root. It represents the customer's active pre-checkout selection and protects cart invariants such as expiry, status, one restaurant per cart, positive quantities, duplicate merging, and price snapshots.
+`Cart` is the Basket aggregate root. It represents the customer's active pre-checkout selection and protects cart invariants such as expiry, status, one restaurant per cart, positive quantities, and duplicate merging. It does not own product prices.
 
 ### Identity
 
@@ -137,30 +137,29 @@ A cart is identified by its cart id. In MVP v1, a cart is created only when the 
 | Restaurant id | Entity reference id | Assigned from the first item and used to enforce one restaurant per cart. | BR-CART-004 |
 | Created time | Primitive | Supports the 1-hour expiry rule. | BR-CART-002, BR-CART-003 |
 | Status | Enum | Distinguishes Active, CheckedOut, and Cleared carts so only active carts can be modified. | Aggregate invariant: only Active carts can be modified |
-| Items | Collection | CartItem children hold selected products, quantities, and price snapshots. | BR-CART-005, BR-CART-006, BR-CART-007 |
+| Items | Collection | CartItem children hold selected product references and quantities without prices. | BR-CART-005, BR-CART-006, BR-CART-007 |
 
 ### Behavior
 
 | Behavior | Source rule | Why this entity owns it | Command or Query |
 |---|---|---|---|
-| Add item from product snapshot | BR-CART-004, BR-CART-005, BR-CART-006, BR-CART-007, BR-CART-008 | Add item enforces multiple cart-wide invariants and must see existing items. | Command |
+| Add item from product snapshot | BR-CART-004, BR-CART-005, BR-CART-006, BR-CART-008 | Add item enforces multiple cart-wide invariants and must see existing items. It does not copy a price. | Command |
 | Remove item | BR-CART-002, BR-CART-009 | Removing an item mutates the cart and must respect expiry/status. | Command |
 | Update item quantity | BR-CART-002, BR-CART-005 | Quantity changes must preserve positive quantity and active cart rules. | Command |
 | Clear cart | BR-CART-009 | Clearing cart contents is a cart aggregate operation. | Command |
 | Check whether cart is expired | BR-CART-002, BR-CART-003 | Expiry is based on cart creation/expiry state. | Query |
-| Calculate total | BR-CART-007 | Total uses cart item price snapshots, not current catalog prices. | Query |
+| Calculate total from supplied current prices | BR-CART-007 | Cart owns quantities and can calculate line totals when the caller supplies current Catalog prices keyed by ProductId. | Query |
 | Mark checked out | Aggregate invariant: only Active carts can be modified | Checkout lifecycle changes the cart status and prevents later mutation. | Command |
 
 ### Encapsulation Rules
 
 - External code must not directly add, remove, or update CartItem children.
-- External code must not directly set quantity, restaurant id, unit price snapshot, or status.
+- External code must not directly set quantity, restaurant id, or status.
 - Application use cases should load Cart, call Cart behavior, then save.
-- Cart must not receive the Catalog Product entity directly. It should receive a simple product snapshot containing product id, restaurant id, product name, current price, and availability.
+- Cart must not receive the Catalog Product entity directly. It should receive a simple product snapshot containing product id, restaurant id, product name, and availability.
 
 ### Value Object Candidates
 
-- `Money`: cart totals and unit price snapshots are amounts with validation and value equality.
 - `CatalogProductSnapshot`: add-to-cart input is a value-like snapshot crossing from Catalog to Basket.
 
 ### Notes
@@ -171,6 +170,8 @@ For MVP v1, cart expiration is calculated from CreatedAt and currentTime. Expire
 
 `ExpiresAt` may be considered later if expiration needs to be persisted for querying or reporting, but it should not be part of the MVP v1 main cart state.
 
+Cart exposes `GetTotal(currentPrices)` but stores no price or total. A later Application/read flow loads current Product prices from Catalog and passes them into the calculation. Cart never queries Catalog or repositories.
+
 ## CartItem
 
 ### Context
@@ -179,7 +180,7 @@ Basket Context.
 
 ### Role
 
-`CartItem` is a child entity inside the Cart aggregate. It stores the customer's selected product snapshot and quantity at add-to-cart time.
+`CartItem` is a child entity inside the Cart aggregate. It stores the selected Product id and quantity. It may retain the product name for simple display, but it never stores a product price.
 
 ### Identity
 
@@ -191,10 +192,9 @@ Database identity: CartItemId. Business uniqueness inside a Cart: ProductId. Dup
 |---|---|---|---|
 | Cart item id | Primitive | Identifies the child row inside the cart aggregate. | Aggregate access rule: child owned by Cart |
 | Cart id | Entity reference id | Links the item to its owning cart. | Database protection: CartItem belongs to one Cart |
-| Product id | Entity reference id | Identifies which catalog product was selected and enables duplicate merging. | BR-CART-006, BR-CART-007 |
-| Product name snapshot | Primitive | Preserves the product name from add-to-cart time. | BR-CART-007 |
+| Product id | Entity reference id | Identifies which current Catalog product was selected and enables duplicate merging. | BR-CART-006, BR-CART-007 |
+| Product name | Primitive | Optional convenience data for simple display; current Catalog data remains authoritative. | BR-CART-007 |
 | Quantity | Primitive | Tracks selected amount and must stay greater than zero. | BR-CART-005, BR-CART-006 |
-| Unit price snapshot | Value Object | Preserves the product price from add-to-cart time. | BR-CART-007, BR-ORD-005 |
 
 ### Behavior
 
@@ -202,22 +202,21 @@ Database identity: CartItemId. Business uniqueness inside a Cart: ProductId. Dup
 |---|---|---|---|
 | Increase quantity | BR-CART-006, BR-CART-005 | Duplicate merge changes the existing line quantity while preserving positive quantity. | Command |
 | Set quantity | BR-CART-005 | Quantity validation belongs where quantity is stored, while Cart decides whether the operation is allowed. | Command |
-| Calculate line total | BR-CART-007 | Line total is based on the item quantity and its unit price snapshot. | Query |
 | Match selected product id | BR-CART-006 | Cart needs to find existing items for duplicate merging. | Query |
 
 ### Encapsulation Rules
 
 - Application code must not query or update CartItem directly.
 - CartItem quantity should only change through Cart behavior.
-- Unit price snapshot and product name snapshot should not be overwritten casually after creation.
+- CartItem must not acquire or expose a unit price. Product name, if retained, is convenience data rather than pricing authority.
 
 ### Value Object Candidates
 
-- `Money`: unit price snapshot and line total are monetary values, not raw numbers.
+- No monetary value object belongs to CartItem.
 
 ### Notes
 
-CartItem is not a Product. It is Basket's snapshot of a selected product.
+CartItem is not a Product. It records a selection and quantity; Catalog remains the source of current product details and price.
 
 A database unique constraint on CartId + ProductId can protect against duplicate cart lines.
 
@@ -339,12 +338,17 @@ A customer is identified by its customer id. There is no IdentityUserId in MVP v
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
 | Customer id | Primitive | Links carts, orders, and addresses to the MVP customer profile. | BR-CUS-001, BR-CART-001, BR-ORD-008 |
+| Full name | Primitive | Gives the MVP customer profile a required human-readable name. | BR-CUS-006 |
+| Age | Primitive | Stores valid positive profile age. | BR-CUS-007 |
+| Phone number | Primitive | Stores optional contact information without introducing identity or authentication. | BR-CUS-008 |
 | Addresses | Collection | Customer owns multiple address children and enforces default/duplicate rules. | BR-CUS-002, BR-CUS-003, BR-CUS-004 |
 
 ### Behavior
 
 | Behavior | Source rule | Why this entity owns it | Command or Query |
 |---|---|---|---|
+| Create customer profile | BR-CUS-001, BR-CUS-006, BR-CUS-007, BR-CUS-008 | Construction must establish a valid name and positive age while allowing an omitted phone number. | Command |
+| Update profile details | BR-CUS-006, BR-CUS-007, BR-CUS-008 | Customer owns and validates changes to its profile data. | Command |
 | Add address | BR-CUS-002, BR-CUS-004 | Customer owns the address collection and can detect duplicates. | Command |
 | Remove address | BR-CUS-002 | Removing an address changes the customer-owned collection. | Command |
 | Set default address | BR-CUS-003 | Only Customer can coordinate all addresses so exactly one is default. | Command |
@@ -355,6 +359,7 @@ A customer is identified by its customer id. There is no IdentityUserId in MVP v
 
 - External code must not directly add or remove CustomerAddress children.
 - External code must not directly set default flags on addresses.
+- External code must not bypass full-name or age validation when changing profile details.
 - Customer must not contain authentication or authorization data.
 - Address changes should go through Customer behavior.
 
@@ -365,6 +370,8 @@ A customer is identified by its customer id. There is no IdentityUserId in MVP v
 ### Notes
 
 Customer is a profile, not an authenticated identity user. Do not add password, login, JWT, role, email-confirmation, admin, or restaurant-owner concepts for MVP v1.
+
+The Customer constructor or factory should require customer id, full name, and age, with phone number optional. It should normalize the full name, reject an empty name, reject age less than or equal to zero, and start with an encapsulated address collection.
 
 ## CustomerAddress
 

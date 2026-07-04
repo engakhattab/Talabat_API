@@ -74,11 +74,11 @@ Given a cart already contains Product A with quantity 2,
 When the customer adds Product A again with quantity 3,  
 Then the cart should contain Product A with quantity 5.
 
-### BR-CART-007 - Product price is snapshotted in cart
+### BR-CART-007 - Cart uses current catalog price for display and checkout
 
-Given the customer adds a product to the cart,  
-When the product is added,  
-Then the cart item stores the product name and unit price at that time.
+Given the cart contains a product,  
+When cart details are displayed or checkout is performed,  
+Then the Application layer loads the product's current Catalog price and supplies it to the Domain calculation without reading a stored cart price.
 
 ### BR-CART-008 - Unavailable products cannot be added to cart
 
@@ -120,11 +120,11 @@ Given a product was available when added to cart but is now unavailable,
 When the customer tries to checkout,  
 Then the system rejects the checkout and returns the unavailable item.
 
-### BR-ORD-005 - Checkout validates current prices
+### BR-ORD-005 - Checkout uses current catalog prices
 
-Given a product price changed after it was added to cart,  
-When the customer tries to checkout,  
-Then the system rejects the checkout and returns the changed item.
+Given all checkout validations succeed,  
+When checkout item snapshots are created,  
+Then each snapshot uses the product's current Catalog price without comparing it to an old cart price.
 
 ### BR-ORD-006 - Order stores immutable item snapshots
 
@@ -177,3 +177,21 @@ Then the system rejects it with DuplicateAddressException.
 Given the customer tries to checkout,  
 When no delivery address is selected,  
 Then the system rejects the checkout.
+
+### BR-CUS-006 - Customer full name is required
+
+Given a customer profile is created or updated,  
+When the full name is empty or whitespace,  
+Then the system rejects the profile data.
+
+### BR-CUS-007 - Customer age must be greater than zero
+
+Given a customer profile is created or updated,  
+When age is zero or negative,  
+Then the system rejects the profile data.
+
+### BR-CUS-008 - Customer phone number is optional
+
+Given a customer profile is created or updated,  
+When no phone number is supplied,  
+Then the profile remains valid for MVP v1.

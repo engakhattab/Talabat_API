@@ -20,7 +20,7 @@ Not every domain failure should be modeled as an exception. Some failures repres
 
 Use exceptions for invalid operations that must stop immediately. These are cases where a domain invariant is being violated and the operation should not continue.
 
-Use result objects for expected business outcomes where the caller or UI needs structured details. Checkout is the main MVP v1 example: a price change or product availability change is expected in a food ordering system, and the UI may need to show exactly which items changed.
+Use result objects for expected business outcomes where the caller or UI needs structured details. Checkout product unavailability is the main MVP v1 example, and the UI may need to show exactly which items can no longer be ordered.
 
 Domain exceptions should use business language. They should describe the rule that failed, not infrastructure or HTTP details.
 
@@ -40,7 +40,7 @@ Use a Domain Result when:
 - The failure is an expected business outcome.
 - The caller/UI needs structured details to show the user.
 - The user may make a decision based on the result.
-- Example: product price changed during checkout.
+- Example: one or more products became unavailable during checkout.
 
 ## Domain Exception Summary
 
@@ -57,7 +57,6 @@ Use a Domain Result when:
 | `DuplicateAddressException` | Exception | Duplicate address should be rejected. | Customer | Invalid profile operation. Customer address duplicates violate the Customer aggregate rule. | `This address already exists for the customer.` |
 | `AddressNotFoundException` | Exception | Checkout requires selected address to belong to customer; remove/set-default needs existing address. | Customer / Application validation | Invalid operation. The requested address cannot be used or changed. | `Address was not found for this customer.` |
 | `MissingDeliveryAddressException` | Exception | Checkout requires a delivery address. | Checkout use case / Order factory | Invalid checkout operation. Order creation cannot continue without delivery address data. | `Checkout requires a delivery address.` |
-| `PriceChangedCheckoutResult` | Result, not exception | Checkout validates current prices. | Checkout use case / domain service | Expected checkout outcome. The customer may accept changes or update the cart. | Returned details: product id, product name, old cart price, current catalog price. |
 | `UnavailableProductsCheckoutResult` | Result for MVP v1 | Checkout validates product availability again. | Checkout use case / domain service | Expected checkout outcome. The UI needs item-level details so the customer can revise the cart. | Returned details: product id, product name, reason unavailable. |
 
 ## Base Domain Exception
@@ -85,12 +84,11 @@ Checkout can return structured results instead of throwing for every case.
 Suggested conceptual checkout results:
 
 - `CheckoutSucceeded`
-- `PriceChanged`
 - `ProductsUnavailable`
 
-Price changes and unavailable products during checkout are expected business outcomes. They can happen because catalog data may change after an item was added to the cart but before checkout.
+Unavailable products during checkout are an expected business outcome because Catalog availability can change after an item was added to the cart.
 
-Returning structured result details helps the UI tell the customer what changed. For price changes, the result should identify the product and show old cart price versus current catalog price. For unavailable products, the result should identify the product and explain that it can no longer be ordered.
+Returning structured result details lets the UI identify each unavailable product and explain that it can no longer be ordered. Price changes are not checkout failures in MVP v1: checkout always uses the current Catalog price because Cart stores no price.
 
 The final implementation can choose a `CheckoutResult` model later. The key design decision is that these checkout outcomes should carry structured details, not just strings.
 
@@ -119,7 +117,6 @@ Example conceptual mappings:
 | `DuplicateAddressException` | 409 Conflict |
 | `AddressNotFoundException` | 404 Not Found |
 | `MissingDeliveryAddressException` | 400 Bad Request |
-| `PriceChangedCheckoutResult` | 409 Conflict with changed item details |
 | `UnavailableProductsCheckoutResult` | 409 Conflict with unavailable item details |
 
 These mappings are API-layer policy. They should not be embedded into domain exception classes.
@@ -129,6 +126,6 @@ These mappings are API-layer policy. They should not be embedded into domain exc
 - Throwing generic Exception.
 - Putting HTTP status codes in Domain exceptions.
 - Treating every business outcome as an exception.
-- Returning strings instead of structured details for price changes.
+- Returning strings instead of structured unavailable-product details.
 - Letting controllers enforce domain invariants instead of entities/aggregates.
 - Creating exceptions for out-of-scope authentication/authorization in MVP v1.

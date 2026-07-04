@@ -136,27 +136,20 @@ MVP supports only one price per product.
 
 Product prices may change.
 
-When adding to cart:
-
-Store a temporary price snapshot:
+When adding to cart, store only the selection:
 
 -   ProductId
 -   Quantity
--   UnitPriceSnapshot
+-   ProductName may be retained for simple display
 
-Before checkout validate:
+Before checkout validate and load:
 
--   Current product prices
+-   Current product prices for final OrderItem snapshots
 -   Product availability
 -   Restaurant availability
 -   Restaurant opening hours
 
-If any price changes:
-
--   Reject checkout.
--   Return changed items.
--   Customer must accept new prices.
--   Update the cart snapshot after acceptance.
+Cart stores no historical price. Cart display and checkout always use the current Catalog price, so price changes do not create a checkout failure.
 
 ## Order Rules
 
@@ -242,7 +235,7 @@ Must be enforced inside the Domain layer.
 4.  Quantity \> 0.
 5.  Duplicate products increase quantity.
 6.  Expired carts cannot be modified.
-7.  Checkout validates current prices.
+7.  Checkout uses current Catalog prices.
 8.  Orders store immutable prices.
 
 # What I Need

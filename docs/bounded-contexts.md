@@ -54,7 +54,7 @@ Catalog represents the restaurant menu space. It answers what restaurants exist,
 
 ### Purpose
 
-Basket represents the customer's active shopping cart before checkout. It protects cart-level invariants and stores the price snapshot taken when a product is added to the cart.
+Basket represents the customer's active shopping cart before checkout. It protects cart-level invariants and stores product selections and quantities without owning prices.
 
 ### What It Owns
 
@@ -64,7 +64,7 @@ Basket represents the customer's active shopping cart before checkout. It protec
 - Cart item quantity rules.
 - Cart expiry.
 - Duplicate product merging.
-- Cart item product name and price snapshots.
+- Cart item product references, optional display names, and quantities.
 - Clearing the cart.
 
 ### Main Entities
@@ -81,7 +81,7 @@ Basket represents the customer's active shopping cart before checkout. It protec
 - Cart can contain items from only one restaurant.
 - Quantity must be greater than zero.
 - Duplicate products are merged.
-- Product price is snapshotted in cart.
+- Cart uses current Catalog prices for display and checkout; CartItem stores no price.
 - Unavailable products cannot be added to cart.
 - Customer can clear cart.
 
@@ -97,7 +97,8 @@ Basket represents the customer's active shopping cart before checkout. It protec
 
 ### How It Communicates With Other Contexts
 
-- Basket reads product id, product name, restaurant id, availability, and current price from Catalog when adding items.
+- Basket reads product id, product name, restaurant id, and availability from Catalog when adding items.
+- Application/read flows load current Catalog prices and pass them to `Cart.GetTotal(currentPrices)` when returning cart details.
 - Ordering reads Basket cart data during checkout.
 - Basket links carts to the single MVP customer profile from Customer Context.
 - Basket does not directly create orders; checkout is handled by the Ordering use case.
@@ -128,7 +129,7 @@ Ordering represents checkout and historical order records. It validates the fina
 - Restaurant must be active during checkout.
 - Restaurant must be open during checkout.
 - Checkout validates product availability again.
-- Checkout validates current prices.
+- Checkout uses current Catalog prices without comparing them to old cart prices.
 - Order stores immutable item snapshots.
 - Order total is calculated from order items.
 - Customer can only view orders linked to the MVP customer profile.
@@ -162,6 +163,8 @@ Customer represents the single normal customer profile used by MVP v1. It owns p
 ### What It Owns
 
 - Customer profile.
+- Required full name and positive age.
+- Optional phone number.
 - Customer addresses.
 - Default address rule.
 - Duplicate address rejection.
@@ -174,6 +177,9 @@ Customer represents the single normal customer profile used by MVP v1. It owns p
 ### Main Business Rules
 
 - Customer profile exists before using customer features.
+- Customer full name is required.
+- Customer age must be greater than zero.
+- Customer phone number is optional.
 - Customer can have multiple addresses.
 - Customer can have only one default address.
 - Duplicate address should be rejected.
@@ -220,19 +226,20 @@ Ordering -> Customer
 | Restaurant | Catalog | A seeded food provider that has active state, opening hours, and products. |
 | Product | Catalog | A menu item owned by one restaurant, with current price and availability. |
 | Cart | Basket | The customer's active pre-checkout container for selected products. |
-| CartItem | Basket | A cart line storing product id, product name, quantity, and price snapshot. |
-| PriceSnapshot | Basket | The product price copied into a cart item at add-to-cart time. |
+| CartItem | Basket | A cart line storing a selected product id and quantity, with an optional display name and no price. |
+| CheckoutItemSnapshot | Ordering | Temporary checkout input carrying the current Catalog product name, unit price, and cart quantity into Order creation. |
 | Order | Ordering | An immutable record created after successful checkout. |
 | OrderItem | Ordering | An immutable order line storing historical product, quantity, price, and line total. |
-| Customer | Customer | The single normal MVP customer profile, not an authenticated identity user. |
+| Customer | Customer | The single normal MVP profile with full name, positive age, optional phone number, and no authenticated identity. |
 | CustomerAddress | Customer | An address owned by the customer profile. |
-| DeliveryAddress | Ordering / Customer | The customer address selected for checkout and referenced by the order. |
+| DeliveryAddress | Ordering / Customer | The customer address selected for checkout and copied into the order as a historical snapshot. |
 
 ## Important Boundary Decisions
 
-- Product in Catalog is not the same as CartItem in Basket. Product represents the current menu item; CartItem represents the customer's selected item snapshot.
+- Product in Catalog is not the same as CartItem in Basket. Product represents current menu data; CartItem records only the customer's selection and quantity.
 - Product price in Catalog is the current price.
-- CartItem price snapshot is the price at add-to-cart time.
+- CartItem stores no price, and Cart stores no total.
+- Application/read flows load current Catalog prices and supply them to Cart for transient total calculation.
 - OrderItem price is immutable historical price.
 - Customer is a simple profile in MVP v1, not an authenticated identity user.
 - Catalog data is seeded in MVP v1.

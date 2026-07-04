@@ -32,7 +32,7 @@ Not every immutable object is a persisted Value Object. Some immutable objects a
 
 | Name | Classification | Persisted? | Used By | Why |
 |---|---|---|---|---|
-| `Money` | Persisted Value Object | Yes | Product price, CartItem unit price snapshot, OrderItem unit price, OrderItem line total, Order total | Monetary amount with validation, value equality, and arithmetic behavior. |
+| `Money` | Persisted Value Object | Yes where owned | Product current price, transient Cart total calculation, OrderItem unit price, OrderItem line total, Order total | Monetary amount with validation, value equality, and arithmetic behavior. Cart does not persist money. |
 | `TimeRange` | Persisted Value Object | Yes | Restaurant opening hours | Start/end time form one business concept and need `Contains(time)` behavior, including midnight-crossing ranges. |
 | `Address` | Persisted Value Object | Yes | CustomerAddress | Street/city/building/floor form one value and support validation and duplicate detection. |
 | `DeliveryAddressSnapshot` | Persisted Value Object | Yes | Order | Order needs a copied immutable address at checkout time so historical orders remain correct after customer address edits. |
@@ -45,7 +45,7 @@ Not every immutable object is a persisted Value Object. Some immutable objects a
 
 `Money` represents a non-negative monetary amount in the domain. MVP v1 assumes a single currency, EGP, so the value object stores only the amount for now.
 
-`Money` exists because product prices, cart price snapshots, order item prices, line totals, and order totals must not be treated as arbitrary decimals. The domain needs one place to enforce non-negative money and safe arithmetic.
+`Money` exists because current Catalog prices, order item prices, line totals, and order totals must not be treated as arbitrary decimals. The domain needs one place to enforce non-negative money and safe arithmetic.
 
 ### Fields Conceptually Needed
 
@@ -77,8 +77,7 @@ If currency is added later, equality must include both amount and currency.
 ### Where It Is Used
 
 - Product current price.
-- CartItem unit price snapshot.
-- Cart total.
+- Transient Cart line totals and total calculated from caller-supplied current prices.
 - OrderItem unit price.
 - OrderItem line total.
 - Order total.
@@ -277,19 +276,18 @@ It safely passes the Catalog product data needed by Basket without giving Cart a
 - ProductId.
 - RestaurantId.
 - ProductName.
-- CurrentPrice.
 - IsAvailable.
 
 ### How It Is Created And Used
 
 - The Application layer creates it after reading Catalog data.
 - Cart uses it to enforce add-to-cart rules.
-- Cart uses it to create CartItem snapshots.
+- Cart uses it to create or merge a CartItem without copying a price.
 - It prevents sharing Catalog entities directly across bounded contexts.
 
 ### Validation Rules
 
-The Application layer should create CatalogProductSnapshot only after loading a valid Catalog product. The snapshot itself can validate simple structural rules such as positive ids, non-empty product name, valid current price, and availability flag presence. It should not query the database or prove that the product exists.
+The Application layer should create CatalogProductSnapshot only after loading a valid Catalog product. The snapshot itself can validate simple structural rules such as positive ids, non-empty product name, and availability flag presence. It should not contain price, query the database, or prove that the product exists.
 
 ### Persistence Notes
 
@@ -301,7 +299,7 @@ The Application layer should create CatalogProductSnapshot only after loading a 
 
 - Passing Catalog `Product` directly into Cart.
 - Persisting `CatalogProductSnapshot` as its own table.
-- Treating the snapshot as the source of truth after the CartItem has been created.
+- Adding current price to this snapshot or persisting price in CartItem.
 - Letting Basket own product lifecycle data.
 
 ## CheckoutItemSnapshot
@@ -321,14 +319,14 @@ It safely passes checkout item data into Order creation without making Order dep
 
 ### How It Is Created And Used
 
-- The checkout use case creates it from Cart data after checkout validations.
+- The checkout use case creates it from validated Cart selections plus current Catalog product names and prices.
 - Order uses it to create OrderItem children.
 - It prevents Order from depending directly on CartItem.
 - It keeps aggregate boundaries clear between Basket and Ordering.
 
 ### Validation Rules
 
-The checkout use case should create CheckoutItemSnapshot only from validated Cart data. The snapshot itself can validate simple structural rules such as positive ProductId, non-empty ProductName, valid UnitPrice, and Quantity greater than zero. It should not know about Cart or query persistence.
+The checkout use case should create CheckoutItemSnapshot only after validating Cart data and loading current Catalog product data. Its `UnitPrice` is the final current price accepted for Order creation, not an old cart price. The snapshot itself can validate simple structural rules such as positive ProductId, non-empty ProductName, valid UnitPrice, and Quantity greater than zero. It should not know about Cart or query persistence.
 
 ### Persistence Notes
 

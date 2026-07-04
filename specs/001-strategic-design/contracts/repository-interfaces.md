@@ -39,7 +39,6 @@ public interface IOrderRepository
 public interface ICustomerRepository
 {
     Task<Customer?> GetByIdAsync(int id);
-    Task<Customer?> GetByIdentityUserIdAsync(string identityUserId);
     Task AddAsync(Customer customer);
     void Update(Customer customer);
 }
