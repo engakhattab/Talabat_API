@@ -143,6 +143,7 @@ A cart is identified by its cart id. In MVP v1, a cart is created only when the 
 
 | Behavior | Source rule | Why this entity owns it | Command or Query |
 |---|---|---|---|
+| Create with first product snapshot | BR-CART-001, BR-CART-004, BR-CART-005, BR-CART-008 | The factory prevents an empty newly-created Cart and establishes RestaurantId from the first valid item. | Command |
 | Add item from product snapshot | BR-CART-004, BR-CART-005, BR-CART-006, BR-CART-008 | Add item enforces multiple cart-wide invariants and must see existing items. It does not copy a price. | Command |
 | Remove item | BR-CART-002, BR-CART-009 | Removing an item mutates the cart and must respect expiry/status. | Command |
 | Update item quantity | BR-CART-002, BR-CART-005 | Quantity changes must preserve positive quantity and active cart rules. | Command |
@@ -180,20 +181,18 @@ Basket Context.
 
 ### Role
 
-`CartItem` is a child entity inside the Cart aggregate. It stores the selected Product id and quantity. It may retain the product name for simple display, but it never stores a product price.
+`CartItem` is a child entity inside the Cart aggregate. It stores the selected Product id, required product name, and quantity. It never stores a product price.
 
 ### Identity
 
-Database identity: CartItemId. Business uniqueness inside a Cart: ProductId. Duplicate detection should use ProductId within the Cart.
+Business identity inside a Cart is ProductId. MVP v1 does not add a separate CartItemId to the Domain model. Persistence can use CartId + ProductId as the owner/composite key.
 
 ### State / Properties
 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
-| Cart item id | Primitive | Identifies the child row inside the cart aggregate. | Aggregate access rule: child owned by Cart |
-| Cart id | Entity reference id | Links the item to its owning cart. | Database protection: CartItem belongs to one Cart |
 | Product id | Entity reference id | Identifies which current Catalog product was selected and enables duplicate merging. | BR-CART-006, BR-CART-007 |
-| Product name | Primitive | Optional convenience data for simple display; current Catalog data remains authoritative. | BR-CART-007 |
+| Product name | Primitive | Required Basket display data; current Catalog data remains authoritative at checkout. | BR-CART-007 |
 | Quantity | Primitive | Tracks selected amount and must stay greater than zero. | BR-CART-005, BR-CART-006 |
 
 ### Behavior
@@ -284,14 +283,12 @@ Ordering Context.
 
 ### Identity
 
-An order item is identified by its order item id inside the order aggregate.
+An OrderItem is identified by ProductId within its owning Order for MVP v1. Checkout merges duplicate cart products, so one Order contains one line per ProductId. No separate OrderItemId is currently part of the Domain model.
 
 ### State / Properties
 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
-| Order item id | Primitive | Identifies the child row inside the order aggregate. | Aggregate access rule: child owned by Order |
-| Order id | Entity reference id | Links the item to its owning order. | Database protection: OrderItem belongs to one Order |
 | Product id snapshot | Entity reference id | Preserves which catalog product was ordered. | BR-ORD-006 |
 | Product name snapshot | Primitive | Preserves the product name at checkout time. | BR-ORD-006 |
 | Unit price snapshot | Value Object | Preserves the accepted unit price at checkout time. | BR-ORD-006, BR-ORD-005 |
@@ -352,8 +349,7 @@ A customer is identified by its customer id. There is no IdentityUserId in MVP v
 | Add address | BR-CUS-002, BR-CUS-004 | Customer owns the address collection and can detect duplicates. | Command |
 | Remove address | BR-CUS-002 | Removing an address changes the customer-owned collection. | Command |
 | Set default address | BR-CUS-003 | Only Customer can coordinate all addresses so exactly one is default. | Command |
-| Get default address | BR-CUS-003, BR-CUS-005 | Checkout needs a valid delivery address selection. | Query |
-| Check whether address belongs to customer | BR-CUS-005 | The application validates selected delivery address ownership through Customer data. | Query |
+| Create delivery address snapshot | BR-CUS-005 | Customer validates address ownership and returns immutable address data without exposing a mutable child lookup. | Query |
 
 ### Encapsulation Rules
 
@@ -392,7 +388,6 @@ A customer address is identified by its customer address id inside the Customer 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
 | Customer address id | Primitive | Identifies one address in the customer's address collection. | BR-CUS-002 |
-| Customer id | Entity reference id | Links the address to its owning customer. | Database protection: Customer address belongs to one Customer |
 | Address details | Value Object | Groups non-empty address fields and supports duplicate detection. | BR-CUS-004, invariant: address data cannot be empty |
 | Default flag | Primitive | Marks the one address used by default when checkout needs delivery data. | BR-CUS-003, BR-CUS-005 |
 

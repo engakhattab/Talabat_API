@@ -92,6 +92,19 @@ Returning structured result details lets the UI identify each unavailable produc
 
 The final implementation can choose a `CheckoutResult` model later. The key design decision is that these checkout outcomes should carry structured details, not just strings.
 
+## Additional Implemented Domain Failures
+
+The current Domain implementation also uses focused failures for:
+
+- Checkout restaurant/cart identity mismatch.
+- Duplicate or missing Restaurant products.
+- Missing CartItem and missing current Product price.
+- Delivery agent status transitions.
+- Assigned-delivery coordination for cancellation/failure.
+- Non-monotonic Delivery transition timestamps.
+
+MVP v2 Delivery failures remain business-language DomainException types and contain no HTTP metadata.
+
 ## What Does Not Belong In Domain Exceptions
 
 - HTTP 400/404/409/422 status codes do not belong in Domain.

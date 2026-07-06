@@ -45,6 +45,8 @@ This document describes the state and behavior of the Delivery Extension domain 
 
 External code must not set status, assignment, timestamps, address snapshot, or failure details directly.
 
+Assigned cancellation and failure are cross-aggregate operations and must be coordinated through DeliveryAssignmentDomainService so DeliveryAgent availability is updated. Transition timestamps must be monotonic.
+
 ## DeliveryAgent
 
 ### Role
@@ -72,7 +74,7 @@ External code must not set status, assignment, timestamps, address snapshot, or 
 | Suspend | Move the agent to Suspended according to explicit domain behavior. |
 | Check availability | Report whether status is Available. |
 | Mark busy | Reserve an Available agent during assignment. |
-| Mark available | Release a Busy agent after successful delivery completion. |
+| Mark available | Release a Busy agent after successful completion, cancellation, or failure coordination. |
 | Update location | Replace optional location with a validated GeoLocation. |
 
 Application code should not directly coordinate `MarkBusy` or `MarkAvailable`; the assignment domain service coordinates those changes with Delivery.

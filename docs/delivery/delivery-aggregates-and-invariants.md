@@ -2,6 +2,8 @@
 
 The Delivery bounded context contains two aggregate roots. Neither aggregate contains the other as a child, and each protects its own state transitions.
 
+All delivery creation and transition timestamps are UTC. The Domain rejects Local or Unspecified `DateTime` values and also rejects a transition timestamp earlier than the previous transition.
+
 ## Delivery Aggregate
 
 **Root:** `Delivery`  
@@ -51,7 +53,9 @@ PendingAssignment
 - Delivery cannot be progressed or delivered by an agent different from `AssignedAgentId`.
 - Cancellation is allowed only before pickup in this phase: `PendingAssignment`, `Assigned`, or `ArrivedAtRestaurant`.
 - Failure requires a non-empty reason and may end any non-terminal delivery.
+- Cancelling or failing an assigned delivery must go through DeliveryAssignmentDomainService so the Busy agent is released atomically with the Delivery transition.
 - Each lifecycle timestamp is set only when its matching transition succeeds.
+- Lifecycle timestamps cannot be earlier than the preceding transition timestamp.
 
 ### Methods
 
@@ -66,6 +70,8 @@ PendingAssignment
 - `IsTerminal()`
 
 `IsActive()` means the delivery is assigned and in one of these operational states: `Assigned`, `ArrivedAtRestaurant`, `PickedUp`, or `OutForDelivery`. `PendingAssignment` is open work but has no active courier assignment.
+
+Public `Cancel` and `Fail` handle unassigned delivery tasks. Assigned terminal transitions are coordinated through internal agent-aware Delivery methods called by DeliveryAssignmentDomainService.
 
 ## DeliveryAgent Aggregate
 
@@ -90,7 +96,7 @@ PendingAssignment
 - Assignment changes an available agent to `Busy`.
 - A `Busy` agent cannot go offline.
 - A `Suspended` agent cannot become available through ordinary `GoOnline` behavior; an explicit future reinstatement decision is required.
-- Completion of the assigned delivery changes the busy agent back to `Available`.
+- Completion, cancellation, or failure of the assigned delivery changes the Busy agent back to `Available` through the domain service.
 - Current location is optional.
 - When present, current location must contain valid latitude and longitude.
 

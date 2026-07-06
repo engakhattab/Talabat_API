@@ -1,10 +1,10 @@
 # Delivery Extension Implementation Roadmap
 
-This roadmap sequences the Delivery Extension after its design is reviewed. Only Step 1 is performed now. Steps 2 through 10 are deferred.
+This roadmap tracks the Delivery Extension. Domain implementation through Step 6 is complete. Repository, Application, Infrastructure, and API work remains deferred.
 
 ## Step 1 - Create Delivery Design Documentation
 
-**Status:** Completed by this documentation task.
+**Status:** Completed.
 
 Deliverables:
 
@@ -17,11 +17,13 @@ Deliverables:
 - Database and ERD design.
 - Implementation sequence.
 
-No C# implementation is part of this step.
+The design documents remain the source for completed Domain work and deferred outer-layer work.
 
 ## Step 2 - Implement Delivery Value Objects And Enums
 
-Deferred deliverables:
+**Status:** Completed.
+
+Implemented deliverables:
 
 - `GeoLocation`
 - `DeliveryStatus`
@@ -36,7 +38,9 @@ Verification goals:
 
 ## Step 3 - Implement Delivery Domain Exceptions
 
-Deferred exceptions:
+**Status:** Completed.
+
+Implemented exceptions include:
 
 - `AgentNotAvailableException`
 - `DeliveryAlreadyAssignedException`
@@ -49,7 +53,9 @@ Each exception should inherit from DomainException and use business language wit
 
 ## Step 4 - Implement DeliveryAgent Aggregate
 
-Deferred work:
+**Status:** Completed.
+
+Implemented work:
 
 - Create DeliveryAgent aggregate root.
 - Validate required full name and optional phone number.
@@ -60,7 +66,9 @@ Deferred work:
 
 ## Step 5 - Implement Delivery Aggregate
 
-Deferred work:
+**Status:** Completed.
+
+Implemented work:
 
 - Create Delivery aggregate root.
 - Create Delivery as PendingAssignment from Order identity data and address snapshot.
@@ -72,13 +80,16 @@ Deferred work:
 
 ## Step 6 - Implement DeliveryAssignmentDomainService
 
-Deferred work:
+**Status:** Completed.
+
+Implemented work:
 
 - Implement stateless assignment coordination.
 - Assign only Available agents.
 - Mark the agent Busy after successful assignment.
 - Complete only an OutForDelivery delivery assigned to the supplied agent.
 - Mark the agent Available after successful completion.
+- Release the assigned agent after coordinated cancellation or failure.
 - Add focused Domain tests for success and failure paths.
 
 The service must not use repositories or save changes.
@@ -140,4 +151,4 @@ Controllers should translate requests into Application use cases and must not ow
 
 ## Current Stop Point
 
-Stop after Step 1. Do not implement Steps 2 through 10 as part of the documentation task.
+Domain implementation is complete through Step 6. Stop before Step 7; repository interfaces and all outer-layer work remain deferred.

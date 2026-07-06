@@ -4,6 +4,12 @@ This document defines the MVP v1 aggregate boundaries for the Talabat-like backe
 
 MVP v1 does not include authentication, authorization, Identity, login/register, JWT, admins, restaurant owners, payment, delivery drivers, notifications, coupons, or reviews. The system assumes one normal customer profile. Restaurants and products are seeded for testing.
 
+## Time Policy
+
+All persisted absolute timestamps such as `CreatedAt`, checkout time, and delivery transition times use UTC `DateTime` values. Domain operations reject Local or Unspecified values so expiration and lifecycle comparisons use one timeline.
+
+Restaurant opening hours are wall-clock values, not UTC instants. The future Application layer must convert the current instant to the restaurant's configured local time and pass a `TimeOnly` value to the Domain. Time-zone lookup and conversion do not belong inside aggregates.
+
 ## Aggregate Summary
 
 | Context | Aggregate Root | Child Entities | Main Invariants |
@@ -34,7 +40,7 @@ Context: Catalog
 
 ### Methods That Should Exist On The Aggregate Root
 
-- `IsOpenAt(currentTime)`
+- `IsOpenAt(restaurantLocalTime)`
 - `Activate()`
 - `Deactivate()`
 - `AddProduct(name, description, price)`
@@ -87,7 +93,7 @@ Context: Basket
 - Expired cart cannot be modified.
 - Quantity must be greater than zero.
 - Duplicate products are merged.
-- CartItem stores ProductId and Quantity, with ProductName optional for simple display.
+- CartItem stores ProductId, required ProductName, and Quantity.
 - CartItem does not store product price.
 - Unavailable products cannot be added.
 
@@ -97,6 +103,7 @@ Context: Basket
 
 ### Methods That Should Exist On The Aggregate Root
 
+- `Create(id, customerId, firstProductSnapshot, quantity, createdAt)`
 - `AddItem(productSnapshot, quantity, currentTime)`
 - `RemoveItem(productId, currentTime)`
 - `UpdateQuantity(productId, quantity, currentTime)`
@@ -128,7 +135,7 @@ This prevents sharing Catalog entities directly across bounded contexts.
 
 - `Cart` is the aggregate root and should have the repository.
 - `CartItem` is a child entity and should be configured through the cart relationship.
-- `CartItem.CartId` should be required.
+- Persist CartItem through its owning Cart; `CartId + ProductId` can serve as the owner/composite key without adding CartId to the Domain child.
 - Cart should have a required customer reference.
 - Cart status should be persisted if the system needs to distinguish active, checked-out, and cleared carts.
 - If cart status is used, one active cart per customer should be protected by a filtered unique index.
@@ -189,7 +196,7 @@ Order should store a delivery address snapshot, not only a `CustomerAddressId`, 
 
 - `Order` is the aggregate root and should have the repository.
 - `OrderItem` is a child entity and should be configured through the order relationship.
-- `OrderItem.OrderId` should be required.
+- Persist OrderItem through its owning Order; the persistence relationship supplies the required OrderId without adding it to the Domain child.
 - Order should have required customer and restaurant references.
 - Delivery address should be stored as owned value object columns or equivalent immutable snapshot columns.
 - Order item prices and line totals should be stored as owned value objects or mapped columns for `Money`.
@@ -220,7 +227,7 @@ Context: Customer
 - `AddAddress(address)`
 - `RemoveAddress(addressId)`
 - `SetDefaultAddress(addressId)`
-- `GetDefaultAddress()`
+- `CreateDeliveryAddressSnapshot(addressId)`
 - `UpdateProfile(fullName, age, phoneNumber)`
 
 ### Important MVP v1 Boundary
@@ -242,7 +249,7 @@ Customer owns customer addresses and protects address invariants. Checkout requi
 
 - `Customer` is the aggregate root and should have the repository.
 - `CustomerAddress` is a child entity and should be configured through the customer relationship.
-- `CustomerAddress.CustomerId` should be required.
+- Persist CustomerAddress through its owning Customer; the persistence relationship supplies the required CustomerId without adding it to the Domain child.
 - Address fields should be required where the domain requires non-empty data.
 - One default address per customer should be protected by a filtered unique index where supported.
 - Address collection should be backed by a private field and exposed as a read-only collection.
@@ -253,6 +260,7 @@ Some rules cannot be enforced by one aggregate alone:
 
 - One active cart per customer requires application, repository, and database support.
 - Checkout pricing requires Cart quantities plus current Catalog prices; there is no old cart price comparison.
+- Checkout must verify that the loaded Restaurant identity equals `Cart.RestaurantId` before using current products or prices.
 - Checkout product availability validation requires Cart data plus current Catalog data.
 - Checkout restaurant open/active validation requires Catalog data.
 - Checkout delivery address validation requires Customer data.

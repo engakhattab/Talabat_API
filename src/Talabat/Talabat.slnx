@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="Talabat.API/Talabat.API.csproj" Id="0de74048-5d7d-4ef3-8b6d-6cf43fdef8de" />
+  <Project Path="Talabat.Application/Talabat.Application.csproj" Id="894b0d5b-9a7f-45df-bc10-fc12853f98a2" />
   <Project Path="Talabat.Domain/Talabat.Domain.csproj" />
+  <Project Path="Talabat.Infrastructure/Talabat.Infrastructure.csproj" Id="4889938e-3c5e-4106-8a4e-1bdc973bb5cc" />
 </Solution>

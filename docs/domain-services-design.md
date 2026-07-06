@@ -66,7 +66,8 @@ Conceptually, it should receive already-loaded data from the Application layer:
 - Cart.
 - Restaurant with products needed for validation.
 - DeliveryAddressSnapshot or selected Address converted into a delivery snapshot.
-- currentTime.
+- current UTC time for cart expiry and order history.
+- restaurant-local time-of-day for opening-hours validation.
 
 It may receive current catalog product data through the Restaurant aggregate or through a prepared list of current product snapshots. The important boundary is that the Application layer gathers the data; the Domain Service evaluates the business rules.
 
@@ -80,7 +81,7 @@ The domain service should:
 - Ensure cart is not expired.
 - Ensure cart is not empty.
 - Ensure restaurant is active.
-- Ensure restaurant is open at current time.
+- Ensure restaurant is open at the supplied restaurant-local time.
 - Ensure a delivery address snapshot is present before Order creation.
 - Validate every cart item against current catalog product data.
 - Detect products that became unavailable.
@@ -92,13 +93,16 @@ The domain service should:
 1. Ensure cart is active.
 2. Ensure cart is not expired.
 3. Ensure cart is not empty.
-4. Ensure restaurant is active.
-5. Ensure restaurant is open at current time.
-6. Ensure a delivery address snapshot exists.
-7. Validate product availability using current catalog data.
-8. If valid, produce checkout item snapshots using current Catalog prices.
+4. Ensure the supplied restaurant matches `Cart.RestaurantId`.
+5. Ensure restaurant is active.
+6. Ensure restaurant is open at the supplied restaurant-local time.
+7. Ensure a delivery address snapshot exists.
+8. Validate product availability using current catalog data.
+9. If valid, produce checkout item snapshots using current Catalog prices.
 
 Earlier failures should stop later checks when later checks are unnecessary. For example, there is no reason to inspect product availability if the cart is expired, and there is no reason to create checkout item snapshots if the restaurant is closed or the delivery address is missing.
+
+Absolute timestamps must be UTC. The Application layer is responsible for converting the current UTC instant to the restaurant's configured local time before calling this service; the Domain receives the resulting `TimeOnly` and does not perform time-zone lookup.
 
 ### Multiple Checkout Problems
 

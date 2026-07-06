@@ -3,7 +3,7 @@ namespace Talabat.Domain.Exceptions;
 public sealed class DeliveryAlreadyCompletedException : DomainException
 {
     public DeliveryAlreadyCompletedException()
-        : base("Delivery is already completed and cannot be changed.")
+        : base("Delivery is in a terminal state and cannot be changed.")
     {
     }
 }

@@ -42,6 +42,11 @@ Repository interfaces live in the Domain layer:
 - `ICustomerRepository`
 - `IUnitOfWork`
 
+MVP v2 Delivery Extension adds:
+
+- `IDeliveryRepository`
+- `IDeliveryAgentRepository`
+
 Repository implementations live in the Infrastructure layer:
 
 `Talabat.Infrastructure/Persistence/Repositories/`
@@ -52,13 +57,18 @@ Repository implementations live in the Infrastructure layer:
 - `CustomerRepository`
 - `UnitOfWork`
 
+MVP v2 Delivery implementations later add:
+
+- `DeliveryRepository`
+- `DeliveryAgentRepository`
+
 The Application layer uses the Domain interfaces to load aggregates, call domain methods, and save changes. The Domain layer defines the contracts, Infrastructure supplies the EF Core implementations, and Application coordinates the use case.
 
 Domain entities and domain services must not call repositories directly.
 
 Repository interfaces must not expose EF Core types, DbContext, IQueryable, HTTP concepts, or API DTOs.
 
-Repositories should exist only for aggregate roots: Restaurant, Cart, Order, and Customer.
+MVP v1 repositories exist only for Restaurant, Cart, Order, and Customer aggregate roots. MVP v2 adds Delivery and DeliveryAgent because both are independent aggregate roots.
 
 Do not create repositories for Product, CartItem, OrderItem, or CustomerAddress.
 
@@ -70,6 +80,8 @@ Do not create repositories for Product, CartItem, OrderItem, or CustomerAddress.
 | Cart | `ICartRepository` | Cart use cases need to load and save the customer active cart aggregate. | CartItem |
 | Order | `IOrderRepository` | Checkout needs to save created orders; order queries need order history. | OrderItem |
 | Customer | `ICustomerRepository` | Customer profile, address management, and checkout delivery address validation need Customer aggregate data. | CustomerAddress |
+| Delivery | `IDeliveryRepository` | Delivery lifecycle use cases load and save one delivery task aggregate. | None |
+| DeliveryAgent | `IDeliveryAgentRepository` | Assignment and agent availability use cases load and save courier aggregates. | None |
 
 Do not create repositories for child entities:
 
@@ -79,6 +91,8 @@ Do not create repositories for child entities:
 - `ICustomerAddressRepository`
 
 Child entities must be loaded and modified through their aggregate root.
+
+Delivery and DeliveryAgent are not parent/child. Application later loads both repositories for assignment or terminal coordination and commits their changes through UnitOfWork.
 
 ## IRestaurantRepository
 

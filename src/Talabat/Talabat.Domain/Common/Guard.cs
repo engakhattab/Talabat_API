@@ -31,4 +31,16 @@ internal static class Guard
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
+
+    public static DateTime Utc(DateTime value, string parameterName)
+    {
+        if (value.Kind != DateTimeKind.Utc)
+        {
+            throw new ArgumentException(
+                $"{parameterName} must be a UTC DateTime value.",
+                parameterName);
+        }
+
+        return value;
+    }
 }

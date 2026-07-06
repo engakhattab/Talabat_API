@@ -102,3 +102,9 @@ When latitude or longitude is outside its valid range,
 Then the system rejects the location.
 
 Valid latitude is between -90 and 90. Valid longitude is between -180 and 180.
+
+### BR-DEL-015 - Assigned agent is released after terminal cancellation or failure
+
+Given an assigned delivery is cancelled or failed,
+When the terminal transition succeeds through delivery coordination,
+Then the assigned Busy agent becomes `Available`.

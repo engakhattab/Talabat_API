@@ -13,6 +13,8 @@ Neither aggregate should contain or directly control the other. `DeliveryAssignm
 
 The service is stateless. It has no repository, database, HTTP, mapping, or messaging dependency.
 
+Every `currentTime` argument is a UTC `DateTime`. The Domain validates this policy before applying lifecycle transitions.
+
 ### Assign
 
 Conceptual operation:
@@ -50,7 +52,15 @@ Validation and behavior:
 
 The order matters: Delivery first validates and completes its lifecycle. Only after successful completion is the agent released back to Available.
 
-Cancellation and failure need an explicit future policy for releasing an assigned agent. That policy is not inferred in this phase.
+### CancelDelivery
+
+`CancelDelivery(delivery, agent, currentTime)` validates that the supplied agent is the assigned Busy agent, cancels the delivery before pickup, and then marks the agent Available.
+
+### FailDelivery
+
+`FailDelivery(delivery, agent, reason, currentTime)` validates that the supplied agent is the assigned Busy agent, fails the delivery with a required reason, and then marks the agent Available.
+
+Unassigned PendingAssignment deliveries can be cancelled or failed directly on Delivery because no second aggregate must change.
 
 ## Failure Model
 
@@ -62,6 +72,9 @@ Expected domain exceptions for later implementation include:
 - `InvalidDeliveryStatusTransitionException`
 - `DeliveryAlreadyCompletedException`
 - `DeliveryAgentMismatchException`
+- `DeliveryAgentCoordinationRequiredException`
+- `InvalidDeliveryTimestampException`
+- `InvalidDeliveryAgentStatusTransitionException`
 
 These failures use delivery language and contain no HTTP status codes or API response details.
 

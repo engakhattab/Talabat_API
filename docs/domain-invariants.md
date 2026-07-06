@@ -6,7 +6,7 @@
 - **Positive Quantity**: The quantity of any cart item must be strictly greater than zero.
 - **Duplicate Handling**: Adding a product already in the cart increases its quantity.
 - **Expiration**: A cart expires 1 hour after creation and cannot be modified or checked out thereafter.
-- **No Stored Price**: CartItem stores ProductId and Quantity, with ProductName optional for display, but never stores product price.
+- **No Stored Price**: CartItem stores ProductId, required ProductName, and Quantity, but never stores product price.
 
 ## Order
 - **Immutability**: Once created, an order and its items are strictly immutable, ensuring historical record integrity.

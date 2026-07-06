@@ -23,13 +23,6 @@ public sealed record Money : IComparable<Money>
 
     public Money Add(Money other)
     {
-        //** Same
-        //if (other == null)
-        //{
-        //    throw new ArgumentNullException(nameof(other));
-        //}
-        //
-        //*//
         ArgumentNullException.ThrowIfNull(other);
 
         return new Money(checked(Amount + other.Amount));
