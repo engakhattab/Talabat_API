@@ -1,9 +1,10 @@
 ﻿using Talabat.Domain.Common;
+using Talabat.Domain.Common.Abstractions;
 using Talabat.Domain.ValueObjects;
 
 namespace Talabat.Domain.Aggregates.Catalog;
 
-public sealed class Product
+public sealed class Product : AuditableEntity
 {
     public int Id { get; private set; }
 

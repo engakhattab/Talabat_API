@@ -9,17 +9,17 @@ public sealed class Order : AuditableEntity
 {
     private readonly List<OrderItem> _items;
 
-    public int Id { get; }
+    public int Id { get; private set; }
 
-    public int CustomerId { get; }
+    public int CustomerId { get; private set; }
 
-    public int RestaurantId { get; }
+    public int RestaurantId { get; private set; }
 
-    public DeliveryAddressSnapshot DeliveryAddress { get; }
+    public DeliveryAddressSnapshot DeliveryAddress { get; private set; }
 
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
 
-    public Money TotalAmount { get; }
+    public Money TotalAmount { get; private set; }
 
     private Order(
         int id,

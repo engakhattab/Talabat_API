@@ -5,9 +5,9 @@ namespace Talabat.Domain.Aggregates.Customer;
 
 public sealed class CustomerAddress
 {
-    public int Id { get; }
+    public int Id { get; private set; }
 
-    public Address Details { get; }
+    public Address Details { get; private set; }
 
     public bool IsDefault { get; private set; }
 

@@ -7,13 +7,13 @@ namespace Talabat.Domain.Aggregates.DeliveryManagement;
 
 public sealed class DeliveryAgent : AuditableEntity
 {
-    public int Id { get; }
+    public int Id { get; private set; }
 
-    public string FullName { get; }
+    public string FullName { get; private set; }
 
-    public string? PhoneNumber { get; }
+    public string? PhoneNumber { get; private set; }
 
-    public VehicleType VehicleType { get; }
+    public VehicleType VehicleType { get; private set; }
 
     public DeliveryAgentStatus Status { get; private set; }
 
