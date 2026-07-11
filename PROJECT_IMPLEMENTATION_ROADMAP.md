@@ -7,10 +7,12 @@
 | Phase 0: Repository And Documentation Audit | Completed | `docs/phase-0-repository-and-documentation-audit.md` |
 | Phase 1: Domain Cleanup And Invariant Stabilization | Completed | `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` |
 | Phase 2: Domain And Application Contracts | Completed | `docs/phase-2-domain-and-application-contracts.md` |
-| Phase 3: Application Layer Use Cases | Next — specced, not implemented | `specs/001-application-use-cases/` (execute via `tasks.md`) |
+| Phase 3: Application Layer Use Cases | Completed | `docs/phase-3-application-use-cases.md` + `specs/001-application-use-cases/` |
+| Phase 3.5: ID Strategy Refactor Before Persistence | Next — approved, not implemented | Section 5, Phase 3.5 (this file) |
 | Phases 4–11 | Not started | — |
 
-- Phases 0–2 were implemented and committed in `91dc805` (2026-07-11).
+- Phases 0–2 were implemented in `91dc805`; Phase 3 in `2e7f148` (both 2026-07-11).
+- Phase 3.5 was added on 2026-07-11 after the ID-strategy impact review: the project moves to SQL Server IDENTITY keys, `IApplicationIdGenerator` is removed, and the earlier sequence-based Phase 4 recommendation is superseded.
 - Phase 3 has a full spec-kit under `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Where the spec-kit is more specific than the Phase 3 section in this file, the spec-kit wins. Two notable examples: Delivery use cases are deferred to Phase 7 by spec clarification, and the handler style is CQRS-lite without MediatR.
 - Section 1 below describes the repository as of commit `91dc805`. Statements that predated Phases 0–2 have been corrected in place.
 
@@ -458,14 +460,15 @@ Recommended order:
 2. Domain cleanup and invariant stabilization.
 3. Domain and Application contracts.
 4. Application layer use cases.
-5. Persistence and Infrastructure.
-6. API layer.
-7. Customer Website backend support.
-8. Delivery Website backend support.
-9. Reserved IdentityServer/Auth Portal decision and implementation phase.
-10. Authorization strategy.
-11. Testing and quality gates.
-12. Delivery extensions and advanced features.
+5. ID strategy refactor to database-generated IDENTITY keys (Phase 3.5).
+6. Persistence and Infrastructure.
+7. API layer.
+8. Customer Website backend support.
+9. Delivery Website backend support.
+10. Reserved IdentityServer/Auth Portal decision and implementation phase.
+11. Authorization strategy.
+12. Testing and quality gates.
+13. Delivery extensions and advanced features.
 
 This order is safer than starting directly with IdentityServer because the current repository is Domain-heavy and has no Application or Infrastructure foundation yet. Authentication depends on stable profile boundaries, repository contracts, persistence, transactions, and API policies. Starting IdentityServer now would force identity decisions into a system that has not yet defined its Application use cases or persistence model.
 
@@ -619,7 +622,7 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 3: Application Layer Use Cases
 
-> **Status: Next.** This phase is fully specced in `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Implement it by executing `specs/001-application-use-cases/tasks.md` (T001–T088). Where this section and the spec-kit differ, the spec-kit wins.
+> **Status: Completed (2026-07-11, commit `2e7f148`).** See `docs/phase-3-application-use-cases.md`. Implemented per the spec-kit at `specs/001-application-use-cases/` (where this section and the spec-kit differ, the spec-kit wins). Note: the `IApplicationIdGenerator` abstraction introduced here is scheduled for removal in Phase 3.5.
 
 - Goal
   - Implement use-case orchestration without persistence details or HTTP concerns.
@@ -682,6 +685,39 @@ The immediate priority is to make the core business model stable, then define us
   - Do not leak persistence concerns into use-case APIs.
   - Do not implement authenticated profile resolution until auth strategy is approved.
 
+### Phase 3.5: ID Strategy Refactor Before Persistence
+
+> **Status: Next — approved direction, not implemented.** Added 2026-07-11 after the ID-strategy impact review. Supersedes the earlier sequence-based recommendation that Phase 4 previously carried.
+
+- Goal
+  - Make Domain, Application, and test code compatible with SQL Server database-generated IDENTITY keys before any EF Core mapping or migration exists, and remove `IApplicationIdGenerator`.
+- Why It Must Happen Before Phase 4
+  - The first EF Core configuration written in Phase 4 must already know who generates keys. Refactoring now is compile-driven with no schema or data to migrate; after migrations exist, the same change becomes a schema-and-data change.
+  - The sequence alternative is not churn-free anyway: `IApplicationIdGenerator` is synchronous, so a real database-backed implementation would force blocking calls or an async signature change that touches the same handlers and tests.
+- Scope (Likely Affected Areas)
+  - Domain members that accept self IDs: `Cart.Create` (+ private ctor), `Order.CreateFromCheckout` (+ private ctor), `Customer` ctor, `Customer.AddAddress`, `CustomerAddress` ctor, `Restaurant` ctor, `Restaurant.AddProduct`, `Product` ctor, `Delivery` ctor, `DeliveryAgent` ctor.
+  - Application: delete `Talabat.Application/Abstractions/IApplicationIdGenerator.cs`; update its three consumers — `AddCartItemHandler`, `AddCustomerAddressHandler`, `CheckoutHandler`.
+  - Tests: `FakeApplicationIdGenerator` (delete), `TestData`, the six test files that wire the fake, fake repositories/unit of work, and ID-literal assertions.
+  - Documentation: this file (Phase 4 notes updated below), a short decision record, and a superseded-decision note in `specs/001-application-use-cases/research.md`.
+- What Should Change (High Level)
+  - Remove self-ID parameters and their `Guard.Positive` checks; keep guards on cross-aggregate reference IDs. Unify `Id` as `{ get; private set; }` (`Cart.Id` and `Customer.Id` are get-only today); `Id == 0` means not yet persisted.
+  - Handlers build response models that carry generated IDs (`CartDetails.Id`, `CustomerAddressDetails.Id`, `CheckoutSucceededOutcome.OrderId`) only after `IUnitOfWork.SaveChangesAsync`: move the `CartMapper.ToDetails` call after the save in `AddCartItemHandler`; build the checkout outcome from `order.Id` after the save in `CheckoutHandler`.
+  - Test doubles simulate identity assignment for newly added aggregates (small reflection helper); `TestData` keeps deterministic IDs for pre-seeded aggregates so existing literal command IDs keep working.
+- What Should Not Be Done
+  - No EF Core packages, DbContext, mappings, or migrations. No API endpoints. No Identity/Auth work. No repository interface changes (`Talabat.Domain/Interfaces/` stays as-is). No business-rule changes.
+- Main Risk Points
+  - `Restaurant.AddProduct` currently dedupes by caller-supplied `productId`; new products all have `Id == 0`, so the duplicate check must move to normalized product name (keep `DuplicateProductException`; a DB unique index backstop lands in Phase 4).
+  - `Customer.AddAddress` drops its duplicate-ID branch; the value-equality duplicate check must remain so `DuplicateAddressException` behavior is preserved.
+  - Any result mapping that runs before `SaveChangesAsync` silently returns `Id = 0` — review every create-path handler.
+  - A future flow that creates one aggregate referencing another unsaved aggregate in the same transaction (for example order + delivery in one use case) would need a save-first step; current phased use cases do not do this — note it for Phase 7.
+  - `CheckoutHandlerSuccessTests` asserts the literal fake order ID (`300`); ID literals in tests will change.
+- Acceptance Criteria
+  - Solution builds and all Application tests pass; a solution-wide search for `IApplicationIdGenerator` returns nothing.
+  - No aggregate factory or constructor accepts its own ID; every entity `Id` is `{ get; private set; }`.
+  - Create-path handlers return generated IDs only after the save; business behavior assertions unchanged except ID literals.
+  - Domain and Application still reference no EF Core, ASP.NET Core, or Identity types.
+  - Decision recorded: Phase 4 notes in this file updated, short record at `docs/phase-3.5-id-strategy-refactor.md`, spec research ID decision annotated as superseded.
+
 ### Phase 4: Persistence And Infrastructure
 
 - Goal
@@ -691,9 +727,9 @@ The immediate priority is to make the core business model stable, then define us
   - Implement persistence in Infrastructure with explicit mappings.
   - Keep database constraints aligned with domain invariants.
 - Main decisions
-  - Reconcile the ID strategy first — this is the opening decision of Phase 4. Domain factories require caller-supplied positive int IDs, and Phase 3 introduces `IApplicationIdGenerator` to satisfy them. Recommended: implement `IApplicationIdGenerator` over database sequences (for example EF Core HiLo), which keeps Domain factories and Phase 3 handlers unchanged. The alternative — switching to database-generated identity columns — would force a Domain factory refactor and handler changes, so it must be an explicit, reviewed choice. Do not map keys as identity columns while aggregates still self-assign positive IDs.
+  - ID strategy: decided and executed in Phase 3.5 — SQL Server IDENTITY for integer keys. Phase 4 assumes that refactor is complete: map keys with the EF default (`ValueGeneratedOnAdd`); do not create sequences, do not configure `ValueGeneratedNever`, and do not reintroduce an application-side ID generator. If Phase 3.5 is not complete, stop and complete it first. Integration tests must assert IDs are populated after `SaveChangesAsync`.
   - Choose owned type mappings for `Money`, `TimeRange`, `Address`, `DeliveryAddressSnapshot`, and `GeoLocation`.
-  - Choose child key strategy for `CartItem`, `OrderItem`, and `CustomerAddress`.
+  - Child key strategy: `CustomerAddress` uses IDENTITY (per Phase 3.5); `CartItem` and `OrderItem` keep the Phase 1 composite-key decision (`CartId + ProductId`, `OrderId + ProductId`).
   - Choose whether Catalog seed data is static seed data or managed through internal tooling later.
   - Choose transaction boundary for checkout and delivery coordination.
 - Actions
@@ -1121,7 +1157,7 @@ The original first-10 list (documentation baseline, Phase 1 decisions, Phase 2 c
 
 The recommended strategy is Domain-first, then contracts, then Application, then Infrastructure, then API, then website-specific backend support, and only then Identity/Auth implementation.
 
-Current position (2026-07-11): Phases 0–2 are complete (documentation baseline, Domain decisions, repository/Application contracts). The next step is Phase 3 — Application use cases for the customer ordering path — executed through `specs/001-application-use-cases/tasks.md`, including its required Application test project. Phase 4 must open with the ID-generation reconciliation decision before any EF Core mapping is written.
+Current position (2026-07-11): Phases 0–3 are complete. The next step is Phase 3.5 — refactor Domain, Application, and tests to database-generated IDENTITY keys and remove `IApplicationIdGenerator`. Phase 3.5 must complete before any EF Core mapping is written in Phase 4.
 
 IdentityServer/Auth Portal should not be started now. The project is not ready for that decision because the Application layer, repositories, persistence model, transaction boundaries, API contracts, and authorization matrix are not yet stable.
 
