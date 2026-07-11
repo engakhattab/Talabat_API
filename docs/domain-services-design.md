@@ -1,5 +1,7 @@
 # Domain Services Design
 
+> Phase 0 scope update: This document was written before the Delivery domain implementation was added. `CheckoutDomainService` and `DeliveryAssignmentDomainService` both exist in current Domain code. Identity/Auth remains outside Domain services.
+
 This document defines the Domain Service design for Talabat MVP v1.
 
 This is a design document only. It does not generate C# code and does not create entities, repositories, controllers, handlers, EF configurations, or migrations.

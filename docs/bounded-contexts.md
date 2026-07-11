@@ -1,5 +1,7 @@
 # Bounded Contexts
 
+> Phase 0 scope update: This document was originally written for the unauthenticated MVP v1. The current project direction keeps Catalog, Basket, Ordering, Customer, and Delivery boundaries, but authentication/authorization are reserved future concerns rather than permanently out of scope. Use `PROJECT_IMPLEMENTATION_ROADMAP.md` for current sequencing.
+
 This document defines the DDD bounded contexts for Talabat MVP v1.
 
 MVP v1 does not include authentication, authorization, Identity, login/register, JWT, admins, restaurant owners, payment, delivery drivers, notifications, coupons, or reviews. The system assumes one normal customer profile. Restaurants and products are seeded for testing.

@@ -1,5 +1,7 @@
 # Talabat MVP v1 - Business Rules
 
+> Phase 0 scope update: These rules describe the original unauthenticated MVP baseline. Authentication, authorization, delivery-agent access, admins, and restaurant owners are now deferred/reserved future concerns, not permanently excluded. Domain rules below remain valid unless a later approved phase revises them.
+
 MVP v1 does not include authentication or authorization. All API actions assume a single normal customer. Catalog data will be seeded for testing.
 
 ## 1. Catalog Rules

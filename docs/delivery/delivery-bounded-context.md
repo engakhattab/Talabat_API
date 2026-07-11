@@ -1,5 +1,7 @@
 # Delivery Bounded Context
 
+> Phase 0 scope update: Delivery domain concepts are implemented, but Delivery Website/API support and authenticated delivery-agent access are deferred. Authorization should be handled later at the Application/API boundary, not inside Delivery aggregates.
+
 ## Purpose
 
 Delivery manages courier assignment and delivery lifecycle after an Order is created. It translates a completed checkout into an operational task without adding mutable courier state to the historical Order aggregate.

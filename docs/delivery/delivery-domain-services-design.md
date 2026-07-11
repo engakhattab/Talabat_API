@@ -70,7 +70,7 @@ Expected domain exceptions for later implementation include:
 - `DeliveryAlreadyAssignedException`
 - `DeliveryNotAssignedException`
 - `InvalidDeliveryStatusTransitionException`
-- `DeliveryAlreadyCompletedException`
+- `DeliveryTerminalStateException`
 - `DeliveryAgentMismatchException`
 - `DeliveryAgentCoordinationRequiredException`
 - `InvalidDeliveryTimestampException`

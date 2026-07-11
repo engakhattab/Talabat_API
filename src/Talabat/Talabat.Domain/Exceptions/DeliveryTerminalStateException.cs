@@ -1,8 +1,8 @@
 namespace Talabat.Domain.Exceptions;
 
-public sealed class DeliveryAlreadyCompletedException : DomainException
+public sealed class DeliveryTerminalStateException : DomainException
 {
-    public DeliveryAlreadyCompletedException()
+    public DeliveryTerminalStateException()
         : base("Delivery is in a terminal state and cannot be changed.")
     {
     }

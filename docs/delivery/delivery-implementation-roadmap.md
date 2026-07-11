@@ -1,5 +1,7 @@
 # Delivery Extension Implementation Roadmap
 
+> Phase 0 scope update: This roadmap tracks Delivery domain progress only. Delivery repositories, Application use cases, Infrastructure, API endpoints, authentication, and the Delivery Website remain deferred. Identity/Auth is reserved/TBD and should not be implemented from this document.
+
 This roadmap tracks the Delivery Extension. Domain implementation through Step 6 is complete. Repository, Application, Infrastructure, and API work remains deferred.
 
 ## Step 1 - Create Delivery Design Documentation
@@ -46,7 +48,7 @@ Implemented exceptions include:
 - `DeliveryAlreadyAssignedException`
 - `DeliveryNotAssignedException`
 - `InvalidDeliveryStatusTransitionException`
-- `DeliveryAlreadyCompletedException`
+- `DeliveryTerminalStateException`
 - `DeliveryAgentMismatchException`
 
 Each exception should inherit from DomainException and use business language without HTTP metadata.
@@ -90,7 +92,6 @@ Implemented work:
 - Complete only an OutForDelivery delivery assigned to the supplied agent.
 - Mark the agent Available after successful completion.
 - Release the assigned agent after coordinated cancellation or failure.
-- Add focused Domain tests for success and failure paths.
 
 The service must not use repositories or save changes.
 
@@ -129,7 +130,7 @@ Deferred work:
 - GeoLocation column mapping and checks.
 - Delivery-agent seed data for testing.
 
-No Infrastructure work should begin until the Domain model and tests are stable.
+No Infrastructure work should begin until the Domain model is stable and the relevant test scope is approved.
 
 ## Step 10 - Add API Later
 

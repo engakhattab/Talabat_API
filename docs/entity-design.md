@@ -1,16 +1,25 @@
 # Entity Design
 
-This document derives the MVP v1 entity design from the business rules, bounded contexts, and aggregate boundaries.
+> Phase 0 scope update: This document was written for the original MVP v1. Customer remains a domain profile, not an identity account, but future Identity/Auth integration is reserved/TBD. Do not add framework-specific identity types to these entities during current phases.
+
+This document derives the current entity design from the business rules, bounded contexts, and aggregate boundaries.
 
 This is a design document only. It does not define C# code, repositories, controllers, handlers, EF configurations, or migrations.
 
-MVP v1 scope:
+Original MVP v1 scope:
 
 - No authentication, authorization, Identity, login/register, JWT, admins, or restaurant owners.
 - No payment, delivery drivers, notifications, coupons, or reviews.
 - Assume one normal customer profile.
 - Restaurants and products are seeded for testing.
 - Cart is not created until the first item is added.
+
+Current Phase 1 decision:
+
+- The old scope is historical. Authentication/authorization, Customer Website, Delivery Website, and Identity/Auth Portal support are deferred future concerns.
+- Domain entities must remain independent from Identity/Auth frameworks.
+- Do not add `ApplicationUser`, `IdentityUser`, `ClaimsPrincipal`, `HttpContext`, JWT claims, or IdentityServer-specific types to entities.
+- Future account/profile linkage is reserved/TBD and must be handled without making the Domain depend on an identity framework.
 
 ## Restaurant
 
@@ -133,7 +142,7 @@ A cart is identified by its cart id. In MVP v1, a cart is created only when the 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
 | Cart id | Primitive | Identifies the cart aggregate once the first item is added. | BR-CART-001 |
-| Customer id | Entity reference id | Links the cart to the single MVP customer profile. | BR-CART-001, BR-CUS-001 |
+| Customer id | Entity reference id | Links the cart to a customer profile. | BR-CART-001, BR-CUS-001 |
 | Restaurant id | Entity reference id | Assigned from the first item and used to enforce one restaurant per cart. | BR-CART-004 |
 | Created time | Primitive | Supports the 1-hour expiry rule. | BR-CART-002, BR-CART-003 |
 | Status | Enum | Distinguishes Active, CheckedOut, and Cleared carts so only active carts can be modified. | Aggregate invariant: only Active carts can be modified |
@@ -238,7 +247,7 @@ An order is identified by its order id.
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
 | Order id | Primitive | Identifies the historical order record. | BR-ORD-008 |
-| Customer id | Entity reference id | Links the order to the MVP customer profile and scopes order history. | BR-ORD-008, BR-CUS-001 |
+| Customer id | Entity reference id | Links the order to a customer profile and scopes order history. | BR-ORD-008, BR-CUS-001 |
 | Restaurant id | Entity reference id | Records which restaurant the order belongs to. | BR-ORD-002, BR-ORD-003 |
 | Created time | Primitive | Records when checkout succeeded. | BR-ORD-006 |
 | Delivery address snapshot | Value Object | Preserves delivery address at checkout time even if the customer later changes addresses. | BR-CUS-005, aggregate invariant: order must contain delivery address snapshot |
@@ -324,18 +333,18 @@ Customer Context.
 
 ### Role
 
-`Customer` is the Customer aggregate root. In MVP v1 it is a simple profile that owns addresses and links carts/orders to the single normal customer.
+`Customer` is the Customer aggregate root. It is a business profile that owns addresses and links carts/orders to a customer. It is not an authentication account.
 
 ### Identity
 
-A customer is identified by its customer id. There is no IdentityUserId in MVP v1.
+A customer is identified by its customer id. There is no identity-framework-specific account reference in the Domain model during Phase 1.
 
 ### State / Properties
 
 | Property | Type category only, not exact C# code | Why it exists | Related rule/invariant |
 |---|---|---|---|
-| Customer id | Primitive | Links carts, orders, and addresses to the MVP customer profile. | BR-CUS-001, BR-CART-001, BR-ORD-008 |
-| Full name | Primitive | Gives the MVP customer profile a required human-readable name. | BR-CUS-006 |
+| Customer id | Primitive | Links carts, orders, and addresses to the customer profile. | BR-CUS-001, BR-CART-001, BR-ORD-008 |
+| Full name | Primitive | Gives the customer profile a required human-readable name. | BR-CUS-006 |
 | Age | Primitive | Stores valid positive profile age. | BR-CUS-007 |
 | Phone number | Primitive | Stores optional contact information without introducing identity or authentication. | BR-CUS-008 |
 | Addresses | Collection | Customer owns multiple address children and enforces default/duplicate rules. | BR-CUS-002, BR-CUS-003, BR-CUS-004 |
@@ -365,9 +374,11 @@ A customer is identified by its customer id. There is no IdentityUserId in MVP v
 
 ### Notes
 
-Customer is a profile, not an authenticated identity user. Do not add password, login, JWT, role, email-confirmation, admin, or restaurant-owner concepts for MVP v1.
+Customer is a profile, not an authenticated identity user. Do not add password, login, JWT, role, email-confirmation, admin, restaurant-owner, `ApplicationUser`, `IdentityUser`, or IdentityServer concepts to this aggregate in Phase 1.
 
 The Customer constructor or factory should require customer id, full name, and age, with phone number optional. It should normalize the full name, reject an empty name, reject age less than or equal to zero, and start with an encapsulated address collection.
+
+Future authenticated flows should resolve the authenticated account to a Customer profile at the Application/API boundary, then pass `Customer.Id` into Domain operations.
 
 ## CustomerAddress
 
@@ -377,7 +388,7 @@ Customer Context.
 
 ### Role
 
-`CustomerAddress` is a child entity inside the Customer aggregate. It represents one saved delivery address for the MVP customer profile.
+`CustomerAddress` is a child entity inside the Customer aggregate. It represents one saved delivery address for a customer profile.
 
 ### Identity
 

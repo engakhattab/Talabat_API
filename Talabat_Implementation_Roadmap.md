@@ -1,5 +1,7 @@
 # Talabat DDD Project — Implementation Roadmap
 
+> Phase 0 status: Superseded for sequencing by `PROJECT_IMPLEMENTATION_ROADMAP.md`. This older roadmap was written around the original MVP v1 assumptions. Do not use it to start Identity implementation or to treat authentication/delivery as permanently out of scope.
+
 > A mentor-guided, step-by-step architecture plan for building a Talabat-like food delivery backend using **DDD**, **Clean Architecture**, **ASP.NET Core**, and **EF Core Code First**.
 
 ---

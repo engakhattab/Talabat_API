@@ -1,5 +1,7 @@
 # Role
 
+> Phase 0 scope update: This prompt is historical context from the original MVP planning. It must not be read as the current implementation strategy where it selects ASP.NET Core Identity or excludes delivery/auth permanently. The current sequencing document is `PROJECT_IMPLEMENTATION_ROADMAP.md`; Identity/Auth is reserved/TBD and no identity framework has been selected.
+
 You are a Principal Software Architect, Domain-Driven Design (DDD)
 expert, and Senior .NET Backend Engineer with extensive experience
 designing scalable food delivery systems similar to Talabat, Uber Eats,

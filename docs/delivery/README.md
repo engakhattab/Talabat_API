@@ -1,5 +1,7 @@
 # Delivery Extension
 
+> Phase 0 scope update: Delivery domain code now exists in `Talabat.Domain`. Repository, Application, Infrastructure, API, authentication, and Delivery Website work remain deferred to later phases.
+
 The Delivery Extension is an MVP v2 feature added after the original Talabat MVP v1 domain. MVP v1 focuses on Catalog, Basket, Customer, and Ordering. This extension adds courier assignment and the delivery lifecycle that begins after successful checkout.
 
 Delivery is a separate bounded context. It must not be mixed directly into the Order aggregate:
@@ -44,4 +46,4 @@ This phase does not include:
 - Authentication or courier login.
 - Nearest-agent selection or route optimization.
 
-Delivery agents may be seeded for testing. No Delivery implementation, persistence mapping, API, or application use case is created during this documentation step.
+Delivery agents may be seeded for testing in a later Infrastructure phase. Delivery domain implementation now exists, but persistence mapping, API, authentication, Delivery Website support, and Application use cases are still deferred.

@@ -1,5 +1,7 @@
 # Value Object Design
 
+> Phase 0 scope update: This document was written for MVP v1. Its value object guidance remains useful, but Delivery value objects now exist in code and Identity/Auth remains a deferred boundary outside value objects.
+
 This document defines the value object and temporary snapshot design for Talabat MVP v1.
 
 This is a design document only. It does not generate C# code and does not create entities, repositories, controllers, handlers, EF configurations, or migrations.

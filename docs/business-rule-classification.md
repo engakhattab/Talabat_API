@@ -1,5 +1,7 @@
 # Business Rule Classification
 
+> Phase 0 scope update: This classification was written for the original MVP v1. Authentication/authorization and delivery-agent access are now deferred/reserved future concerns. Do not use the old "Out of Scope" list as a permanent product boundary.
+
 This document classifies each business rule from `docs/business-rules.md` for MVP v1.
 
 MVP v1 does not include authentication or authorization. There is no login, register, JWT, Identity, roles, admin, restaurant owner, payment, delivery, notifications, coupons, or reviews.

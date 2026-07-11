@@ -1,16 +1,24 @@
 # Domain Failures Design
 
-This document defines the domain failure model for Talabat MVP v1.
+> Phase 0 scope update: This document was written for MVP v1. Domain failures should still avoid HTTP and Identity framework details. Future authentication/authorization failures belong at the API/Auth boundary, not inside Domain exceptions.
+
+This document defines the domain failure model for the current Talabat Domain.
 
 This is a design document only. It does not generate C# code and does not create entities, repositories, controllers, handlers, EF configurations, or migrations.
 
-MVP v1 scope:
+Original MVP v1 scope:
 
 - No authentication, authorization, Identity, login/register, JWT, admins, or restaurant owners.
 - No payment, delivery drivers, notifications, coupons, or reviews.
 - Assume one normal customer profile.
 - Restaurants and products are seeded for testing.
 - Cart is not created until the first item is added.
+
+Current Phase 1 decision:
+
+- Domain failures remain business-rule failures only.
+- Authentication and authorization failures are deferred to the future API/Auth boundary.
+- Do not add HTTP status codes, claims, roles, token details, IdentityServer details, or ASP.NET Identity details to Domain exceptions.
 
 ## Domain Failures Philosophy
 
@@ -57,7 +65,7 @@ Use a Domain Result when:
 | `DuplicateAddressException` | Exception | Duplicate address should be rejected. | Customer | Invalid profile operation. Customer address duplicates violate the Customer aggregate rule. | `This address already exists for the customer.` |
 | `AddressNotFoundException` | Exception | Checkout requires selected address to belong to customer; remove/set-default needs existing address. | Customer / Application validation | Invalid operation. The requested address cannot be used or changed. | `Address was not found for this customer.` |
 | `MissingDeliveryAddressException` | Exception | Checkout requires a delivery address. | Checkout use case / Order factory | Invalid checkout operation. Order creation cannot continue without delivery address data. | `Checkout requires a delivery address.` |
-| `UnavailableProductsCheckoutResult` | Result for MVP v1 | Checkout validates product availability again. | Checkout use case / domain service | Expected checkout outcome. The UI needs item-level details so the customer can revise the cart. | Returned details: product id, product name, reason unavailable. |
+| `UnavailableProductsCheckoutResult` | Result | Checkout validates product availability again. | Checkout use case / domain service | Expected checkout outcome. The UI needs item-level details so the customer can revise the cart. | Returned details: product id, product name, reason unavailable. |
 
 ## Base Domain Exception
 
@@ -100,6 +108,7 @@ The current Domain implementation also uses focused failures for:
 - Duplicate or missing Restaurant products.
 - Missing CartItem and missing current Product price.
 - Delivery agent status transitions.
+- Delivery terminal-state protection.
 - Assigned-delivery coordination for cancellation/failure.
 - Non-monotonic Delivery transition timestamps.
 
@@ -110,9 +119,9 @@ MVP v2 Delivery failures remain business-language DomainException types and cont
 - HTTP 400/404/409/422 status codes do not belong in Domain.
 - Controller response messages do not belong in Domain.
 - Database exceptions do not belong in Domain.
-- Authentication/authorization failures are out of scope for MVP v1.
+- Authentication/authorization failures belong at the API/Auth boundary, not in Domain exceptions.
 - Validation for request shape, such as missing JSON fields, belongs in API/Application validation, not Domain.
-- Login, register, JWT, roles, admin, and restaurant-owner failures should not be modeled for MVP v1.
+- Login, register, JWT, roles, admin, and restaurant-owner failures should not be modeled as Domain failures in Phase 1.
 
 ## Mapping Later In API Layer
 
@@ -141,4 +150,4 @@ These mappings are API-layer policy. They should not be embedded into domain exc
 - Treating every business outcome as an exception.
 - Returning strings instead of structured unavailable-product details.
 - Letting controllers enforce domain invariants instead of entities/aggregates.
-- Creating exceptions for out-of-scope authentication/authorization in MVP v1.
+- Creating Domain exceptions for authentication/authorization instead of handling them at the API/Auth boundary.

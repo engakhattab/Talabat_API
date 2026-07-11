@@ -51,6 +51,7 @@ public sealed class CheckoutDomainService
         {
             throw new RestaurantClosedException();
         }
+
         var unavailableItems = new List<UnavailableCheckoutItem>();
         var checkoutItems = new List<CheckoutItemSnapshot>();
 

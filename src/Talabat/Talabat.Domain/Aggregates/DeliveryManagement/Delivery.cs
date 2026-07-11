@@ -197,7 +197,7 @@ public sealed class Delivery : AuditableEntity
     {
         if (IsTerminal())
         {
-            throw new DeliveryAlreadyCompletedException();
+            throw new DeliveryTerminalStateException();
         }
     }
 

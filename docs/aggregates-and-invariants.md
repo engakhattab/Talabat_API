@@ -1,8 +1,19 @@
 # Aggregates and Invariants
 
-This document defines the MVP v1 aggregate boundaries for the Talabat-like backend using DDD and Clean Architecture.
+> Phase 0 scope update: This document started as MVP v1 design. The aggregate rules remain useful, but the final system must support future Customer, Delivery, and Auth Portal websites. Identity/Auth remains deferred/TBD and must not be added to Domain aggregates during current phases.
 
-MVP v1 does not include authentication, authorization, Identity, login/register, JWT, admins, restaurant owners, payment, delivery drivers, notifications, coupons, or reviews. The system assumes one normal customer profile. Restaurants and products are seeded for testing.
+This document defines the current aggregate boundaries for the Talabat-like backend using DDD and Clean Architecture.
+
+The original MVP v1 did not include authentication, authorization, Identity, login/register, JWT, admins, restaurant owners, payment, delivery drivers, notifications, coupons, or reviews. That is now historical scope, not the permanent direction. Identity/Auth is reserved/TBD and must stay outside the Domain model until a later approved phase.
+
+## Phase 1 Stabilization Decisions
+
+- Cart creation is first-item based: persisted carts should be created through `Cart.Create(id, customerId, firstProduct, quantity, createdAt)`, not as empty active carts.
+- `CartItem` and `OrderItem` do not have separate Domain child IDs in this phase. Persistence may use owner/composite keys.
+- `CustomerAddress` keeps a child ID because address selection and default-address behavior need stable child identity.
+- Absolute timestamps use UTC `DateTime`; restaurant opening checks receive a restaurant-local `TimeOnly`.
+- Audit user values on `AuditableEntity` remain plain optional strings and must not depend on Identity/Auth framework types.
+- Delivery and DeliveryAgent are separate aggregate roots and are now part of the implemented Domain model.
 
 ## Time Policy
 
@@ -18,6 +29,8 @@ Restaurant opening hours are wall-clock values, not UTC instants. The future App
 | Basket | `Cart` | `CartItem` | Cart belongs to one customer; only active carts can be modified; cart contains items from one restaurant; cart expires after 1 hour; quantities are positive; duplicate products merge; cart stores no product prices. |
 | Ordering | `Order` | `OrderItem` | Order belongs to one customer and one restaurant; order cannot be created from an empty cart; order items are immutable snapshots; total is calculated from items; delivery address is snapshotted. |
 | Customer | `Customer` | `CustomerAddress` | Full name is required; age is positive; phone is optional; multiple addresses are allowed; only one default address is allowed; duplicate addresses are rejected. |
+| Delivery Management | `Delivery` | None | Delivery belongs to one order; stores IDs and delivery address snapshot; protects assignment, lifecycle, terminal state, assigned-agent identity, and monotonic transition timestamps. |
+| Delivery Management | `DeliveryAgent` | None | Delivery agent has required profile data, vehicle type, availability status, optional location, and assignment/release transitions coordinated with Delivery. |
 
 ## Restaurant Aggregate
 
@@ -99,7 +112,7 @@ Context: Basket
 
 `IsExpired(currentTime)` may be calculated from `CreatedAt` plus the expiry duration or from a stored `ExpiresAt` value. `Status` tracks lifecycle state: whether the cart is `Active`, `CheckedOut`, or `Cleared`.
 
-`Cart.RestaurantId` is assigned from the first item added to the cart. In MVP v1, a cart should not be created or persisted as an empty active cart before the first item is added. This keeps the one-restaurant-per-cart rule anchored to the first product snapshot.
+`Cart.RestaurantId` is assigned from the first item added to the cart. A cart should not be created or persisted as an empty active cart before the first item is added. This keeps the one-restaurant-per-cart rule anchored to the first product snapshot.
 
 ### Methods That Should Exist On The Aggregate Root
 
@@ -230,9 +243,9 @@ Context: Customer
 - `CreateDeliveryAddressSnapshot(addressId)`
 - `UpdateProfile(fullName, age, phoneNumber)`
 
-### Important MVP v1 Boundary
+### Important Identity/Auth Boundary
 
-Customer is a simple profile in MVP v1. Do not include `IdentityUserId`, password, email confirmation, roles, JWT, or login data.
+Customer is a domain profile, not an authentication account. Do not include password, email confirmation, roles, JWT, login data, `ApplicationUser`, `IdentityUser`, `ClaimsPrincipal`, or IdentityServer-specific types in the Customer aggregate. Any future scalar account/profile linkage remains a later Identity/Auth decision.
 
 The Customer constructor or factory requires `FullName` and `Age`, accepts an optional `PhoneNumber`, and starts with an encapsulated address collection. Profile behavior must trim and reject an empty full name and reject age less than or equal to zero.
 
@@ -284,4 +297,8 @@ The application layer should orchestrate these workflows by loading the required
 - `ICartRepository`
 - `IOrderRepository`
 - `ICustomerRepository`
+- `IDeliveryRepository`
+- `IDeliveryAgentRepository`
 - `IUnitOfWork`
+
+Do not create repositories for `Product`, `CartItem`, `OrderItem`, or `CustomerAddress`.

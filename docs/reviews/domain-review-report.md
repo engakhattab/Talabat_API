@@ -1,6 +1,7 @@
 # Domain Review Report
 
 > Historical review snapshot created before remediation on 2026-07-06. The findings below explain the pre-fix state and should not be treated as the current implementation status without a new review.
+> Phase 0 note: Use `docs/phase-0-repository-and-documentation-audit.md` and current source inspection for repository status. Refresh this review before using it as a Phase 1 task list.
 
 ## 1. Executive Summary
 

@@ -1,5 +1,7 @@
 # Talabat DDD — Implementation Plan
 
+> Phase 0 status: Historical planning document. This file was written for the original MVP direction and may mention Identity or old exclusions as if they are current. Use `PROJECT_IMPLEMENTATION_ROADMAP.md` as the current implementation sequence. Identity/Auth is reserved/TBD, and no identity framework has been selected.
+
 > **Project:** Talabat-like Food Delivery Backend
 > **Architecture:** Clean Architecture + Domain-Driven Design
 > **Stack:** ASP.NET Core · C# · EF Core Code First · SQL Server · Identity
