@@ -3,13 +3,13 @@
 <!-- SPECKIT START -->
 Active spec-kit implementation plan:
 
-- Feature: Application Use Cases
-- Plan: `specs/001-application-use-cases/plan.md`
-- Spec: `specs/001-application-use-cases/spec.md`
-- Research: `specs/001-application-use-cases/research.md`
-- Data model: `specs/001-application-use-cases/data-model.md`
-- Contracts: `specs/001-application-use-cases/contracts/application-use-cases.md`
-- Quickstart: `specs/001-application-use-cases/quickstart.md`
+- Feature: Persistence And Infrastructure
+- Plan: `specs/002-persistence-infrastructure/plan.md`
+- Spec: `specs/002-persistence-infrastructure/spec.md`
+- Research: `specs/002-persistence-infrastructure/research.md`
+- Data model: `specs/002-persistence-infrastructure/data-model.md`
+- Contracts: `specs/002-persistence-infrastructure/contracts/persistence-boundary.md`
+- Quickstart: `specs/002-persistence-infrastructure/quickstart.md`
 
-Scope guard: Phase 3 covers customer ordering Application use cases only. Do not add EF Core, API endpoints, Identity/Auth implementation, Delivery workflows, frontend code, or production transport mapping while implementing this plan.
+Scope guard: Phase 4 covers persistence and infrastructure only. Do not add API endpoints, Identity/Auth implementation, Delivery Application use cases, MediatR, frontend code, repository interface changes, or business-rule changes while implementing this plan. EF Core SQL Server work belongs in Infrastructure, with API changes limited to composition-root wiring and the approved OpenAPI vulnerability fix.
 <!-- SPECKIT END -->

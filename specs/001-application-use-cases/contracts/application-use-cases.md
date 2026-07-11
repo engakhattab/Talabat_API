@@ -44,8 +44,8 @@ Expected categories:
 
 ### Planned
 
-- `IApplicationIdGenerator`
-  - Supplies new IDs for cart, customer address, and order creation while persistence is deferred.
+- Application-side ID generation was a Phase 3 bridge and is superseded by Phase 3.5.
+  - Cart, customer address, and order IDs are now database-generated after save.
 - `IRestaurantLocalTimeProvider`
   - Supplies restaurant local `TimeOnly` values from UTC time for opening-hours validation.
 
@@ -158,7 +158,6 @@ Required fields:
 - `ICartRepository.GetActiveCartByCustomerIdAsync`
 - `IRestaurantRepository.GetProductSnapshotAsync`
 - `IRestaurantRepository.GetByIdWithProductsAsync` for current Catalog prices after mutation when returning `CartDetails`
-- `IApplicationIdGenerator`
 - `IClock`
 - `IUnitOfWork`
 
@@ -354,7 +353,6 @@ Required fields:
 **Dependencies**:
 
 - `ICustomerRepository.GetByIdWithAddressesAsync`
-- `IApplicationIdGenerator`
 - `IUnitOfWork`
 
 **Success response**: updated `CustomerProfile`.
@@ -424,7 +422,6 @@ Required fields:
 - `ICustomerRepository.GetByIdWithAddressesAsync`
 - `IRestaurantRepository.GetByIdWithProductsAsync`
 - `IOrderRepository.AddAsync`
-- `IApplicationIdGenerator`
 - `IRestaurantLocalTimeProvider`
 - `IClock`
 - `IUnitOfWork`

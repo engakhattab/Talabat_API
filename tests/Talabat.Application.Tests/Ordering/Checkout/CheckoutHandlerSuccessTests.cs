@@ -20,20 +20,21 @@ public sealed class CheckoutHandlerSuccessTests
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var orders = new FakeOrderRepository();
-        var unitOfWork = new FakeUnitOfWork();
+        var unitOfWork = new FakeUnitOfWork(orders);
         var handler = CreateHandler(carts, customers, restaurants, orders, unitOfWork);
 
         var result = await handler.Handle(new CheckoutCommand(1, 1));
 
         Assert.True(result.IsSuccess);
         var outcome = Assert.IsType<CheckoutSucceededOutcome>(result.Value);
-        Assert.Equal(300, outcome.OrderId);
         Assert.Equal(160m, outcome.TotalAmount.Amount);
         Assert.Equal(1, orders.AddCount);
         Assert.Equal(1, carts.UpdateCount);
         Assert.Equal(1, unitOfWork.SaveChangesCount);
-        Assert.Single(orders.Orders);
-        Assert.Equal(160m, orders.Orders[0].TotalAmount.Amount);
+        var createdOrder = Assert.Single(orders.Orders);
+        Assert.Equal(createdOrder.Id, outcome.OrderId);
+        Assert.True(outcome.OrderId > 0);
+        Assert.Equal(160m, createdOrder.TotalAmount.Amount);
     }
 
     private static CheckoutHandler CreateHandler(
@@ -48,7 +49,6 @@ public sealed class CheckoutHandlerSuccessTests
             customers,
             restaurants,
             orders,
-            new FakeApplicationIdGenerator(),
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },
             new FakeClock(),
             unitOfWork,

@@ -13,15 +13,15 @@ public sealed class AddCustomerAddressHandlerTests
         customers.Customers.Add(TestData.CreateCustomer());
         var handler = new AddCustomerAddressHandler(
             customers,
-            new FakeApplicationIdGenerator(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(customers));
 
         var result = await handler.Handle(
             new AddCustomerAddressCommand(1, "Third", "Cairo", "12", null, true));
 
         Assert.True(result.IsSuccess);
-        Assert.Single(result.Value.Addresses, address => address.IsDefault);
-        Assert.Contains(result.Value.Addresses, address => address.Id == 200 && address.IsDefault);
+        var defaultAddress = Assert.Single(result.Value.Addresses, address => address.IsDefault);
+        Assert.Equal("Third", defaultAddress.Street);
+        Assert.True(defaultAddress.Id > 0);
     }
 
     [Fact]
@@ -31,8 +31,7 @@ public sealed class AddCustomerAddressHandlerTests
         customers.Customers.Add(TestData.CreateCustomer());
         var handler = new AddCustomerAddressHandler(
             customers,
-            new FakeApplicationIdGenerator(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(customers));
 
         var result = await handler.Handle(
             new AddCustomerAddressCommand(1, " street ", "cairo", "10", "2", false));
@@ -48,8 +47,7 @@ public sealed class AddCustomerAddressHandlerTests
         customers.Customers.Add(TestData.CreateCustomer());
         var handler = new AddCustomerAddressHandler(
             customers,
-            new FakeApplicationIdGenerator(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(customers));
 
         var result = await handler.Handle(
             new AddCustomerAddressCommand(1, "", "Cairo", "10", null, false));

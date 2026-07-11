@@ -10,7 +10,7 @@ public sealed class Cart : AuditableEntity
     private static readonly TimeSpan ExpirationPeriod = TimeSpan.FromHours(1);
     private readonly List<CartItem> _items = [];
 
-    public int Id { get; }
+    public int Id { get; private set; }
 
     public int CustomerId { get; }
 
@@ -20,22 +20,24 @@ public sealed class Cart : AuditableEntity
 
     public IReadOnlyCollection<CartItem> Items => _items.AsReadOnly();
 
-    private Cart(int id, int customerId, DateTime createdAt)
+    private Cart()
     {
-        Id = Guard.Positive(id, nameof(id));
+    }
+
+    private Cart(int customerId, DateTime createdAt)
+    {
         CustomerId = Guard.Positive(customerId, nameof(customerId));
         CreatedAt = Guard.Utc(createdAt, nameof(createdAt));
         Status = CartStatus.Active;
     }
 
     public static Cart Create(
-        int id,
         int customerId,
         CatalogProductSnapshot firstProduct,
         int quantity,
         DateTime createdAt)
     {
-        var cart = new Cart(id, customerId, createdAt);
+        var cart = new Cart(customerId, createdAt);
         cart.AddItem(firstProduct, quantity, createdAt);
         return cart;
     }

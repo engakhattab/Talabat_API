@@ -13,7 +13,7 @@ public sealed class AddCartItemHandlerTests
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var carts = new FakeCartRepository();
-        var unitOfWork = new FakeUnitOfWork();
+        var unitOfWork = new FakeUnitOfWork(carts);
         var handler = CreateHandler(carts, restaurants, unitOfWork);
 
         var result = await handler.Handle(new AddCartItemCommand(1, 1, 11, 2));
@@ -82,7 +82,6 @@ public sealed class AddCartItemHandlerTests
         return new AddCartItemHandler(
             carts,
             restaurants,
-            new FakeApplicationIdGenerator(),
             new FakeClock(),
             unitOfWork);
     }

@@ -11,16 +11,13 @@ namespace Talabat.Application.Customers.AddAddress;
 public sealed class AddCustomerAddressHandler
 {
     private readonly ICustomerRepository _customerRepository;
-    private readonly IApplicationIdGenerator _idGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
     public AddCustomerAddressHandler(
         ICustomerRepository customerRepository,
-        IApplicationIdGenerator idGenerator,
         IUnitOfWork unitOfWork)
     {
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
-        _idGenerator = idGenerator ?? throw new ArgumentNullException(nameof(idGenerator));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -49,7 +46,6 @@ public sealed class AddCustomerAddressHandler
                 command.Floor);
 
             customer.AddAddress(
-                _idGenerator.NewCustomerAddressId(),
                 address,
                 command.MakeDefault);
 

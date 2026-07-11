@@ -12,6 +12,11 @@ public sealed class CartItem
 
     public int Quantity { get; private set; }
 
+    private CartItem()
+    {
+        ProductName = string.Empty;
+    }
+
     internal CartItem(int productId, string productName, int quantity)
     {
         ProductId = Guard.Positive(productId, nameof(productId));

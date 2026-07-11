@@ -19,15 +19,18 @@ public sealed class DeliveryAgent : AuditableEntity
 
     public GeoLocation? CurrentLocation { get; private set; }
 
+    private DeliveryAgent()
+    {
+        FullName = string.Empty;
+    }
+
     public DeliveryAgent(
-        int id,
         string fullName,
         VehicleType vehicleType,
         DateTime createdAt,
         string? phoneNumber = null,
         GeoLocation? currentLocation = null)
     {
-        Id = Guard.Positive(id, nameof(id));
         FullName = Guard.RequiredText(fullName, nameof(fullName));
         PhoneNumber = Guard.OptionalText(phoneNumber);
 

@@ -38,14 +38,15 @@ public sealed class ClearCartHandlerTests
         var addHandler = new AddCartItemHandler(
             carts,
             restaurants,
-            new FakeApplicationIdGenerator(),
             new FakeClock(),
-            new FakeUnitOfWork());
+            new FakeUnitOfWork(carts));
 
         var result = await addHandler.Handle(new AddCartItemCommand(1, 1, 11, 1));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, carts.Carts.Count);
-        Assert.Equal(100, result.Value.Id);
+        Assert.Equal(carts.Carts.Last().Id, result.Value.Id);
+        Assert.NotEqual(cart.Id, result.Value.Id);
+        Assert.True(result.Value.Id > 0);
     }
 }

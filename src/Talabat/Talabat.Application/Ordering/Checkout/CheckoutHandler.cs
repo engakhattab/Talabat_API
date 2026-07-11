@@ -13,7 +13,6 @@ public sealed class CheckoutHandler
     private readonly ICustomerRepository _customerRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IOrderRepository _orderRepository;
-    private readonly IApplicationIdGenerator _idGenerator;
     private readonly IRestaurantLocalTimeProvider _restaurantLocalTimeProvider;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -24,7 +23,6 @@ public sealed class CheckoutHandler
         ICustomerRepository customerRepository,
         IRestaurantRepository restaurantRepository,
         IOrderRepository orderRepository,
-        IApplicationIdGenerator idGenerator,
         IRestaurantLocalTimeProvider restaurantLocalTimeProvider,
         IClock clock,
         IUnitOfWork unitOfWork,
@@ -34,7 +32,6 @@ public sealed class CheckoutHandler
         _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
         _restaurantRepository = restaurantRepository ?? throw new ArgumentNullException(nameof(restaurantRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
-        _idGenerator = idGenerator ?? throw new ArgumentNullException(nameof(idGenerator));
         _restaurantLocalTimeProvider = restaurantLocalTimeProvider ?? throw new ArgumentNullException(nameof(restaurantLocalTimeProvider));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -93,9 +90,7 @@ public sealed class CheckoutHandler
             }
 
             var checkoutSucceeded = (CheckoutSucceeded)checkoutResult;
-            var orderId = _idGenerator.NewOrderId();
             var order = Order.CreateFromCheckout(
-                orderId,
                 command.CustomerId,
                 cart.RestaurantId,
                 checkoutSucceeded.Items,
@@ -108,7 +103,7 @@ public sealed class CheckoutHandler
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return UseCaseResult<CheckoutOutcome>.Success(
-                CheckoutResultMapper.ToOutcome(orderId, checkoutSucceeded));
+                CheckoutResultMapper.ToOutcome(order.Id, checkoutSucceeded));
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {

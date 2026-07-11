@@ -8,11 +8,13 @@
 | Phase 1: Domain Cleanup And Invariant Stabilization | Completed | `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` |
 | Phase 2: Domain And Application Contracts | Completed | `docs/phase-2-domain-and-application-contracts.md` |
 | Phase 3: Application Layer Use Cases | Completed | `docs/phase-3-application-use-cases.md` + `specs/001-application-use-cases/` |
-| Phase 3.5: ID Strategy Refactor Before Persistence | Next — approved, not implemented | Section 5, Phase 3.5 (this file) |
-| Phases 4–11 | Not started | — |
+| Phase 3.5: ID Strategy Refactor Before Persistence | Completed | `docs/phase-3.5-id-strategy-refactor.md` |
+| Phase 4: Persistence And Infrastructure | Completed | `docs/phase-4-persistence-and-infrastructure.md` + `specs/002-persistence-infrastructure/` |
+| Phases 5–11 | Not started | — |
 
 - Phases 0–2 were implemented in `91dc805`; Phase 3 in `2e7f148` (both 2026-07-11).
-- Phase 3.5 was added on 2026-07-11 after the ID-strategy impact review: the project moves to SQL Server IDENTITY keys, `IApplicationIdGenerator` is removed, and the earlier sequence-based Phase 4 recommendation is superseded.
+- Phase 3.5 completed on 2026-07-11 after the ID-strategy impact review: the project now uses SQL Server IDENTITY-compatible keys, application-side ID generator is removed, and the earlier sequence-based Phase 4 recommendation is superseded.
+- Phase 4 completed on 2026-07-11 with SQL Server-backed Infrastructure persistence, one reviewed migration, deterministic catalog seed data, and SQL Server integration tests.
 - Phase 3 has a full spec-kit under `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Where the spec-kit is more specific than the Phase 3 section in this file, the spec-kit wins. Two notable examples: Delivery use cases are deferred to Phase 7 by spec clarification, and the handler style is CQRS-lite without MediatR.
 - Section 1 below describes the repository as of commit `91dc805`. Statements that predated Phases 0–2 have been corrected in place.
 
@@ -119,7 +121,7 @@
 - No test projects exist yet for Domain, Application, Infrastructure, or API. The first test project (`tests/Talabat.Application.Tests`, xUnit) is a required deliverable of Phase 3, not optional.
 - No Application layer use-case handlers exist. Commands, queries, read models, and result contracts beyond `CheckoutOutcome` arrive in Phase 3 (specced in `specs/001-application-use-cases/`).
 - No current-user abstraction exists in code. This is deliberate: it is deferred until the Identity/Auth boundary is designed (see Phases 8–9); Phase 3 uses explicit `customerId` request data instead.
-- No ID-generation or restaurant-local-time abstractions exist yet; both are specced for Phase 3 (`IApplicationIdGenerator`, `IRestaurantLocalTimeProvider`). The database-level ID strategy remains a Phase 4 decision.
+- No ID-generation or restaurant-local-time abstractions exist yet; both are specced for Phase 3 (application-side ID generator, `IRestaurantLocalTimeProvider`). The database-level ID strategy remains a Phase 4 decision.
 - No Infrastructure persistence exists:
   - No EF Core packages.
   - No DbContext.
@@ -582,7 +584,7 @@ The immediate priority is to make the core business model stable, then define us
   - Add application-level abstractions only when they are needed by use cases.
   - Keep contracts framework-neutral.
 - Main decisions
-  - Decided (as implemented): repository and `IUnitOfWork` contracts live in `Talabat.Domain/Interfaces/`, matching `docs/repository-interfaces-design.md`. Application-level abstractions (`IClock`, and in Phase 3 `IApplicationIdGenerator` / `IRestaurantLocalTimeProvider`) live in `Talabat.Application/Abstractions/`.
+  - Decided (as implemented): repository and `IUnitOfWork` contracts live in `Talabat.Domain/Interfaces/`, matching `docs/repository-interfaces-design.md`. Application-level abstractions (`IClock`, and in Phase 3 application-side ID generator / `IRestaurantLocalTimeProvider`) live in `Talabat.Application/Abstractions/`.
   - `IUnitOfWork` should represent commit boundary only.
   - Current-user abstraction should be reserved unless an unauthenticated placeholder is needed for future-proof signatures.
   - Clock/time abstraction should be considered because Domain methods require current UTC time.
@@ -622,7 +624,7 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 3: Application Layer Use Cases
 
-> **Status: Completed (2026-07-11, commit `2e7f148`).** See `docs/phase-3-application-use-cases.md`. Implemented per the spec-kit at `specs/001-application-use-cases/` (where this section and the spec-kit differ, the spec-kit wins). Note: the `IApplicationIdGenerator` abstraction introduced here is scheduled for removal in Phase 3.5.
+> **Status: Completed (2026-07-11, commit `2e7f148`).** See `docs/phase-3-application-use-cases.md`. Implemented per the spec-kit at `specs/001-application-use-cases/` (where this section and the spec-kit differ, the spec-kit wins). Note: the temporary application-side ID generator introduced here was removed in Phase 3.5.
 
 - Goal
   - Implement use-case orchestration without persistence details or HTTP concerns.
@@ -635,7 +637,7 @@ The immediate priority is to make the core business model stable, then define us
   - Decided: use cases receive explicit `customerId` request data; no current-user abstraction yet.
   - Decided: expected business outcomes are returned as transport-neutral `UseCaseResult`/error contracts; domain invariants stay in Domain, request-shape validation stays in handlers/request models.
   - Decided: handlers return Application read models, never Domain aggregates.
-  - Decided: two new Application abstractions bridge deferred infrastructure — `IApplicationIdGenerator` (Domain factories require positive int IDs while persistence is deferred) and `IRestaurantLocalTimeProvider` (checkout needs restaurant-local time).
+  - Decided: two new Application abstractions bridge deferred infrastructure — an application-side ID generator (Domain factories then required positive int IDs while persistence was deferred; superseded by Phase 3.5) and `IRestaurantLocalTimeProvider` (checkout needs restaurant-local time).
   - Decided: xUnit is the test framework; `tests/Talabat.Application.Tests` is created in this phase with fake repositories, clock, ID generator, and local-time provider.
 - Actions
   - Implement Catalog read use cases:
@@ -687,17 +689,17 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 3.5: ID Strategy Refactor Before Persistence
 
-> **Status: Next — approved direction, not implemented.** Added 2026-07-11 after the ID-strategy impact review. Supersedes the earlier sequence-based recommendation that Phase 4 previously carried.
+> **Status: Completed (2026-07-11).** See `docs/phase-3.5-id-strategy-refactor.md`. Added after the ID-strategy impact review. Supersedes the earlier sequence-based recommendation that Phase 4 previously carried.
 
 - Goal
-  - Make Domain, Application, and test code compatible with SQL Server database-generated IDENTITY keys before any EF Core mapping or migration exists, and remove `IApplicationIdGenerator`.
+  - Make Domain, Application, and test code compatible with SQL Server database-generated IDENTITY keys before any EF Core mapping or migration exists, and remove the temporary application-side ID generator.
 - Why It Must Happen Before Phase 4
   - The first EF Core configuration written in Phase 4 must already know who generates keys. Refactoring now is compile-driven with no schema or data to migrate; after migrations exist, the same change becomes a schema-and-data change.
-  - The sequence alternative is not churn-free anyway: `IApplicationIdGenerator` is synchronous, so a real database-backed implementation would force blocking calls or an async signature change that touches the same handlers and tests.
+  - The sequence alternative is not churn-free anyway: application-side ID generator is synchronous, so a real database-backed implementation would force blocking calls or an async signature change that touches the same handlers and tests.
 - Scope (Likely Affected Areas)
   - Domain members that accept self IDs: `Cart.Create` (+ private ctor), `Order.CreateFromCheckout` (+ private ctor), `Customer` ctor, `Customer.AddAddress`, `CustomerAddress` ctor, `Restaurant` ctor, `Restaurant.AddProduct`, `Product` ctor, `Delivery` ctor, `DeliveryAgent` ctor.
-  - Application: delete `Talabat.Application/Abstractions/IApplicationIdGenerator.cs`; update its three consumers — `AddCartItemHandler`, `AddCustomerAddressHandler`, `CheckoutHandler`.
-  - Tests: `FakeApplicationIdGenerator` (delete), `TestData`, the six test files that wire the fake, fake repositories/unit of work, and ID-literal assertions.
+  - Application: delete the application-side ID generator abstraction; update its three consumers — `AddCartItemHandler`, `AddCustomerAddressHandler`, `CheckoutHandler`.
+  - Tests: the fake ID generator (delete), `TestData`, the six test files that wire the fake, fake repositories/unit of work, and ID-literal assertions.
   - Documentation: this file (Phase 4 notes updated below), a short decision record, and a superseded-decision note in `specs/001-application-use-cases/research.md`.
 - What Should Change (High Level)
   - Remove self-ID parameters and their `Guard.Positive` checks; keep guards on cross-aggregate reference IDs. Unify `Id` as `{ get; private set; }` (`Cart.Id` and `Customer.Id` are get-only today); `Id == 0` means not yet persisted.
@@ -712,13 +714,15 @@ The immediate priority is to make the core business model stable, then define us
   - A future flow that creates one aggregate referencing another unsaved aggregate in the same transaction (for example order + delivery in one use case) would need a save-first step; current phased use cases do not do this — note it for Phase 7.
   - `CheckoutHandlerSuccessTests` asserts the literal fake order ID (`300`); ID literals in tests will change.
 - Acceptance Criteria
-  - Solution builds and all Application tests pass; a solution-wide search for `IApplicationIdGenerator` returns nothing.
+  - Solution builds and all Application tests pass; a solution-wide search for the removed generator interface name returns nothing.
   - No aggregate factory or constructor accepts its own ID; every entity `Id` is `{ get; private set; }`.
   - Create-path handlers return generated IDs only after the save; business behavior assertions unchanged except ID literals.
   - Domain and Application still reference no EF Core, ASP.NET Core, or Identity types.
   - Decision recorded: Phase 4 notes in this file updated, short record at `docs/phase-3.5-id-strategy-refactor.md`, spec research ID decision annotated as superseded.
 
 ### Phase 4: Persistence And Infrastructure
+
+> **Status: Next.** To be specced with spec-kit at `specs/002-persistence-infrastructure/` and executed from its `tasks.md`. Where the spec-kit is more specific than this section, the spec-kit wins. The phase scope guard lives in `.specify/memory/constitution.md` (updated 2026-07-11 for Phase 4). Inputs for the spec: this section, `docs/phase-3.5-id-strategy-refactor.md`, `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` (child keys, UTC policy), and `docs/delivery/delivery-database-design.md` (delivery tables).
 
 - Goal
   - Persist the core business model behind the repository contracts.
@@ -730,8 +734,12 @@ The immediate priority is to make the core business model stable, then define us
   - ID strategy: decided and executed in Phase 3.5 — SQL Server IDENTITY for integer keys. Phase 4 assumes that refactor is complete: map keys with the EF default (`ValueGeneratedOnAdd`); do not create sequences, do not configure `ValueGeneratedNever`, and do not reintroduce an application-side ID generator. If Phase 3.5 is not complete, stop and complete it first. Integration tests must assert IDs are populated after `SaveChangesAsync`.
   - Choose owned type mappings for `Money`, `TimeRange`, `Address`, `DeliveryAddressSnapshot`, and `GeoLocation`.
   - Child key strategy: `CustomerAddress` uses IDENTITY (per Phase 3.5); `CartItem` and `OrderItem` keep the Phase 1 composite-key decision (`CartId + ProductId`, `OrderId + ProductId`).
-  - Choose whether Catalog seed data is static seed data or managed through internal tooling later.
+  - Choose whether Catalog seed data is static seed data or managed through internal tooling later (note: Catalog has no API creation path, so without seed data Phase 5 endpoints return nothing).
   - Choose transaction boundary for checkout and delivery coordination.
+  - Choose the integration-test database strategy: SQL Server via Testcontainers (preferred when Docker is available) or LocalDB. SQLite is disqualified — the filtered unique indexes are load-bearing.
+  - Decide audit stamping: a `SaveChanges` interceptor fills `AuditableEntity` timestamps (user values stay null until Identity exists); decide whether `IsDeleted` gets a global soft-delete query filter now.
+  - Decide EF materialization mechanics that preserve encapsulation: private parameterless constructors and backing-field mapping for `_items`, `_addresses`, `_products` and get-only properties; no public setters added for EF.
+  - Decide connection-string handling for local development (`appsettings.Development.json` vs user secrets).
 - Actions
   - Add EF Core packages only after approval.
   - Add the composition-root wiring: `Talabat.API` project reference to `Talabat.Infrastructure` plus an `AddInfrastructure()` DI extension (required for migrations tooling and runtime registration).
@@ -746,6 +754,7 @@ The immediate priority is to make the core business model stable, then define us
     - One active cart per customer if status-based carts are persisted.
     - One default address per customer where supported.
     - Product belongs to Restaurant.
+    - Unique product name per restaurant (database backstop for the Phase 3.5 name-based duplicate check).
     - Order belongs to Customer and Restaurant.
     - Unique Delivery per Order.
     - One active delivery per assigned agent where supported.
@@ -757,6 +766,8 @@ The immediate priority is to make the core business model stable, then define us
   - `src/Talabat/Talabat.Infrastructure/Persistence/Repositories/`
   - `src/Talabat/Talabat.Infrastructure/DependencyInjection.cs`
   - `src/Talabat/Talabat.API/appsettings*.json`
+  - `tests/Talabat.Infrastructure.Tests/` (new integration test project)
+  - `specs/002-persistence-infrastructure/` (spec-kit artifacts)
 - What Should Not Be Done
   - Do not implement Identity tables or IdentityServer stores in this phase.
   - Do not add auth-related migrations.
@@ -768,6 +779,9 @@ The immediate priority is to make the core business model stable, then define us
   - Application does not reference Infrastructure.
   - Migrations reflect aggregate boundaries and value object mappings.
   - Checkout and delivery coordination can commit atomically.
+  - Integration tests prove: IDs are populated after `SaveChangesAsync`; checkout persists one order and closes one cart atomically; the one-active-cart-per-customer and unique-delivery-per-order constraints reject violations; owned value objects round-trip.
+  - `Talabat.Domain` and `Talabat.Application` still contain zero package references.
+  - The `NU1903` vulnerability warning is resolved (`dotnet list package --vulnerable` is clean).
 - Risks / Mistakes To Avoid
   - Do not let EF mapping requirements weaken aggregate encapsulation.
   - Do not map temporary snapshots as independent tables.
@@ -1144,7 +1158,7 @@ The original first-10 list (documentation baseline, Phase 1 decisions, Phase 2 c
 
 1. Create the xUnit test project `tests/Talabat.Application.Tests` and add it to `src/Talabat/Talabat.slnx` (spec tasks T001–T004).
 2. Add the shared Application result contracts under `Talabat.Application/Common/Results/`: `ApplicationErrorCategory`, `ApplicationError`, `UseCaseResult`, `ApplicationErrorCodes`, `DomainExceptionMapper` (T005–T009).
-3. Add the bridge abstractions `IApplicationIdGenerator` and `IRestaurantLocalTimeProvider` under `Talabat.Application/Abstractions/` (T010–T011).
+3. Add the bridge abstractions for application-side ID generation and `IRestaurantLocalTimeProvider` under `Talabat.Application/Abstractions/` (T010–T011).
 4. Add the test doubles: fake clock, ID generator, local-time provider, unit of work, and the four fake repositories (T012–T019).
 5. Implement Catalog read use cases with tests: browse restaurants, get restaurant menu (T020–T028).
 6. Implement Basket use cases with tests: get cart, add item (first-item cart creation, cross-restaurant conflict), update quantity, remove item, clear cart (T029–T046).
@@ -1157,7 +1171,7 @@ The original first-10 list (documentation baseline, Phase 1 decisions, Phase 2 c
 
 The recommended strategy is Domain-first, then contracts, then Application, then Infrastructure, then API, then website-specific backend support, and only then Identity/Auth implementation.
 
-Current position (2026-07-11): Phases 0–3 are complete. The next step is Phase 3.5 — refactor Domain, Application, and tests to database-generated IDENTITY keys and remove `IApplicationIdGenerator`. Phase 3.5 must complete before any EF Core mapping is written in Phase 4.
+Current position (2026-07-11): Phases 0–3.5 are complete. The next step is Phase 4 — Persistence And Infrastructure — specced with spec-kit at `specs/002-persistence-infrastructure/` under the updated `.specify/memory/constitution.md` (permanent principles + Phase 4 scope guard). Keys are database-generated SQL Server IDENTITY; do not reintroduce application-side ID generation while writing EF Core mappings.
 
 IdentityServer/Auth Portal should not be started now. The project is not ready for that decision because the Application layer, repositories, persistence model, transaction boundaries, API contracts, and authorization matrix are not yet stable.
 

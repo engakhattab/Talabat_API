@@ -16,6 +16,13 @@ public sealed class OrderItem
 
     public Money LineTotal { get; }
 
+    private OrderItem()
+    {
+        ProductName = string.Empty;
+        UnitPrice = Money.Zero;
+        LineTotal = Money.Zero;
+    }
+
     internal OrderItem(
         int productId,
         string productName,

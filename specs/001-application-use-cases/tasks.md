@@ -18,10 +18,10 @@
 - [X] T007 Create generic use-case result type in `src/Talabat/Talabat.Application/Common/Results/UseCaseResult.cs`
 - [X] T008 Create shared error code constants in `src/Talabat/Talabat.Application/Common/Results/ApplicationErrorCodes.cs`
 - [X] T009 Create domain exception to application error mapper in `src/Talabat/Talabat.Application/Common/Results/DomainExceptionMapper.cs`
-- [X] T010 Create application ID generator abstraction in `src/Talabat/Talabat.Application/Abstractions/IApplicationIdGenerator.cs`
+- [X] T010 Create application ID generator abstraction in Application abstractions (superseded and removed in Phase 3.5)
 - [X] T011 Create restaurant local-time abstraction in `src/Talabat/Talabat.Application/Abstractions/IRestaurantLocalTimeProvider.cs`
 - [X] T012 [P] Create fake clock test double in `tests/Talabat.Application.Tests/TestDoubles/FakeClock.cs`
-- [X] T013 [P] Create fake application ID generator in `tests/Talabat.Application.Tests/TestDoubles/FakeApplicationIdGenerator.cs`
+- [X] T013 [P] Create fake application ID generator in test doubles (superseded and removed in Phase 3.5)
 - [X] T014 [P] Create fake restaurant local-time provider in `tests/Talabat.Application.Tests/TestDoubles/FakeRestaurantLocalTimeProvider.cs`
 - [X] T015 [P] Create fake unit of work in `tests/Talabat.Application.Tests/TestDoubles/FakeUnitOfWork.cs`
 - [X] T016 [P] Create fake restaurant repository in `tests/Talabat.Application.Tests/TestDoubles/FakeRestaurantRepository.cs`
@@ -160,7 +160,7 @@ Phase 1 Setup
 
 ```text
 T012 FakeClock
-T013 FakeApplicationIdGenerator
+T013 Fake application ID generator
 T014 FakeRestaurantLocalTimeProvider
 T015 FakeUnitOfWork
 T016 FakeRestaurantRepository

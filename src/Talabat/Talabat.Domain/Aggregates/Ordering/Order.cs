@@ -21,8 +21,17 @@ public sealed class Order : AuditableEntity
 
     public Money TotalAmount { get; private set; }
 
+    private Order()
+    {
+        _items = [];
+        DeliveryAddress = new DeliveryAddressSnapshot(
+            "Materialization",
+            "Materialization",
+            "0");
+        TotalAmount = Money.Zero;
+    }
+
     private Order(
-        int id,
         int customerId,
         int restaurantId,
         List<OrderItem> items,
@@ -30,7 +39,6 @@ public sealed class Order : AuditableEntity
         DateTime createdAt,
         Money totalAmount)
     {
-        Id = id;
         CustomerId = customerId;
         RestaurantId = restaurantId;
         _items = items;
@@ -40,14 +48,12 @@ public sealed class Order : AuditableEntity
     }
 
     public static Order CreateFromCheckout(
-        int id,
         int customerId,
         int restaurantId,
         IEnumerable<CheckoutItemSnapshot> checkoutItems,
         DeliveryAddressSnapshot deliveryAddress,
         DateTime currentTime)
     {
-        Guard.Positive(id, nameof(id));
         Guard.Positive(customerId, nameof(customerId));
         Guard.Positive(restaurantId, nameof(restaurantId));
         currentTime = Guard.Utc(currentTime, nameof(currentTime));
@@ -83,7 +89,6 @@ public sealed class Order : AuditableEntity
         }
 
         return new Order(
-            id,
             customerId,
             restaurantId,
             items,

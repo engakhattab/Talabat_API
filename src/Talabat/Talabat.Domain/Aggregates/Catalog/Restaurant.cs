@@ -23,15 +23,20 @@ public sealed class Restaurant : AuditableEntity
 
     public IReadOnlyCollection<Product> Products => _products.AsReadOnly();
 
+    private Restaurant()
+    {
+        Name = string.Empty;
+        Description = string.Empty;
+        OpeningHours = new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue);
+    }
+
     public Restaurant(
-        int id,
         string name,
         string description,
         string? imageUrl,
         TimeRange openingHours,
         bool isActive = true)
     {
-        Id = Guard.Positive(id, nameof(id));
         Name = Guard.RequiredText(name, nameof(name));
         Description = Guard.RequiredText(description, nameof(description));
         ImageUrl = Guard.OptionalText(imageUrl);
@@ -55,22 +60,23 @@ public sealed class Restaurant : AuditableEntity
     }
 
     public Product AddProduct(
-        int productId,
         string name,
         string description,
         Money currentPrice,
         string? imageUrl,
         bool isAvailable = true)
     {
-        if (_products.Any(product => product.Id == productId))
+        var normalizedName = Guard.RequiredText(name, nameof(name));
+
+        if (_products.Any(product =>
+                string.Equals(product.Name, normalizedName, StringComparison.OrdinalIgnoreCase)))
         {
             throw new DuplicateProductException();
         }
 
         var product = new Product(
-            productId,
             Id,
-            name,
+            normalizedName,
             description,
             currentPrice,
             imageUrl,

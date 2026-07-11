@@ -20,8 +20,14 @@ public sealed class Product : AuditableEntity
 
     public string? ImageUrl { get; private set; }
 
+    private Product()
+    {
+        Name = string.Empty;
+        Description = string.Empty;
+        CurrentPrice = Money.Zero;
+    }
+
     internal Product(
-        int id,
         int restaurantId,
         string name,
         string description,
@@ -29,7 +35,6 @@ public sealed class Product : AuditableEntity
         string? imageUrl,
         bool isAvailable = true)
     {
-        Id = Guard.Positive(id, nameof(id));
         RestaurantId = Guard.Positive(restaurantId, nameof(restaurantId));
         Name = Guard.RequiredText(name, nameof(name));
         Description = Guard.RequiredText(description, nameof(description));

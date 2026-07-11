@@ -12,20 +12,17 @@ public sealed class AddCartItemHandler
 {
     private readonly ICartRepository _cartRepository;
     private readonly IRestaurantRepository _restaurantRepository;
-    private readonly IApplicationIdGenerator _idGenerator;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
 
     public AddCartItemHandler(
         ICartRepository cartRepository,
         IRestaurantRepository restaurantRepository,
-        IApplicationIdGenerator idGenerator,
         IClock clock,
         IUnitOfWork unitOfWork)
     {
         _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
         _restaurantRepository = restaurantRepository ?? throw new ArgumentNullException(nameof(restaurantRepository));
-        _idGenerator = idGenerator ?? throw new ArgumentNullException(nameof(idGenerator));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
@@ -54,7 +51,6 @@ public sealed class AddCartItemHandler
             if (cart is null)
             {
                 cart = Cart.Create(
-                    _idGenerator.NewCartId(),
                     command.CustomerId,
                     snapshot,
                     command.Quantity,
@@ -80,8 +76,8 @@ public sealed class AddCartItemHandler
                         "Restaurant was not found."));
             }
 
-            var details = CartMapper.ToDetails(cart, restaurant);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var details = CartMapper.ToDetails(cart, restaurant);
 
             return UseCaseResult<CartDetails>.Success(details);
         }

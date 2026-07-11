@@ -33,11 +33,13 @@
 - Throw Domain exceptions all the way to API: keeps code small but makes expected business outcomes harder to test and map consistently.
 - Return API-shaped responses: rejected because API is a later phase and Application must stay transport-neutral.
 
-## Decision: Add Application ID Generation Abstraction
+## Decision: Add Application ID Generation Abstraction (Superseded By Phase 3.5)
 
 **Decision**: Add a small Application abstraction for IDs needed by aggregate factories, covering at least cart IDs, customer address IDs, and order IDs.
 
 **Rationale**: Existing Domain factories require integer IDs, but persistence and database-generated IDs are deferred to Phase 4. Phase 3 needs a testable way to create aggregates without selecting a database or infrastructure strategy.
+
+**Phase 3.5 supersession (2026-07-11)**: This decision is no longer active. Phase 3.5 moved construction to SQL Server IDENTITY-compatible integer keys: aggregate and child entity self IDs start as `0`, persistence assigns positive IDs on save, and Application create handlers read generated IDs only after `SaveChangesAsync`. The temporary Application-side ID generator abstraction and fake were removed before EF Core mappings or migrations were introduced.
 
 **Alternatives considered**:
 

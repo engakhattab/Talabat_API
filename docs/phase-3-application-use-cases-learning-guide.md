@@ -2,7 +2,7 @@
 
 This document explains Phase 3 of the Talabat-like backend project. It is written for learning, revision, and mentor discussion. It explains what was added, why it was added, how the design fits Clean Architecture and DDD, and how to answer questions about the implementation.
 
-Important correction: the class is named `IApplicationIdGenerator`, not `IAplicationGenerator`. It exists because the current Domain factories require integer IDs when creating `Cart`, `CustomerAddress`, and `Order`, while the real database ID strategy is deferred to Phase 4.
+Phase 3.5 update: the temporary Phase 3 application-side ID generator has been removed. Domain creation now leaves self IDs unset (`Id == 0`), and persistence is expected to assign SQL Server IDENTITY-compatible IDs on save.
 
 ## 1. Executive Summary
 
@@ -100,11 +100,10 @@ Contains interfaces needed by Application handlers but implemented elsewhere lat
 What it contains:
 
 - `IClock`
-- `IApplicationIdGenerator`
 - `IRestaurantLocalTimeProvider`
 
 Why it belongs in Application:
-Handlers need current time, generated IDs, and restaurant-local time, but Application should not know how the system clock, database, or time-zone service is implemented.
+Handlers need current time and restaurant-local time, but Application should not know how the system clock or time-zone service is implemented.
 
 Mentor answer:
 These are boundary contracts. Infrastructure can implement them later. Tests can fake them now.
@@ -206,7 +205,7 @@ Contains fake repositories and fake infrastructure-like services for tests.
 What it contains:
 
 - `FakeClock`
-- `FakeApplicationIdGenerator`
+- `Fake ID generator`
 - `FakeRestaurantLocalTimeProvider`
 - `FakeUnitOfWork`
 - `FakeRestaurantRepository`
@@ -230,7 +229,7 @@ These fakes let Application tests run without EF Core, a database, API host, or 
 | `src/Talabat/Talabat.Application/Common/Results/ApplicationErrorCodes.cs` | Result | Defines stable error code constants. | To avoid random string literals. | Supports future logging, metrics, and API mapping. | Makes failures predictable. | All handlers. | Why are stable error codes useful? |
 | `src/Talabat/Talabat.Application/Common/Results/DomainExceptionMapper.cs` | Helper | Maps Domain/argument exceptions to `ApplicationError`. | To centralize failure mapping. | Keeps handlers smaller and consistent. | Preserves Domain rules while returning Application results. | Write handlers and checkout. | Why not let exceptions reach controllers? |
 | `src/Talabat/Talabat.Application/Abstractions/IClock.cs` | Abstraction | Supplies current UTC time. | To avoid direct `DateTime.UtcNow` usage. | Makes time-based workflows testable. | Used for cart expiration and checkout time. | Basket, checkout. | Why abstract time? |
-| `src/Talabat/Talabat.Application/Abstractions/IApplicationIdGenerator.cs` | Abstraction | Supplies new cart, customer address, and order IDs. | Domain factories require IDs while persistence is deferred. | Avoids hardcoded IDs and database dependency. | Allows creation of `Cart`, `CustomerAddress`, and `Order` in Phase 3. | Add item, add address, checkout. | Why does this exist before EF Core? |
+| Phase 3 application-side ID generator | Removed bridge abstraction | Previously supplied new cart, customer address, and order IDs. | Superseded in Phase 3.5 by SQL Server IDENTITY-compatible construction. | Prevents a synchronous database-backed generator from becoming permanent. | Created IDs are now observed after save. | Add item, add address, checkout. | Why was this removed before EF Core? |
 | `src/Talabat/Talabat.Application/Abstractions/IRestaurantLocalTimeProvider.cs` | Abstraction | Provides restaurant-local `TimeOnly` from UTC. | Restaurant time-zone policy is not in Domain yet. | Keeps local-time calculation outside Domain. | Enables restaurant open/closed validation. | Browse restaurants, checkout. | Why not calculate local time inside `Restaurant`? |
 
 ### Catalog Files
@@ -255,7 +254,7 @@ These fakes let Application tests run without EF Core, a database, API host, or 
 | `src/Talabat/Talabat.Application/Basket/GetCart/GetCartQuery.cs` | Query | Holds `CustomerId`. | Customer-scoped cart read. | Transport-neutral. | Reads current active cart. | Get cart. | Why explicit `customerId`? |
 | `src/Talabat/Talabat.Application/Basket/GetCart/GetCartHandler.cs` | Handler | Loads active cart and returns details or empty cart. | Implements current cart read. | Handles expired cart and current price loading. | Customer sees current cart. | Get cart. | Why not create an empty cart on view? |
 | `src/Talabat/Talabat.Application/Basket/AddItem/AddCartItemCommand.cs` | Command | Holds customer, restaurant, product, quantity. | Add-item write request. | CQRS-lite command. | Adds product to cart. | Add item. | Why is this a command? |
-| `src/Talabat/Talabat.Application/Basket/AddItem/AddCartItemHandler.cs` | Handler | Loads product snapshot, loads or creates cart, calls Domain, maps details, commits. | Implements add-to-cart workflow. | Uses repositories, `IApplicationIdGenerator`, `IClock`, `IUnitOfWork`. | Creates cart on first item and preserves one-restaurant rule. | Add item. | Why not create `CartItem` directly? |
+| `src/Talabat/Talabat.Application/Basket/AddItem/AddCartItemHandler.cs` | Handler | Loads product snapshot, loads or creates cart, calls Domain, commits, then maps details. | Implements add-to-cart workflow. | Uses repositories, `IClock`, `IUnitOfWork`. | Creates cart on first item and preserves one-restaurant rule. | Add item. | Why not create `CartItem` directly? |
 | `src/Talabat/Talabat.Application/Basket/UpdateQuantity/UpdateCartItemQuantityCommand.cs` | Command | Holds customer, product, quantity. | Quantity update request. | Transport-neutral. | Changes item quantity. | Update quantity. | Where is quantity validation? |
 | `src/Talabat/Talabat.Application/Basket/UpdateQuantity/UpdateCartItemQuantityHandler.cs` | Handler | Loads cart, calls `cart.UpdateQuantity`, maps current total, commits. | Implements update quantity workflow. | Delegates invariant checks to `Cart`. | Keeps cart valid. | Update quantity. | Why not modify `CartItem` directly? |
 | `src/Talabat/Talabat.Application/Basket/RemoveItem/RemoveCartItemCommand.cs` | Command | Holds customer and product ID. | Remove-item request. | Simple write contract. | Removes product from cart. | Remove item. | Why product ID? |
@@ -275,7 +274,7 @@ These fakes let Application tests run without EF Core, a database, API host, or 
 | `src/Talabat/Talabat.Application/Customers/UpdateProfile/UpdateCustomerProfileCommand.cs` | Command | Holds profile fields. | Profile write request. | Transport-neutral. | Updates profile. | Update profile. | Where are profile rules? |
 | `src/Talabat/Talabat.Application/Customers/UpdateProfile/UpdateCustomerProfileHandler.cs` | Handler | Calls `customer.UpdateProfile`, commits, maps profile. | Implements update profile. | Domain enforces required name and positive age. | Keeps profile valid. | Update profile. | Why not validate only in handler? |
 | `src/Talabat/Talabat.Application/Customers/AddAddress/AddCustomerAddressCommand.cs` | Command | Holds address fields. | Address write request. | Transport-neutral. | Adds saved address. | Add address. | Why create `Address` value object? |
-| `src/Talabat/Talabat.Application/Customers/AddAddress/AddCustomerAddressHandler.cs` | Handler | Creates `Address`, calls `customer.AddAddress`, commits. | Implements add address. | Uses `IApplicationIdGenerator` for address ID. | Enforces duplicate/default rules through Domain. | Add address. | Why not modify address collection directly? |
+| `src/Talabat/Talabat.Application/Customers/AddAddress/AddCustomerAddressHandler.cs` | Handler | Creates `Address`, calls `customer.AddAddress`, commits, then maps the profile. | Implements add address. | Reads the generated address ID after save. | Enforces duplicate/default rules through Domain. | Add address. | Why not modify address collection directly? |
 | `src/Talabat/Talabat.Application/Customers/RemoveAddress/RemoveCustomerAddressCommand.cs` | Command | Holds customer and address ID. | Remove address request. | Transport-neutral. | Removes saved address. | Remove address. | What if removed address was default? |
 | `src/Talabat/Talabat.Application/Customers/RemoveAddress/RemoveCustomerAddressHandler.cs` | Handler | Calls `customer.RemoveAddress`, commits. | Implements remove address. | Domain checks ownership within aggregate. | Removing default does not choose a new default in Phase 3. | Remove address. | Why no auto default? |
 | `src/Talabat/Talabat.Application/Customers/SetDefaultAddress/SetDefaultCustomerAddressCommand.cs` | Command | Holds selected address. | Set default request. | Transport-neutral. | Chooses default address. | Set default. | Why is one-default rule in aggregate? |
@@ -308,7 +307,7 @@ These fakes let Application tests run without EF Core, a database, API host, or 
 | `tests/Talabat.Application.Tests/GlobalUsings.cs` | Shared Xunit using. | Reduces test boilerplate. | Missing `using Xunit`. | All tests. |
 | `tests/Talabat.Application.Tests/README.md` | Test boundary guidance. | Documents no EF/API/Auth dependency. | Wrong testing scope. | Test strategy. |
 | `TestDoubles/FakeClock.cs` | Controlled UTC time. | Tests cart expiration and checkout time. | Flaky time-dependent behavior. | Basket and checkout handlers. |
-| `TestDoubles/FakeApplicationIdGenerator.cs` | Predictable IDs. | Makes created aggregate IDs deterministic. | Hardcoded/random ID behavior. | Add item, add address, checkout. |
+| `TestDoubles/TestIds.cs` | Reflection ID helper. | Assigns deterministic IDs to seeded data and fake save-time generated IDs. | Hardcoded/random ID behavior. | Add item, add address, checkout. |
 | `TestDoubles/FakeRestaurantLocalTimeProvider.cs` | Controlled restaurant local time. | Tests open/closed restaurant behavior. | Incorrect local-time orchestration. | Browse and checkout handlers. |
 | `TestDoubles/FakeUnitOfWork.cs` | Save count. | Verifies commit once or no commit. | Missing or extra commits. | Write handlers. |
 | `TestDoubles/FakeRestaurantRepository.cs` | In-memory restaurant/catalog data. | Avoids EF in Application tests. | Wrong product/restaurant loading. | Catalog, basket, checkout. |
@@ -396,29 +395,29 @@ That mapping should happen in the API phase, not Phase 3.
 
 ## 6. Abstractions Added In Phase 3
 
-### `IApplicationIdGenerator`
+### Phase 3 Application-Side ID Generator
 
-This directly answers the question: "Why is there `IApplicationIdGenerator`?"
+This directly answers the question: "Why was application-side ID generator removed?"
 
-It exists because current Domain creation APIs require IDs up front:
+It existed because the original Phase 3 Domain creation APIs required IDs up front:
 
 - `Cart.Create(int id, ...)`
 - `Customer.AddAddress(int addressId, ...)`
 - `Order.CreateFromCheckout(int id, ...)`
 
-However, Phase 3 intentionally did not implement persistence. There is no EF Core, no database, no identity column, no sequence, and no repository implementation that can assign IDs.
+However, Phase 3 intentionally did not implement persistence. Phase 3.5 changed the construction model before EF Core mappings or migrations existed.
 
 Bad alternatives would be:
 
 - Hardcode IDs inside handlers.
 - Generate random IDs inside Domain.
 - Make Application depend on a database before Infrastructure exists.
-- Change Domain creation design during Phase 3 just to work around missing persistence.
+- Keep a synchronous database-backed generator after choosing SQL Server IDENTITY keys.
 
-So `IApplicationIdGenerator` acts as a small boundary contract:
+The removed bridge contract used this shape:
 
 ```csharp
-public interface IApplicationIdGenerator
+public interface ApplicationSideIdGeneratorBridge
 {
     int NewCartId();
     int NewCustomerAddressId();
@@ -428,16 +427,17 @@ public interface IApplicationIdGenerator
 
 Who implements it?
 
-- In tests: `FakeApplicationIdGenerator`.
-- Later in Infrastructure: a real implementation, or a redesigned ID strategy if EF Core/database-generated IDs become the chosen approach.
+- Nobody after Phase 3.5.
+- Tests now use a reflection helper and fake save-time ID assignment.
+- Infrastructure should use SQL Server IDENTITY-compatible EF Core defaults in Phase 4.
 
 Is it final?
 
-No. It is a Phase 3 bridge. Phase 4 must decide the real persistence and ID generation strategy.
+No. It was a Phase 3 bridge and has been removed. Phase 4 must not reintroduce application-side ID generation.
 
 Strong mentor answer:
 
-`IApplicationIdGenerator` exists because Application needs to create Domain aggregates now, and those aggregates currently require integer IDs. Since database persistence is deferred to Phase 4, we introduced a small abstraction instead of hardcoding IDs or depending on EF Core. It keeps handlers testable and keeps Application independent from Infrastructure.
+The Phase 3 ID generator existed only because constructors required IDs before persistence was selected. Phase 3.5 removed that requirement so new entities start with `Id == 0`, save assigns the database-compatible ID, and handlers build responses from generated IDs after save.
 
 ### `IRestaurantLocalTimeProvider`
 
@@ -587,11 +587,11 @@ Step-by-step:
 AddCartItemCommand
   -> load product snapshot using IRestaurantRepository.GetProductSnapshotAsync
   -> load active cart using ICartRepository.GetActiveCartByCustomerIdAsync
-  -> if no cart: Cart.Create(idGenerator.NewCartId(), ...)
+  -> if no cart: Cart.Create(...)
   -> else: cart.AddItem(snapshot, quantity, now)
   -> load Restaurant with Products for current prices
-  -> CartMapper.ToDetails(cart, restaurant)
   -> IUnitOfWork.SaveChangesAsync()
+  -> CartMapper.ToDetails(cart, restaurant)
   -> return UseCaseResult<CartDetails>
 ```
 
@@ -738,7 +738,7 @@ Domain protects:
 Handler creates an `Address` value object and calls:
 
 ```text
-customer.AddAddress(idGenerator.NewCustomerAddressId(), address, makeDefault)
+customer.AddAddress(address, makeDefault)
 ```
 
 Domain protects:
@@ -803,13 +803,12 @@ CheckoutCommand(customerId, deliveryAddressId)
   -> resolve restaurant local time
   -> CheckoutDomainService.ValidateCheckout(...)
   -> if unavailable products: return CheckoutProductsUnavailableOutcome without commit
-  -> generate order id using IApplicationIdGenerator.NewOrderId()
   -> Order.CreateFromCheckout(...)
   -> IOrderRepository.AddAsync(order)
   -> cart.MarkCheckedOut(now)
   -> ICartRepository.Update(cart)
   -> IUnitOfWork.SaveChangesAsync()
-  -> return CheckoutSucceededOutcome(orderId, total)
+  -> return CheckoutSucceededOutcome(order.Id, total)
 ```
 
 Why checkout is Application orchestration:
@@ -936,7 +935,7 @@ What fake services do:
 - `FakeOrderRepository`: stores orders and supports customer-scoped reads.
 - `FakeUnitOfWork`: counts `SaveChangesAsync` calls.
 - `FakeClock`: controls `UtcNow`.
-- `FakeApplicationIdGenerator`: returns predictable IDs.
+- `TestIds`: assigns deterministic IDs through private setters for seeded data and fake save-time IDs.
 - `FakeRestaurantLocalTimeProvider`: controls restaurant local time.
 - `TestData`: creates valid Domain objects for tests.
 
@@ -1013,11 +1012,10 @@ Request
   -> AddCartItemHandler
   -> IRestaurantRepository.GetProductSnapshotAsync(...)
   -> ICartRepository.GetActiveCartByCustomerIdAsync(...)
-  -> if no cart: IApplicationIdGenerator.NewCartId()
   -> Cart.Create(...) or Cart.AddItem(...)
   -> IRestaurantRepository.GetByIdWithProductsAsync(...)
-  -> CartMapper.ToDetails(cart, restaurant)
   -> IUnitOfWork.SaveChangesAsync()
+  -> CartMapper.ToDetails(cart, restaurant)
   -> UseCaseResult<CartDetails>
 ```
 
@@ -1034,13 +1032,12 @@ Request
   -> IRestaurantLocalTimeProvider.GetLocalTime(...)
   -> CheckoutDomainService.ValidateCheckout(...)
   -> if unavailable: CheckoutProductsUnavailableOutcome, no commit
-  -> IApplicationIdGenerator.NewOrderId()
   -> Order.CreateFromCheckout(...)
   -> IOrderRepository.AddAsync(order)
   -> Cart.MarkCheckedOut(...)
   -> ICartRepository.Update(cart)
   -> IUnitOfWork.SaveChangesAsync()
-  -> CheckoutSucceededOutcome
+  -> CheckoutSucceededOutcome from order.Id
 ```
 
 ### Application Test Flow
@@ -1157,7 +1154,6 @@ Phase 3 added Application use cases for the customer ordering path: browse, cart
 src/Talabat/Talabat.Application/
   Abstractions/
     IClock.cs                         -> current UTC time abstraction
-    IApplicationIdGenerator.cs         -> cart/address/order ID abstraction
     IRestaurantLocalTimeProvider.cs    -> restaurant local-time abstraction
 
   Common/Results/
@@ -1224,7 +1220,7 @@ No incomplete Phase 3 task was found in `specs/001-application-use-cases/tasks.m
 
 These items are still deliberately deferred:
 
-- Real implementation of `IApplicationIdGenerator`.
+- EF Core persistence mappings for SQL Server IDENTITY-compatible generated IDs.
 - Real implementation of `IRestaurantLocalTimeProvider`.
 - Real implementation of `IClock`.
 - Real `IUnitOfWork` implementation.

@@ -25,7 +25,6 @@ public sealed class CheckoutHandlerUnavailableProductsTests
             customers,
             restaurants,
             orders,
-            new FakeApplicationIdGenerator(),
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },
             new FakeClock(),
             unitOfWork,

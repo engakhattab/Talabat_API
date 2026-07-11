@@ -16,7 +16,6 @@ public static class TestData
         bool openAllDay = true)
     {
         var restaurant = new Restaurant(
-            id,
             $"Restaurant {id}",
             $"Restaurant {id} description",
             imageUrl: null,
@@ -25,8 +24,13 @@ public static class TestData
                 : new TimeRange(new TimeOnly(23, 0), new TimeOnly(23, 59)),
             isActive: active);
 
-        restaurant.AddProduct(10 + id, "Koshary", "Rice and lentils", new Money(50m), imageUrl: null);
-        restaurant.AddProduct(20 + id, "Unavailable", "Unavailable item", new Money(70m), imageUrl: null, isAvailable: false);
+        TestIds.SetId(restaurant, id);
+
+        var koshary = restaurant.AddProduct("Koshary", "Rice and lentils", new Money(50m), imageUrl: null);
+        TestIds.SetId(koshary, 10 + id);
+
+        var unavailable = restaurant.AddProduct("Unavailable", "Unavailable item", new Money(70m), imageUrl: null, isAvailable: false);
+        TestIds.SetId(unavailable, 20 + id);
 
         return restaurant;
     }
@@ -41,8 +45,7 @@ public static class TestData
         restaurant ??= CreateRestaurant();
         var product = restaurant.Products.First(product => product.IsAvailable);
 
-        return Cart.Create(
-            cartId,
+        var cart = Cart.Create(
             customerId,
             new CatalogProductSnapshot(
                 product.Id,
@@ -51,13 +54,22 @@ public static class TestData
                 product.IsAvailable),
             quantity,
             createdAt ?? UtcNow);
+
+        TestIds.SetId(cart, cartId);
+
+        return cart;
     }
 
     public static Customer CreateCustomer(int id = 1)
     {
-        var customer = new Customer(id, "Customer One", 30, "01000000000");
-        customer.AddAddress(1, new Address("Street", "Cairo", "10", "2"), makeDefault: true);
-        customer.AddAddress(2, new Address("Other Street", "Cairo", "11"), makeDefault: false);
+        var customer = new Customer("Customer One", 30, "01000000000");
+        TestIds.SetId(customer, id);
+
+        customer.AddAddress(new Address("Street", "Cairo", "10", "2"), makeDefault: true);
+        TestIds.SetId(customer.Addresses.Last(), 1);
+
+        customer.AddAddress(new Address("Other Street", "Cairo", "11"), makeDefault: false);
+        TestIds.SetId(customer.Addresses.Last(), 2);
 
         return customer;
     }
@@ -68,8 +80,7 @@ public static class TestData
         int restaurantId = 1,
         DateTime? createdAt = null)
     {
-        return Order.CreateFromCheckout(
-            id,
+        var order = Order.CreateFromCheckout(
             customerId,
             restaurantId,
             new[]
@@ -78,5 +89,9 @@ public static class TestData
             },
             new DeliveryAddressSnapshot("Street", "Cairo", "10", "2"),
             createdAt ?? UtcNow);
+
+        TestIds.SetId(order, id);
+
+        return order;
     }
 }

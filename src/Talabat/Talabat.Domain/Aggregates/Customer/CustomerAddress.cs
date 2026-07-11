@@ -11,9 +11,13 @@ public sealed class CustomerAddress
 
     public bool IsDefault { get; private set; }
 
-    internal CustomerAddress(int id, Address details, bool isDefault)
+    private CustomerAddress()
     {
-        Id = Guard.Positive(id, nameof(id));
+        Details = new Address("Materialization", "Materialization", "0");
+    }
+
+    internal CustomerAddress(Address details, bool isDefault)
+    {
         Details = details ?? throw new ArgumentNullException(nameof(details));
         IsDefault = isDefault;
     }

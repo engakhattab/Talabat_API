@@ -9,7 +9,7 @@ public sealed class Customer : AuditableEntity
 {
     private readonly List<CustomerAddress> _addresses = [];
 
-    public int Id { get; }
+    public int Id { get; private set; }
 
     public string FullName { get; private set; }
 
@@ -19,9 +19,13 @@ public sealed class Customer : AuditableEntity
 
     public IReadOnlyCollection<CustomerAddress> Addresses => _addresses.AsReadOnly();
 
-    public Customer(int id, string fullName, int age, string? phoneNumber = null)
+    private Customer()
     {
-        Id = Guard.Positive(id, nameof(id));
+        FullName = string.Empty;
+    }
+
+    public Customer(string fullName, int age, string? phoneNumber = null)
+    {
         FullName = Guard.RequiredText(fullName, nameof(fullName));
         Age = Guard.Positive(age, nameof(age));
         PhoneNumber = Guard.OptionalText(phoneNumber);
@@ -32,15 +36,13 @@ public sealed class Customer : AuditableEntity
         SetProfile(fullName, age, phoneNumber);
     }
 
-    public void AddAddress(int addressId, Address address, bool makeDefault = false)
+    public void AddAddress(Address address, bool makeDefault = false)
     {
-        addressId = Guard.Positive(addressId, nameof(addressId));
         ArgumentNullException.ThrowIfNull(address);
 
-        var customerAddress = new CustomerAddress(addressId, address, makeDefault);
+        var customerAddress = new CustomerAddress(address, makeDefault);
 
-        if (_addresses.Any(existingAddress =>
-                existingAddress.Id == addressId || existingAddress.Details == address))
+        if (_addresses.Any(existingAddress => existingAddress.Details == address))
         {
             throw new DuplicateAddressException();
         }

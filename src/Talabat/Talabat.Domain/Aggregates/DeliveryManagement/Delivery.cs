@@ -37,15 +37,21 @@ public sealed class Delivery : AuditableEntity
 
     public string? FailureReason { get; private set; }
 
+    private Delivery()
+    {
+        DeliveryAddress = new DeliveryAddressSnapshot(
+            "Materialization",
+            "Materialization",
+            "0");
+    }
+
     public Delivery(
-        int id,
         int orderId,
         int customerId,
         int restaurantId,
         DeliveryAddressSnapshot deliveryAddress,
         DateTime createdAt)
     {
-        Id = Guard.Positive(id, nameof(id));
         OrderId = Guard.Positive(orderId, nameof(orderId));
         CustomerId = Guard.Positive(customerId, nameof(customerId));
         RestaurantId = Guard.Positive(restaurantId, nameof(restaurantId));
