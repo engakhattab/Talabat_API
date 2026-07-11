@@ -1,5 +1,19 @@
 # Project Implementation Roadmap
 
+## 0. Status Snapshot (2026-07-11)
+
+| Phase | Status | Record |
+|---|---|---|
+| Phase 0: Repository And Documentation Audit | Completed | `docs/phase-0-repository-and-documentation-audit.md` |
+| Phase 1: Domain Cleanup And Invariant Stabilization | Completed | `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` |
+| Phase 2: Domain And Application Contracts | Completed | `docs/phase-2-domain-and-application-contracts.md` |
+| Phase 3: Application Layer Use Cases | Next — specced, not implemented | `specs/001-application-use-cases/` (execute via `tasks.md`) |
+| Phases 4–11 | Not started | — |
+
+- Phases 0–2 were implemented and committed in `91dc805` (2026-07-11).
+- Phase 3 has a full spec-kit under `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Where the spec-kit is more specific than the Phase 3 section in this file, the spec-kit wins. Two notable examples: Delivery use cases are deferred to Phase 7 by spec clarification, and the handler style is CQRS-lite without MediatR.
+- Section 1 below describes the repository as of commit `91dc805`. Statements that predated Phases 0–2 have been corrected in place.
+
 ## 1. Current Repository Status
 
 ### 1.1 Implemented In Code
@@ -43,8 +57,21 @@
   - There is no JWT bearer setup.
   - There are no business API endpoints yet.
   - `WeatherForecastController` and `WeatherForecast` still exist as template code.
-- `Talabat.Application` exists as a project but has no production source files beyond the project file.
+- Repository and Unit of Work contracts now exist in code (added in Phase 2) under `src/Talabat/Talabat.Domain/Interfaces/`:
+  - `IRestaurantRepository`
+  - `ICartRepository`
+  - `ICustomerRepository`
+  - `IOrderRepository`
+  - `IDeliveryRepository`
+  - `IDeliveryAgentRepository`
+  - `IUnitOfWork`
+  - All contracts target aggregate roots only and expose no EF Core, `IQueryable`, HTTP, or identity-framework types.
+- `Talabat.Application` now contains its first contracts (added in Phase 2):
+  - `Abstractions/IClock.cs` (UTC time source for use cases).
+  - `Ordering/Checkout/CheckoutOutcome.cs` (transport-neutral checkout result hierarchy).
+  - No use-case handlers exist yet; orchestration is Phase 3 work.
 - `Talabat.Infrastructure` exists as a project but has no production source files beyond the project file.
+- Phase 1 renamed `DeliveryAlreadyCompletedException` to `DeliveryTerminalStateException` so the invariant clearly covers all terminal delivery states (`Delivered`, `Cancelled`, `Failed`).
 - No IdentityServer, ASP.NET Core Identity, JWT bearer, EF Core, MediatR, or validation packages are installed in the production projects.
 
 ### 1.2 Designed In Documentation Only
@@ -63,7 +90,7 @@
   - Delivery extension design.
   - Domain review findings.
   - IdentityServer4 readiness analysis.
-- The existing documentation describes repository interfaces, but the interfaces are not implemented in code.
+- The existing documentation describes repository interfaces; these are now implemented in code (see 1.1), so `docs/repository-interfaces-design.md` is a design record rather than pending work.
 - The existing documentation describes Application use cases, but no Application handlers, commands, queries, DTOs, validators, or orchestration services exist yet.
 - The existing documentation describes Infrastructure and EF Core mapping concerns, but no DbContext, EF configurations, repositories, migrations, seed data, or connection strings exist yet.
 - The existing documentation describes Delivery database design, but no delivery persistence exists yet.
@@ -80,21 +107,17 @@
 - Delivery is no longer documentation-only: Delivery domain classes and the delivery assignment domain service exist in code.
 - Checkout has domain validation logic, but the full checkout Application use case does not exist.
 - Cart, Customer, Catalog, Ordering, and Delivery aggregates protect many invariants, but persistence and transaction boundaries are not implemented.
-- `Talabat.Domain.csproj` still contains a folder include for `Interfaces\`, but no repository interfaces exist.
+- `Talabat.API` does not reference `Talabat.Infrastructure`. The composition root cannot load future persistence implementations until that project reference and an `AddInfrastructure()` registration are added in Phase 4/5.
 - Authorization is only present as a middleware call in API. Authentication and policies are not configured.
 - Audit fields exist in Domain, but there is no current-user abstraction or infrastructure mechanism that supplies audit identity values.
 - The historical domain review file contains findings that appear to have been partly remediated in code. It should be refreshed before being used as current truth.
 
 ### 1.4 Missing
 
-- No test projects exist for Domain, Application, Infrastructure, or API.
-- No Application layer use cases exist.
-- No commands, queries, DTOs, result models, validators, or use-case handlers exist.
-- No repository interfaces exist in code.
-- No unit-of-work abstraction exists in code.
-- No current-user abstraction exists in code.
-- No clock/time-provider abstraction exists in code.
-- No ID-generation strategy is documented as an implementation decision.
+- No test projects exist yet for Domain, Application, Infrastructure, or API. The first test project (`tests/Talabat.Application.Tests`, xUnit) is a required deliverable of Phase 3, not optional.
+- No Application layer use-case handlers exist. Commands, queries, read models, and result contracts beyond `CheckoutOutcome` arrive in Phase 3 (specced in `specs/001-application-use-cases/`).
+- No current-user abstraction exists in code. This is deliberate: it is deferred until the Identity/Auth boundary is designed (see Phases 8–9); Phase 3 uses explicit `customerId` request data instead.
+- No ID-generation or restaurant-local-time abstractions exist yet; both are specced for Phase 3 (`IApplicationIdGenerator`, `IRestaurantLocalTimeProvider`). The database-level ID strategy remains a Phase 4 decision.
 - No Infrastructure persistence exists:
   - No EF Core packages.
   - No DbContext.
@@ -186,6 +209,12 @@ The current recommendation is:
 - Later, after selecting an identity framework, decide how account identities map to domain profiles.
 - A future Application abstraction such as `ICurrentUserContext` or `ICurrentUser` is likely needed, but it should be introduced only when authenticated use cases are being designed.
 - Any future identity linkage should be scalar and framework-neutral from the Domain perspective. Do not put `ApplicationUser`, `ClaimsPrincipal`, `IdentityUser`, `HttpContext`, JWT claims, or IdentityServer-specific types in Domain.
+
+Why deferring Identity/Auth is safe and cheap in this codebase:
+
+- Accounts and profiles are separated by design. Authentication accounts (credentials, tokens, roles) will live in the future Identity/Auth host. `Customer` and `DeliveryAgent` remain pure domain profiles. The future link is one nullable, unique, framework-neutral scalar (for example `IdentityUserId` as a string) added to those two aggregates only when Phase 8 starts — nothing earlier.
+- The migration cost is confined to the API boundary. Phase 3 use cases take explicit `customerId`/`agentId` request data. When authentication arrives, controllers stop binding those IDs from the route/body and instead resolve them from the token through a then-introduced `ICurrentUser` plus an account-to-profile lookup. Use-case signatures do not change.
+- Registration will be an Application-orchestrated flow (create the account in the identity host, then create the linked domain profile in one coordinated workflow). Its exact shape is a Phase 8 decision.
 
 ## 3. Target Architecture
 
@@ -303,6 +332,7 @@ Likely future boundary:
   - Customer Website flow: authenticated account -> `Customer`.
   - Delivery Website flow: authenticated account -> `DeliveryAgent` or delivery operations user.
 - Domain methods receive domain IDs and values, not tokens or claims.
+- Use-case request shapes stay unchanged; only the source of `customerId`/`agentId` moves from request/route data to token-resolved values.
 
 ### 3.5 Three Website Model
 
@@ -445,6 +475,8 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 0: Repository And Documentation Audit
 
+> **Status: Completed (2026-07-11).** Implemented as scope banners/notices across the root planning docs and the `docs/` design set, plus the audit record `docs/phase-0-repository-and-documentation-audit.md`. Note: the `docs/glossary.md` deletion and the `.codex-scratch/` IdentityServer4 spike were committed as-is; their follow-ups are tracked in Section 6.
+
 - Goal
   - Establish a current, trusted baseline before adding more code.
 - Strategy
@@ -488,6 +520,8 @@ The immediate priority is to make the core business model stable, then define us
   - Do not begin repository or Identity implementation during audit.
 
 ### Phase 1: Domain Cleanup And Invariant Stabilization
+
+> **Status: Completed (2026-07-11).** See `docs/phase-1-domain-cleanup-and-invariant-stabilization.md`. Outcome: the Domain review found the aggregates already sound; the phase recorded the binding decisions (cart created with first item, child-identity strategy, UTC policy, checkout/delivery coordination ownership, framework-neutral audit) and made two small changes (renamed `DeliveryAlreadyCompletedException` to `DeliveryTerminalStateException`; removed the stale empty `Interfaces\` folder include). Domain tests were not created in this phase; the first tests land in Phase 3, and a dedicated Domain test project is backfilled in Phase 10.
 
 - Goal
   - Make the Domain layer stable enough for repository contracts and persistence design.
@@ -536,6 +570,8 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 2: Domain And Application Contracts
 
+> **Status: Completed (2026-07-11).** See `docs/phase-2-domain-and-application-contracts.md`. Outcome: six aggregate-root repository contracts plus `IUnitOfWork` in `Talabat.Domain/Interfaces/`; `IClock` and the `CheckoutOutcome` result hierarchy in `Talabat.Application`. No current-user abstraction was added (deliberate deferral). Contracts verified clean: no EF Core, `IQueryable`, HTTP, or identity-framework leakage; no child-entity repositories; no `GetMvpCustomer`.
+
 - Goal
   - Define the contracts Application needs to orchestrate use cases without binding to Infrastructure.
 - Strategy
@@ -543,7 +579,7 @@ The immediate priority is to make the core business model stable, then define us
   - Add application-level abstractions only when they are needed by use cases.
   - Keep contracts framework-neutral.
 - Main decisions
-  - Repository interfaces live either in Domain or Application based on the final team convention. The existing docs currently place them in Domain.
+  - Decided (as implemented): repository and `IUnitOfWork` contracts live in `Talabat.Domain/Interfaces/`, matching `docs/repository-interfaces-design.md`. Application-level abstractions (`IClock`, and in Phase 3 `IApplicationIdGenerator` / `IRestaurantLocalTimeProvider`) live in `Talabat.Application/Abstractions/`.
   - `IUnitOfWork` should represent commit boundary only.
   - Current-user abstraction should be reserved unless an unauthenticated placeholder is needed for future-proof signatures.
   - Clock/time abstraction should be considered because Domain methods require current UTC time.
@@ -583,16 +619,21 @@ The immediate priority is to make the core business model stable, then define us
 
 ### Phase 3: Application Layer Use Cases
 
+> **Status: Next.** This phase is fully specced in `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Implement it by executing `specs/001-application-use-cases/tasks.md` (T001–T088). Where this section and the spec-kit differ, the spec-kit wins.
+
 - Goal
   - Implement use-case orchestration without persistence details or HTTP concerns.
 - Strategy
   - Application handlers load aggregate roots through interfaces, call Domain behavior, coordinate results, and commit through UnitOfWork.
   - Start with Customer Website backend use cases because they exercise Catalog, Basket, Customer, and Ordering.
   - Add Delivery use cases after core checkout and order flow are stable.
-- Main decisions
-  - Decide command/query style: simple services, handlers, or CQRS-lite.
-  - Decide whether to introduce MediatR later. Do not install it unless approved.
-  - Decide validation placement for request shape versus domain invariants.
+- Main decisions (resolved in `specs/001-application-use-cases/research.md`)
+  - Decided: CQRS-lite — one explicit handler per use case with request/response models. No MediatR and no new production packages in this phase.
+  - Decided: use cases receive explicit `customerId` request data; no current-user abstraction yet.
+  - Decided: expected business outcomes are returned as transport-neutral `UseCaseResult`/error contracts; domain invariants stay in Domain, request-shape validation stays in handlers/request models.
+  - Decided: handlers return Application read models, never Domain aggregates.
+  - Decided: two new Application abstractions bridge deferred infrastructure — `IApplicationIdGenerator` (Domain factories require positive int IDs while persistence is deferred) and `IRestaurantLocalTimeProvider` (checkout needs restaurant-local time).
+  - Decided: xUnit is the test framework; `tests/Talabat.Application.Tests` is created in this phase with fake repositories, clock, ID generator, and local-time provider.
 - Actions
   - Implement Catalog read use cases:
     - Browse restaurants.
@@ -613,21 +654,16 @@ The immediate priority is to make the core business model stable, then define us
     - Checkout.
     - Get order history.
     - Get order details.
-  - Later in this phase or the next delivery-focused phase, implement Delivery use cases:
-    - Create delivery for order.
-    - Assign delivery agent.
-    - Delivery lifecycle transitions.
-    - Get delivery status.
+  - Delivery use cases are explicitly deferred to Phase 7 (spec clarification, 2026-07-11). Do not implement delivery task creation, assignment, lifecycle transitions, agent workflows, or delivery status use cases in Phase 3.
 - Files/Folders To Create Or Modify
-  - `src/Talabat/Talabat.Application/`
-  - Possible folders:
+  - `src/Talabat/Talabat.Application/` with folders per the spec-kit:
+    - `Common/Results/`
+    - `Abstractions/`
     - `Catalog/`
     - `Basket/`
     - `Customers/`
-    - `Orders/`
-    - `Delivery/`
-    - `Abstractions/`
-    - `Common/`
+    - `Ordering/`
+  - `tests/Talabat.Application.Tests/` (new xUnit project, added to `src/Talabat/Talabat.slnx`)
 - What Should Not Be Done
   - Do not add EF Core implementation.
   - Do not put business logic in handlers when the Domain already owns it.
@@ -636,8 +672,10 @@ The immediate priority is to make the core business model stable, then define us
 - Acceptance Criteria
   - Use cases depend only on Application/Domain abstractions.
   - Checkout loads Cart, Restaurant, Customer address data, validates through Domain, creates Order, marks Cart checked out, and commits once.
-  - Delivery assignment and lifecycle use cases coordinate `Delivery` and `DeliveryAgent` through the domain service.
   - Application results are suitable for API mapping but do not contain HTTP response types.
+  - `tests/Talabat.Application.Tests` exists, runs green, and covers checkout success/unavailable/failure paths, cart conflict outcomes, ownership-scoped order reads, and profile/address rules (spec tasks T020–T083).
+  - The guardrail check passes: no MediatR, EF Core, Identity/Auth, or ASP.NET Core packages were added to `Talabat.Application` (spec task T084).
+  - `docs/phase-3-application-use-cases.md` records the phase outcome, and the Status Snapshot in this file is updated (spec task T088).
 - Risks / Mistakes To Avoid
   - Do not let controllers become the real Application layer.
   - Do not duplicate aggregate invariant logic in handlers.
@@ -653,13 +691,15 @@ The immediate priority is to make the core business model stable, then define us
   - Implement persistence in Infrastructure with explicit mappings.
   - Keep database constraints aligned with domain invariants.
 - Main decisions
-  - Choose ID generation approach for aggregate roots.
+  - Reconcile the ID strategy first — this is the opening decision of Phase 4. Domain factories require caller-supplied positive int IDs, and Phase 3 introduces `IApplicationIdGenerator` to satisfy them. Recommended: implement `IApplicationIdGenerator` over database sequences (for example EF Core HiLo), which keeps Domain factories and Phase 3 handlers unchanged. The alternative — switching to database-generated identity columns — would force a Domain factory refactor and handler changes, so it must be an explicit, reviewed choice. Do not map keys as identity columns while aggregates still self-assign positive IDs.
   - Choose owned type mappings for `Money`, `TimeRange`, `Address`, `DeliveryAddressSnapshot`, and `GeoLocation`.
   - Choose child key strategy for `CartItem`, `OrderItem`, and `CustomerAddress`.
   - Choose whether Catalog seed data is static seed data or managed through internal tooling later.
   - Choose transaction boundary for checkout and delivery coordination.
 - Actions
   - Add EF Core packages only after approval.
+  - Add the composition-root wiring: `Talabat.API` project reference to `Talabat.Infrastructure` plus an `AddInfrastructure()` DI extension (required for migrations tooling and runtime registration).
+  - Fix the standing `NU1903` warning (vulnerable transitive `Microsoft.OpenApi` 2.0.0) by updating `Microsoft.AspNetCore.OpenApi` in the same package-change batch.
   - Create application DbContext.
   - Create entity configurations for each aggregate.
   - Implement repository classes.
@@ -877,6 +917,14 @@ Do not write identity code yet.
   - Migration strategy.
   - Signing credentials and production secrets.
   - Password policy, lockout, email/phone confirmation, password reset, refresh tokens, external login.
+- Decision inputs to evaluate when the time comes (no framework is selected now)
+  - Support and maintenance status. IdentityServer4 is archived/end-of-life with known vulnerabilities — see `docs/identityserver4-readiness-report.md`, which is compatibility research, not a decision.
+  - Licensing and cost (commercial licensing vs open source).
+  - Protocol needs: OIDC/OAuth2 with Authorization Code + PKCE for the browser-based Customer and Delivery websites.
+  - Single sign-on expectations across the Customer Website and Delivery Website.
+  - User store vs token server: ASP.NET Core Identity can serve as the account/user store beneath any OIDC server choice — these are orthogonal decisions.
+  - Token audience/scope design per API surface (customer-facing vs delivery-facing), which must match however the API hosts were split in Phases 5–7.
+  - Account-to-profile linkage: the nullable, unique, framework-neutral `IdentityUserId` scalar on `Customer` and `DeliveryAgent`, and the registration flow that creates account then profile (see 2.4).
 - What the rest of the system must avoid now
   - Do not add Identity framework types to Domain.
   - Do not store `ClaimsPrincipal` or JWT claims in aggregates.
@@ -893,6 +941,7 @@ Do not write identity code yet.
   - Authorization belongs in API/Application boundary decisions, not Domain entities.
   - Model domain ownership separately from auth roles.
   - Keep policy names framework-neutral until the identity framework is selected.
+  - Ownership scoping is already pre-staged in code: repository contracts expose customer-scoped reads (`IOrderRepository.GetByIdForCustomerAsync`, `GetByCustomerIdAsync`, `ICartRepository.GetActiveCartByCustomerIdAsync`), and Phase 3 use cases carry explicit `customerId`. Phase 9 re-binds these to token-derived identity instead of redesigning them.
 - Main decisions
   - Which operations are customer-only.
   - Which operations are delivery-agent-only.
@@ -936,8 +985,8 @@ Do not write identity code yet.
 - Goal
   - Make each phase reviewable and prevent architecture regressions.
 - Strategy
-  - Start with Domain unit tests, then Application use-case tests, then Infrastructure integration tests, then API contract tests.
-  - Add tests as phases introduce code.
+  - Testing starts before this phase: `tests/Talabat.Application.Tests` is a Phase 3 deliverable, and Phases 4–7 should add their own integration/API tests as part of their acceptance criteria. Phase 10 consolidates and hardens; it does not introduce testing.
+  - Phase 10 backfills the Domain unit test project (aggregate state machines, value objects, domain services, exceptions), adds Infrastructure and API test layers, adds architecture/dependency tests, and wires CI with coverage and vulnerability gates (for example `dotnet list package --vulnerable`).
 - Main decisions
   - Choose test framework.
   - Choose integration database strategy.
@@ -1020,6 +1069,8 @@ Do not write identity code yet.
 
 ## 6. Documentation Update Plan
 
+Status update (2026-07-11): Phase 0 already applied the scope banners/notices to the root planning docs (`PLAN.md`, `Talabat_Implementation_Roadmap.md`, `Talabat_DDD_Project_Architecture_Prompt.md`) and the `docs/` design set, and `docs/reviews/domain-review-report.md` is marked historical. Rows that only required those notices are done; content-level rewrites remain open and should be folded into the phase that changes the related behavior.
+
 | File | Current Issue | Required Change | Priority |
 |---|---|---|---|
 | `PROJECT_IMPLEMENTATION_ROADMAP.md` | New roadmap file. | Use as the current high-level implementation sequence after approval. | High |
@@ -1035,7 +1086,7 @@ Do not write identity code yet.
 | `docs/domain-services-design.md` | MVP v1-only language and only Checkout service as MVP v1 service. | Update to include DeliveryAssignmentDomainService as implemented and Identity/Auth as external boundary. | High |
 | `docs/domain-failures-design.md` | Auth failures are described as out of scope for MVP v1 only. | Clarify Domain still should not model auth failures; API/Auth boundary handles them later. | Medium |
 | `docs/domain-invariants.md` | No mention of Identity boundary, Delivery role scoping, or three websites. | Add concise notes that auth ownership checks are Application/API concerns, not Domain invariants. | Medium |
-| `docs/repository-interfaces-design.md` | Mostly updated for Delivery, but old MVP v1 scope and no-auth assumptions remain. | Update repository methods for future multi-customer/multi-agent support; remove permanent `GetMvpCustomer` assumption. | High |
+| `docs/repository-interfaces-design.md` | Updated in Phases 0/2: contracts are implemented and `GetMvpCustomer` is explicitly ruled out. | Keep in sync as contracts evolve (Phase 4 persistence semantics, any future ownership-scoped methods). | Low |
 | `docs/delivery/README.md` | Says no Delivery implementation exists during documentation step, but implementation now exists. | Update to reflect current Domain implementation and deferred outer layers. | High |
 | `docs/delivery/delivery-implementation-roadmap.md` | Largely updated, but still excludes auth/courier login without referencing reserved Auth Portal. | Keep repository/Application/Infrastructure/API as deferred and add future Delivery Website/Auth Portal relationship. | Medium |
 | `docs/delivery/delivery-bounded-context.md` | Delivery context likely lacks three-website and future auth boundary. | Add Delivery Website/API ownership and note auth remains external. | Medium |
@@ -1046,24 +1097,31 @@ Do not write identity code yet.
 | `docs/delivery/delivery-database-design.md` | Database design predates final persistence and auth decisions. | Revisit after Phase 4 ID/key decisions and future DeliveryAgent linkage decisions. | Medium |
 | `docs/reviews/domain-review-report.md` | Historical review says it predates remediation and should not be treated as current status. | Either refresh the review after Phase 1 or keep it explicitly historical. | High |
 | `docs/identityserver4-readiness-report.md` | Focuses on IdentityServer4 and contains implementation phase recommendations that conflict with the new TBD strategy. | Reframe as historical compatibility research only; do not use it as the identity roadmap. | High |
-| `docs/glossary.md` | Deleted in the current working tree. | Decide whether to restore, remove from references, or recreate later as part of documentation cleanup. | Low |
+| `docs/glossary.md` | Deletion was committed in `91dc805`; the project no longer has a ubiquitous-language glossary. | Recreate an updated glossary aligned with current terms (Cart vs Basket naming, Delivery lifecycle terms, terminal states, future account-vs-profile distinction) once Phase 3 stabilizes wording. | Medium |
+| `docs/phase-0-repository-and-documentation-audit.md`, `docs/phase-1-domain-cleanup-and-invariant-stabilization.md`, `docs/phase-2-domain-and-application-contracts.md` | New phase records (added 2026-07-11). | Keep as immutable phase records; add `docs/phase-3-application-use-cases.md` when Phase 3 completes. | Low |
+| `AGENTS.md`, `.specify/`, `specs/001-application-use-cases/` | Active spec-kit governing Phase 3. | Keep in sync with this roadmap; where they conflict on Phase 3 scope, the spec-kit wins. Archive or mark the spec complete after Phase 3 ships. | Medium |
+| `.codex-scratch/ids4-net10-compat/` | Throwaway IdentityServer4 compatibility spike is now committed; it references an archived framework with vulnerable-era packages (excluded from the solution, so it does not affect builds). | Remove it (its findings are preserved in `docs/identityserver4-readiness-report.md`) or add a README disclaimer marking it as disposable research; consider gitignoring `.codex-scratch/`. | Low |
 
 ## 7. First 10 Concrete Tasks
 
-1. Approve this roadmap as the current sequencing document.
-2. Update `Talabat_DDD_Project_Architecture_Prompt.md` to remove the fixed ASP.NET Core Identity decision and state Identity/Auth is reserved/TBD.
-3. Mark `PLAN.md` and `Talabat_Implementation_Roadmap.md` as historical or revise them to point to this roadmap.
-4. Refresh `docs/reviews/domain-review-report.md` against current code so already-fixed findings are not treated as blockers.
-5. Update `docs/bounded-contexts.md` for the new direction: Customer Website, Delivery Website, and reserved Identity/Auth boundary.
-6. Update `docs/business-rules.md` and `docs/business-rule-classification.md` so auth/roles/delivery are deferred/reserved instead of permanently out of scope.
-7. Update `docs/repository-interfaces-design.md` to remove the permanent `GetMvpCustomer` assumption and support future multi-customer/multi-agent flows.
-8. Confirm Phase 1 Domain decisions: cart persistence semantics, child identity strategy, UTC/timezone boundary, audit-user boundary, and Delivery terminal coordination.
-9. Implement Phase 1 Domain cleanup only after the documentation baseline is approved.
-10. After Phase 1 passes review, implement Phase 2 repository/Application contracts without EF Core, API endpoints, or Identity packages.
+The original first-10 list (documentation baseline, Phase 1 decisions, Phase 2 contracts) was completed in commit `91dc805` and is recorded in the phase reports. The next 10 tasks execute Phase 3 through `specs/001-application-use-cases/tasks.md`:
+
+1. Create the xUnit test project `tests/Talabat.Application.Tests` and add it to `src/Talabat/Talabat.slnx` (spec tasks T001–T004).
+2. Add the shared Application result contracts under `Talabat.Application/Common/Results/`: `ApplicationErrorCategory`, `ApplicationError`, `UseCaseResult`, `ApplicationErrorCodes`, `DomainExceptionMapper` (T005–T009).
+3. Add the bridge abstractions `IApplicationIdGenerator` and `IRestaurantLocalTimeProvider` under `Talabat.Application/Abstractions/` (T010–T011).
+4. Add the test doubles: fake clock, ID generator, local-time provider, unit of work, and the four fake repositories (T012–T019).
+5. Implement Catalog read use cases with tests: browse restaurants, get restaurant menu (T020–T028).
+6. Implement Basket use cases with tests: get cart, add item (first-item cart creation, cross-restaurant conflict), update quantity, remove item, clear cart (T029–T046).
+7. Implement Customer use cases with tests: get/update profile, add/remove/set-default address (T047–T064).
+8. Implement the Checkout use case with success, unavailable-products, and invalid-state tests, committing once per successful checkout (T065–T072).
+9. Implement customer-scoped order history and order details reads with ownership tests (T073–T083).
+10. Run the guardrail check (no new packages in `Talabat.Application`), run the full build and test suite, write `docs/phase-3-application-use-cases.md`, and update the Status Snapshot in this file (T084–T088).
 
 ## 8. Final Notes
 
 The recommended strategy is Domain-first, then contracts, then Application, then Infrastructure, then API, then website-specific backend support, and only then Identity/Auth implementation.
+
+Current position (2026-07-11): Phases 0–2 are complete (documentation baseline, Domain decisions, repository/Application contracts). The next step is Phase 3 — Application use cases for the customer ordering path — executed through `specs/001-application-use-cases/tasks.md`, including its required Application test project. Phase 4 must open with the ID-generation reconciliation decision before any EF Core mapping is written.
 
 IdentityServer/Auth Portal should not be started now. The project is not ready for that decision because the Application layer, repositories, persistence model, transaction boundaries, API contracts, and authorization matrix are not yet stable.
 
