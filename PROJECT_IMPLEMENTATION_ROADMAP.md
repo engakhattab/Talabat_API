@@ -1,21 +1,26 @@
 # Project Implementation Roadmap
 
-## 0. Status Snapshot (2026-07-11)
+## 0. Status Snapshot (2026-07-14)
 
 | Phase | Status | Record |
 |---|---|---|
-| Phase 0: Repository And Documentation Audit | Completed | `docs/phase-0-repository-and-documentation-audit.md` |
-| Phase 1: Domain Cleanup And Invariant Stabilization | Completed | `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` |
-| Phase 2: Domain And Application Contracts | Completed | `docs/phase-2-domain-and-application-contracts.md` |
-| Phase 3: Application Layer Use Cases | Completed | `docs/phase-3-application-use-cases.md` + `specs/001-application-use-cases/` |
-| Phase 3.5: ID Strategy Refactor Before Persistence | Completed | `docs/phase-3.5-id-strategy-refactor.md` |
-| Phase 4: Persistence And Infrastructure | Completed | `docs/phase-4-persistence-and-infrastructure.md` + `specs/002-persistence-infrastructure/` |
-| Phases 5–11 | Not started | — |
+| Phase 1: Repository And Documentation Audit | Completed | Historical record: `docs/phase-0-repository-and-documentation-audit.md` |
+| Phase 2: Domain Cleanup And Invariant Stabilization | Completed | Historical record: `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` |
+| Phase 3: Domain And Application Contracts | Completed | Historical record: `docs/phase-2-domain-and-application-contracts.md` |
+| Phase 4: Application Layer Use Cases | Completed | `docs/phase-3-application-use-cases.md` + `specs/001-application-use-cases/`; includes the completed ID-strategy supporting milestone |
+| Phase 5: Infrastructure And Persistence Foundation | Completed | `docs/phase-4-persistence-and-infrastructure.md` + `specs/002-persistence-infrastructure/` |
+| Phase 6: Minimal Identity/Auth Setup Before Business APIs | Next | `docs/identity/duende-aspnet-identity-setup-guide.md` |
+| Phase 7: `Talabat.Customer.API` | Not started | — |
+| Phase 8: `Talabat.DeliveryAgent.API` | Not started | — |
+| Phase 9: Token, Claims, And Scopes Refinement | Not started | — |
+| Phase 10: Authorization Strategy And Quality Gates | Not started | — |
+| Phase 11: Advanced Features | Not started | — |
 
-- Phases 0–2 were implemented in `91dc805`; Phase 3 in `2e7f148` (both 2026-07-11).
-- Phase 3.5 completed on 2026-07-11 after the ID-strategy impact review: the project now uses SQL Server IDENTITY-compatible keys, application-side ID generator is removed, and the earlier sequence-based Phase 4 recommendation is superseded.
-- Phase 4 completed on 2026-07-11 with SQL Server-backed Infrastructure persistence, one reviewed migration, deterministic catalog seed data, and SQL Server integration tests.
-- Phase 3 has a full spec-kit under `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Where the spec-kit is more specific than the Phase 3 section in this file, the spec-kit wins. Two notable examples: Delivery use cases are deferred to Phase 7 by spec clarification, and the handler style is CQRS-lite without MediatR.
+- The phase numbers were normalized on 2026-07-14. Existing completion documents retain their historical filenames so links and audit history remain stable.
+- Historical Phases 0–2 were implemented in `91dc805`; historical Phase 3 in `2e7f148` (both 2026-07-11).
+- The historical Phase 3.5 supporting milestone completed on 2026-07-11 after the ID-strategy impact review: the project now uses SQL Server IDENTITY-compatible keys, the application-side ID generator is removed, and the earlier sequence-based persistence recommendation is superseded.
+- The historical Phase 4, now normalized as Phase 5, completed on 2026-07-11 with SQL Server-backed Infrastructure persistence, one reviewed migration, deterministic catalog seed data, and SQL Server integration tests.
+- Application use cases have a full spec-kit under `specs/001-application-use-cases/` (spec, plan, research, data model, contracts, tasks). Where that historical spec-kit is more specific than the Application-use-case section in this file, the spec-kit wins. Delivery Application use cases remain deferred to the new Phase 8, and the handler style remains CQRS-lite without MediatR.
 - Section 1 below describes the repository as of commit `91dc805`. Statements that predated Phases 0–2 have been corrected in place.
 
 ## 1. Current Repository Status
@@ -150,8 +155,8 @@
   - Reserved for later.
   - Architecture must not block future integration.
 - Documentation that says the system assumes one normal customer profile must be updated. That assumption may still be useful for early local testing, but it is not the final system direction.
-- Any documentation recommending immediate Identity implementation should be changed. IdentityServer/Auth Portal must remain a reserved/TBD phase until the framework decision is made.
-- `Talabat_DDD_Project_Architecture_Prompt.md` mentions ASP.NET Core Identity as the authentication approach. That is no longer decided and must be revised.
+- Documentation must reflect the approved minimal-Identity-before-APIs sequence while keeping advanced auth, profile linkage, and final token design deferred.
+- `Talabat_DDD_Project_Architecture_Prompt.md` should be aligned with the approved Duende IdentityServer + ASP.NET Core Identity combination and the separate `Talabat.Identity` host.
 - `PLAN.md` and `Talabat_Implementation_Roadmap.md` mention Identity in the planned stack/implementation sequence. These should be updated or superseded by this roadmap.
 - `docs/identityserver4-readiness-report.md` is useful research, but it is too specific to IdentityServer4 for the new strategy. It should be reframed as historical research, not a framework decision.
 - API template code should eventually be removed or replaced with real health/version endpoints, but not during this roadmap-only step.
@@ -168,7 +173,7 @@
   - Customer Website.
   - Delivery Website.
   - IdentityServer Website/Auth Portal.
-- Identity/Auth is now a planned cross-cutting capability, but the concrete framework is intentionally undecided.
+- Identity/Auth is now an approved pre-API capability: Duende IdentityServer integrated with ASP.NET Core Identity in a separate `Talabat.Identity` host.
 - The project should no longer design around a permanent single-customer assumption.
 - Customer-specific reads such as order history and cart access must eventually be scoped to the authenticated customer profile.
 - Delivery operations must eventually be scoped to authenticated delivery agents or delivery operations roles.
@@ -181,7 +186,7 @@
 - Repositories should exist only for aggregate roots.
 - Domain services should be stateless and should not load data or save changes.
 - Application layer should orchestrate use cases.
-- Infrastructure should implement persistence, repositories, external integrations, and future identity integration details.
+- `Talabat.Infrastructure` owns the single EF Core persistence model, including business mappings and the ASP.NET Core Identity EF store inside `TalabatDbContext`. Duende protocol/UI interaction remains owned by the separate `Talabat.Identity` host.
 - API should handle HTTP request/response mapping, authentication middleware, authorization policies, and endpoint wiring.
 - Cart should not store product prices.
 - Orders should store immutable price and delivery address snapshots.
@@ -193,32 +198,42 @@
 
 ### 2.3 What Must Be Deferred
 
-- Do not implement IdentityServer now.
-- Do not choose IdentityServer4, Duende IdentityServer, OpenIddict, ASP.NET Core Identity only, or any other identity framework now.
-- Do not install identity packages now.
-- Do not write login/register/token implementation now.
-- Do not add Identity-specific types to Domain entities now.
-- Do not build the three websites now.
+- Do not build business API endpoints before the approved minimal Identity/Auth setup is complete.
+- Do not add Identity-specific types to Domain entities at any phase.
+- Do not make `Customer` or `DeliveryAgent` inherit from `IdentityUser` or `ApplicationUser`.
+- Do not decide the account-to-profile linkage until the Customer and DeliveryAgent API requirements make the mapping concrete.
+- Do not finalize token audiences, scopes, custom claims, or endpoint authorization policies during the minimal Identity phase.
+- Do not build the Customer or Delivery websites now.
+- Do not implement refresh-token tuning, external login, password reset, email confirmation, 2FA, admin UI, advanced consent/custom grants, or production signing/secrets hardening during the minimal Identity phase.
 - Do not implement payment, notifications, coupons, reviews, admin management, or restaurant-owner workflows now.
 
-### 2.4 IdentityServer Strategy Placeholder
+### 2.4 Approved Identity/Auth Direction
 
-Identity/Auth must be treated as a reserved architectural phase.
+Identity/Auth is an approved, separate host that now begins before the business APIs.
 
-The current recommendation is:
+The approved direction is:
 
 - Keep the Domain independent from Identity.
-- Keep all auth framework decisions outside the Domain model.
+- Create `Talabat.Identity` as a separate ASP.NET Core Web API host.
+- Use Duende IdentityServer as the OIDC/OAuth2 server and ASP.NET Core Identity as the account/user store beneath it.
+- Start with simple JSON register/login/logout account endpoints for manual testing; login establishes the Identity authentication cookie and never acts as a custom token issuer.
+- Add the Angular interaction UI later; it will use Authorization Code with PKCE against the Duende protocol endpoints.
+- Keep all framework decisions and types outside the Domain model.
 - Use scalar domain identifiers such as `CustomerId` and `DeliveryAgentId` inside core aggregates.
-- Later, after selecting an identity framework, decide how account identities map to domain profiles.
-- A future Application abstraction such as `ICurrentUserContext` or `ICurrentUser` is likely needed, but it should be introduced only when authenticated use cases are being designed.
-- Any future identity linkage should be scalar and framework-neutral from the Domain perspective. Do not put `ApplicationUser`, `ClaimsPrincipal`, `IdentityUser`, `HttpContext`, JWT claims, or IdentityServer-specific types in Domain.
+- Defer the account-to-profile linkage strategy until the business APIs clarify the required customer and delivery-agent flows.
+- Refine tokens, audiences, scopes, and custom claims after the API surfaces become clear.
+- Keep any future profile linkage scalar and framework-neutral from the Domain perspective.
+- Never put `ApplicationUser`, `ClaimsPrincipal`, `IdentityUser`, `HttpContext`, JWT claims, Duende types, or ASP.NET Core Identity types in Domain.
 
-Why deferring Identity/Auth is safe and cheap in this codebase:
+Framework decision (approved 2026-07-14): **Duende IdentityServer + ASP.NET Core Identity**, hosted in `Talabat.Identity` during Phase 6. Duende owns standards-based protocol and token-server behavior. ASP.NET Core Identity owns accounts, password hashes, login state, roles, lockout, and related user-store behavior. They are complementary components, not alternatives.
 
-- Accounts and profiles are separated by design. Authentication accounts (credentials, tokens, roles) will live in the future Identity/Auth host. `Customer` and `DeliveryAgent` remain pure domain profiles. The future link is one nullable, unique, framework-neutral scalar (for example `IdentityUserId` as a string) added to those two aggregates only when Phase 8 starts — nothing earlier.
-- The migration cost is confined to the API boundary. Phase 3 use cases take explicit `customerId`/`agentId` request data. When authentication arrives, controllers stop binding those IDs from the route/body and instead resolve them from the token through a then-introduced `ICurrentUser` plus an account-to-profile lookup. Use-case signatures do not change.
-- Registration will be an Application-orchestrated flow (create the account in the identity host, then create the linked domain profile in one coordinated workflow). Its exact shape is a Phase 8 decision.
+Boundary rules:
+
+- `Customer` and `DeliveryAgent` remain pure domain profiles and never inherit from Identity classes.
+- An authentication account is not automatically a Customer or DeliveryAgent profile.
+- Minimal registration creates an Identity account only unless a later approved profile-provisioning design says otherwise.
+- No `IdentityUserId` column, repository lookup, cross-database transaction, or profile-provisioning workflow is introduced in Phase 6.
+- API token validation, policies, and ownership checks belong to the later API/refinement phases, not the Domain model.
 
 ## 3. Target Architecture
 
@@ -237,18 +252,28 @@ Talabat.Application
   Does not depend on Infrastructure or API.
 
 Talabat.Infrastructure
-  EF Core, DbContext, repository implementations, UnitOfWork implementation, external services,
-  seed data, future identity integration adapters.
+  One EF Core TalabatDbContext for business aggregates plus ASP.NET Core Identity tables, repository
+  implementations, UnitOfWork, external services, and seed data. ApplicationUser is an Infrastructure
+  persistence model, never a Domain entity.
   Depends inward on Application/Domain contracts.
 
-Talabat.API
-  HTTP endpoints, controllers or minimal APIs, request/response mapping, authentication middleware,
-  authorization policies, exception mapping, OpenAPI, DI composition.
-  Depends on Application and eventually Infrastructure for DI registration.
+Talabat.Customer.API   (currently named Talabat.API; renamed at Phase 7 start)
+  Customer-facing HTTP host: restaurants, menu, cart, profile, addresses, checkout, orders.
+  Request/response mapping, authentication middleware, authorization policies, exception mapping,
+  OpenAPI, DI composition. Depends on Application and Infrastructure for DI registration.
 
-Talabat.Identity/Auth Portal
-  Reserved/TBD future host for login/register/authentication/authorization/token issuing/user management.
-  Framework not selected yet.
+Talabat.DeliveryAgent.API   (new host, introduced in Phase 8)
+  Delivery-agent-facing HTTP host: agent profile, online/offline, location, assigned deliveries,
+  delivery lifecycle actions. Reuses Application/Infrastructure via shared DI extensions and
+  shared API plumbing (DomainException->ProblemDetails mapping).
+
+Talabat.Identity   (new ASP.NET Core Web API host, introduced in Phase 6 before the business APIs)
+  Duende IdentityServer (OIDC/OAuth2 protocol endpoints) + ASP.NET Core Identity (user/account store).
+  References Talabat.Infrastructure to reuse TalabatDbContext and its Identity EF store; Infrastructure
+  never references this host.
+  Phase 6 starts with JSON register/login/logout endpoints for manual cookie-session testing and the
+  minimum IdentityServer configuration. A future Angular SPA supplies the interactive UI and uses
+  Authorization Code with PKCE. Advanced account management and production hardening remain deferred.
 ```
 
 ### 3.2 Bounded Contexts
@@ -267,8 +292,9 @@ Current and target bounded contexts:
 - Delivery Management:
   - Owns delivery tasks, delivery lifecycle, delivery agents, agent availability, and assignment coordination.
 - Identity/Auth:
-  - Future cross-cutting context/host.
-  - Owns accounts, credentials, tokens, roles, claims, policies, and user management depending on framework choice.
+  - Separate cross-cutting host introduced minimally before the business APIs.
+  - Uses Duende IdentityServer with ASP.NET Core Identity and initially owns accounts, credentials, register/login/logout, authentication cookies, and basic protocol behavior.
+  - Token resources/scopes/custom claims, profile linkage, and advanced account management are refined later.
   - Must not own core business rules for carts, orders, customers, restaurants, or deliveries.
 
 ### 3.3 Aggregate Boundaries
@@ -426,59 +452,66 @@ What must be implemented first:
 - Delivery API endpoints.
 - Clear authorization policy candidates before auth framework implementation.
 
-#### IdentityServer Website / Auth Portal
+#### Identity Web API And Future Angular Auth UI
 
 Purpose:
 
-- Future dedicated authentication/authorization portal for login, registration, token issuing, account management, roles, and user management depending on the selected framework.
+- `Talabat.Identity` is the centralized ASP.NET Core Web API authority for account interaction and Duende protocol/token endpoints.
+- A future Angular SPA supplies the login/register/logout user interface and uses Authorization Code with PKCE.
 
 Backend contexts used:
 
 - Identity/Auth context.
-- It may coordinate account creation with Customer or DeliveryAgent profile creation through Application services after the framework decision.
+- Account-to-Customer/DeliveryAgent profile coordination remains deferred until the business API requirements are defined.
 
-APIs/use cases needed before building:
+Phase 6 account endpoints:
 
-- Not defined yet.
-- Registration/login/token/user-management flows must wait for framework selection.
+- JSON register/login/logout endpoints for manual Identity-cookie testing.
+- Duende discovery and protocol endpoints.
+- No custom password-to-token endpoint.
 
-Future identity/auth concerns:
+Deferred identity/auth concerns:
 
-- Framework choice is TBD.
-- Token shape, roles, scopes, claims, refresh-token behavior, account lifecycle, and user management are TBD.
+- Framework is decided: Duende IdentityServer integrated with ASP.NET Core Identity.
+- Angular UI, final client registrations, token shape, roles, scopes, claims, refresh-token behavior, profile linkage, account lifecycle, and advanced user management remain deferred.
 
-What must be implemented first:
+What must be complete before Phase 6 implementation:
 
-- Stable core Domain.
-- Application and persistence foundations.
-- Clear boundaries that keep Domain independent.
-- A later architecture decision record comparing identity options.
+- Stable core Domain, Application, and persistence foundations (completed in Phases 1–5).
+- A Phase 6 specification and constitution scope that permit only the minimal Web API Identity host.
+- Clear boundaries that keep Domain and Application independent from Identity frameworks.
 
 ## 4. Recommended Implementation Order
 
-Recommended order:
+Approved order:
 
 1. Repository and documentation audit.
 2. Domain cleanup and invariant stabilization.
 3. Domain and Application contracts.
-4. Application layer use cases.
-5. ID strategy refactor to database-generated IDENTITY keys (Phase 3.5).
-6. Persistence and Infrastructure.
-7. API layer.
-8. Customer Website backend support.
-9. Delivery Website backend support.
-10. Reserved IdentityServer/Auth Portal decision and implementation phase.
-11. Authorization strategy.
-12. Testing and quality gates.
-13. Delivery extensions and advanced features.
+4. Application layer use cases, including the completed database-generated ID strategy milestone.
+5. Infrastructure and persistence foundation.
+6. Minimal Identity/Auth setup before business APIs.
+7. `Talabat.Customer.API`.
+8. `Talabat.DeliveryAgent.API`.
+9. Token, claims, and scopes refinement after both API surfaces are clearer.
+10. Authorization strategy and quality gates.
+11. Advanced features.
 
-This order is safer than starting directly with IdentityServer because the current repository is Domain-heavy and has no Application or Infrastructure foundation yet. Authentication depends on stable profile boundaries, repository contracts, persistence, transactions, and API policies. Starting IdentityServer now would force identity decisions into a system that has not yet defined its Application use cases or persistence model.
+Identity/Auth is no longer fully deferred until after the business APIs. The approved direction creates a simple, separate ASP.NET Core Web API host named `Talabat.Identity` first, using Duende IdentityServer integrated with ASP.NET Core Identity. Phase 6 exposes minimal JSON register/login/logout account endpoints for manual testing. Login creates the Identity authentication session cookie; it does not mint or return a custom JWT.
 
-The immediate priority is to make the core business model stable, then define use-case contracts, then implement persistence and API boundaries. Identity should be delayed until the system has clear domain profile concepts, use cases, repositories, and transaction boundaries that Identity can integrate with cleanly.
+This is intentionally not the final security design. The initial Identity host establishes account storage, cookie-session behavior, Duende protocol endpoints, and clean separation from Domain. The future Angular SPA will provide the interactive user experience and use Authorization Code with PKCE. Precise access-token audiences, scopes, custom claims, profile linkage, and per-endpoint authorization policies will be refined after `Talabat.Customer.API` and `Talabat.DeliveryAgent.API` make those requirements concrete.
+
+The three planned hosts are:
+
+- `Talabat.Identity` — ASP.NET Core Web API host for accounts, credentials, JSON register/login/logout interaction endpoints, and Duende protocol/token-server responsibilities.
+- `Talabat.Customer.API` — customer-facing business HTTP endpoints added in Phase 7.
+- `Talabat.DeliveryAgent.API` — delivery-agent-facing business HTTP endpoints added in Phase 8.
+
+Advanced Identity/Auth remains deferred: refresh-token tuning, external login, password reset, email confirmation, 2FA, admin UI, advanced consent or custom grants, and production signing/secrets hardening.
 
 ## 5. Phased Roadmap
 
-### Phase 0: Repository And Documentation Audit
+### Phase 1: Repository And Documentation Audit
 
 > **Status: Completed (2026-07-11).** Implemented as scope banners/notices across the root planning docs and the `docs/` design set, plus the audit record `docs/phase-0-repository-and-documentation-audit.md`. Note: the `docs/glossary.md` deletion and the `.codex-scratch/` IdentityServer4 spike were committed as-is; their follow-ups are tracked in Section 6.
 
@@ -524,7 +557,7 @@ The immediate priority is to make the core business model stable, then define us
   - Do not use the IdentityServer4 readiness report as a decision to adopt IdentityServer4.
   - Do not begin repository or Identity implementation during audit.
 
-### Phase 1: Domain Cleanup And Invariant Stabilization
+### Phase 2: Domain Cleanup And Invariant Stabilization
 
 > **Status: Completed (2026-07-11).** See `docs/phase-1-domain-cleanup-and-invariant-stabilization.md`. Outcome: the Domain review found the aggregates already sound; the phase recorded the binding decisions (cart created with first item, child-identity strategy, UTC policy, checkout/delivery coordination ownership, framework-neutral audit) and made two small changes (renamed `DeliveryAlreadyCompletedException` to `DeliveryTerminalStateException`; removed the stale empty `Interfaces\` folder include). Domain tests were not created in this phase; the first tests land in Phase 3, and a dedicated Domain test project is backfilled in Phase 10.
 
@@ -573,7 +606,7 @@ The immediate priority is to make the core business model stable, then define us
   - Do not create services that duplicate aggregate behavior.
   - Do not add repositories for child entities.
 
-### Phase 2: Domain And Application Contracts
+### Phase 3: Domain And Application Contracts
 
 > **Status: Completed (2026-07-11).** See `docs/phase-2-domain-and-application-contracts.md`. Outcome: six aggregate-root repository contracts plus `IUnitOfWork` in `Talabat.Domain/Interfaces/`; `IClock` and the `CheckoutOutcome` result hierarchy in `Talabat.Application`. No current-user abstraction was added (deliberate deferral). Contracts verified clean: no EF Core, `IQueryable`, HTTP, or identity-framework leakage; no child-entity repositories; no `GetMvpCustomer`.
 
@@ -622,7 +655,7 @@ The immediate priority is to make the core business model stable, then define us
   - Do not let Domain services call repositories.
   - Do not design auth-specific repository methods until Identity strategy is decided.
 
-### Phase 3: Application Layer Use Cases
+### Phase 4: Application Layer Use Cases
 
 > **Status: Completed (2026-07-11, commit `2e7f148`).** See `docs/phase-3-application-use-cases.md`. Implemented per the spec-kit at `specs/001-application-use-cases/` (where this section and the spec-kit differ, the spec-kit wins). Note: the temporary application-side ID generator introduced here was removed in Phase 3.5.
 
@@ -687,7 +720,7 @@ The immediate priority is to make the core business model stable, then define us
   - Do not leak persistence concerns into use-case APIs.
   - Do not implement authenticated profile resolution until auth strategy is approved.
 
-### Phase 3.5: ID Strategy Refactor Before Persistence
+#### Phase 4 Supporting Milestone: ID Strategy Refactor Before Persistence
 
 > **Status: Completed (2026-07-11).** See `docs/phase-3.5-id-strategy-refactor.md`. Added after the ID-strategy impact review. Supersedes the earlier sequence-based recommendation that Phase 4 previously carried.
 
@@ -720,7 +753,7 @@ The immediate priority is to make the core business model stable, then define us
   - Domain and Application still reference no EF Core, ASP.NET Core, or Identity types.
   - Decision recorded: Phase 4 notes in this file updated, short record at `docs/phase-3.5-id-strategy-refactor.md`, spec research ID decision annotated as superseded.
 
-### Phase 4: Persistence And Infrastructure
+### Phase 5: Infrastructure And Persistence Foundation
 
 > **Status: Next.** To be specced with spec-kit at `specs/002-persistence-infrastructure/` and executed from its `tasks.md`. Where the spec-kit is more specific than this section, the spec-kit wins. The phase scope guard lives in `.specify/memory/constitution.md` (updated 2026-07-11 for Phase 4). Inputs for the spec: this section, `docs/phase-3.5-id-strategy-refactor.md`, `docs/phase-1-domain-cleanup-and-invariant-stabilization.md` (child keys, UTC policy), and `docs/delivery/delivery-database-design.md` (delivery tables).
 
@@ -788,62 +821,123 @@ The immediate priority is to make the core business model stable, then define us
   - Do not use `IQueryable` outside Infrastructure.
   - Do not start with migrations before reviewing model configuration.
 
-### Phase 5: API Layer
+### Phase 6: Minimal Identity/Auth Setup Before Business APIs
+
+> **Status: Next.** This is the first incomplete phase after the completed Infrastructure and persistence foundation.
 
 - Goal
-  - Expose backend use cases through HTTP without moving business logic into controllers.
+  - Establish a simple, separate ASP.NET Core Web API Identity/Auth host before either business API is created.
+  - Learn and validate account persistence and cookie-session behavior with minimal JSON register, login, and logout endpoints.
 - Strategy
-  - API should be a thin delivery mechanism over Application.
-  - Implement request/response mapping, exception mapping, endpoint grouping, OpenAPI, and dependency injection.
-  - Keep authentication off or optional until Identity phase, but structure endpoints so policies can be added later.
-- Main decisions
-  - Controllers vs minimal APIs.
-  - API versioning approach.
-  - Error response format.
-  - Endpoint grouping for Customer-facing and Delivery-facing APIs.
-  - Whether to keep one API host initially or split delivery into a separate API host later.
-- Actions
-  - Remove or isolate template WeatherForecast endpoints.
-  - Add health/version endpoint if useful.
-  - Add DI registration for Application and Infrastructure.
-  - Add API exception mapping for `DomainException`.
-  - Add Customer-facing endpoints for Catalog, Basket, Customer, and Ordering.
-  - Add Delivery endpoints only after Delivery Application use cases exist.
-  - Add OpenAPI descriptions.
-  - Add authorization placeholders as comments/docs only, not active policy implementation unless auth is approved.
-- Files/Folders To Create Or Modify
-  - `src/Talabat/Talabat.API/Program.cs`
-  - `src/Talabat/Talabat.API/Controllers/` or endpoint folders
-  - `src/Talabat/Talabat.API/Contracts/`
-  - `src/Talabat/Talabat.API/Middleware/`
-  - `src/Talabat/Talabat.API/DependencyInjection.cs` if needed
+  - Create `Talabat.Identity` from the ASP.NET Core Web API template, not the Web App/Razor Pages template.
+  - Integrate Duende IdentityServer with ASP.NET Core Identity.
+  - Keep account storage and authentication behavior completely separate from `Talabat.Domain`.
+  - Use the existing Infrastructure `TalabatDbContext` as the one EF Core context for both business and ASP.NET Core Identity tables.
+  - Add a project reference from `Talabat.Identity` to `Talabat.Infrastructure`; never add the reverse reference.
+  - Keep the host headless/API-first in Phase 6. A future Angular SPA will provide the interactive login/register/logout experience.
+  - Configure the future Angular client as a public OIDC client using Authorization Code with PKCE and no client secret.
+  - Use simple, reviewed development configuration first; refine clients, token audiences, scopes, custom claims, and API authorization after the business API surfaces exist.
+- Initial capabilities
+  - `POST /api/account/register` creates an account through `UserManager`.
+  - `POST /api/account/login` validates credentials through `SignInManager` and establishes the Identity authentication cookie; it does not return a custom access token.
+  - `POST /api/account/logout` ends the local Identity session through `SignInManager`.
+  - ASP.NET Core Identity-backed user storage.
+  - Duende discovery and protocol endpoints with the minimum safe configuration.
+  - OpenAPI/manual HTTP testing for the account endpoints, including cookie preservation between login and logout calls.
+  - Full OIDC interactive login and logout are deferred until an Angular interaction UI or an explicitly approved temporary test client exists.
+- Architecture rules
+  - `ApplicationUser` lives in an Identity-specific Infrastructure namespace because `TalabatDbContext` must use it as an Identity EF model.
+  - `TalabatDbContext` derives from the appropriate `IdentityDbContext<ApplicationUser, IdentityRole, string>` base and continues to configure the existing business aggregates.
+  - `Talabat.Identity` obtains `TalabatDbContext` and the Identity EF stores through its Infrastructure reference.
+  - `Talabat.Infrastructure` must never reference the `Talabat.Identity` host.
+  - `Customer` and `DeliveryAgent` remain separate Domain profiles.
+  - Neither profile inherits from `IdentityUser` or `ApplicationUser`.
+  - No `IdentityUser`, `ApplicationUser`, `ClaimsPrincipal`, `HttpContext`, JWT, Duende, or ASP.NET Core Identity type enters `Talabat.Domain`.
+  - Account-to-profile linkage is explicitly deferred.
+  - Minimal registration creates an account, not a Customer or DeliveryAgent aggregate.
+  - The account login endpoint never mints a JWT and never implements the resource-owner-password grant.
+  - Angular never receives, stores, or submits a client secret.
+- Planning and manual setup
+  - Follow `docs/identity/duende-aspnet-identity-setup-guide.md` only after the Phase 6 scope/spec is approved.
+  - Verify the supported Duende/.NET package line and licensing immediately before installation.
+  - Use the existing `TalabatDb` connection and Infrastructure migration history. Generate the reviewed Identity schema migration from Infrastructure with `Talabat.Identity` as the startup project.
 - What Should Not Be Done
-  - Do not implement IdentityServer.
-  - Do not add login/register endpoints.
-  - Do not add frontend code.
-  - Do not put domain decisions in controllers.
-  - Do not authorize by trusting user-submitted customer or agent IDs.
+  - Do not create `Talabat.Customer.API` or `Talabat.DeliveryAgent.API` in this phase.
+  - Do not add authentication abstractions or framework types to Domain.
+  - Do not add `IdentityUserId` to Customer or DeliveryAgent.
+  - Do not finalize API resources, audiences, scopes, roles, policies, or custom claims before the APIs clarify them.
+  - Do not build Angular in this phase.
+  - Do not create a second Identity DbContext or second Identity database.
+  - Do not add a reference from Infrastructure to the Identity Web API host.
+  - Do not create EF relationships or navigation properties between `ApplicationUser` and Domain profiles.
+  - Do not create a custom login endpoint that returns a hand-built JWT.
+  - Do not use Resource Owner Password Credentials to avoid the interactive OIDC flow.
+  - Do not add refresh-token tuning, external login, password reset, email confirmation, 2FA, admin UI, advanced consent/custom grants, or production signing/secrets hardening.
 - Acceptance Criteria
-  - Controllers/endpoints contain request mapping and call Application use cases.
-  - Domain exceptions map consistently to API errors.
-  - No business rules are implemented in controllers.
-  - API can support Customer Website use cases.
-  - Delivery endpoints are either deferred or mapped to Delivery Application use cases.
+  - `Talabat.Identity` is the only project containing Duende host/protocol implementation; ASP.NET Core Identity EF types are limited to Infrastructure and the Identity host.
+  - A development user can register through JSON, log in to establish the Identity cookie, and log out while preserving the same test-client cookie jar.
+  - Login does not return a custom JWT or expose password/password-hash data.
+  - Duende discovery is available, while end-to-end Angular OIDC remains explicitly deferred.
+  - `Talabat.Identity` references Infrastructure and uses the single registered `TalabatDbContext` Identity store.
+  - One reviewed Infrastructure migration adds only the expected ASP.NET Core Identity schema changes without damaging existing business tables/data.
+  - Domain and Application remain free of Identity/Auth framework packages and types.
+  - Customer and DeliveryAgent are unchanged and no account-to-profile linkage exists.
+  - The solution's existing business tests remain green.
 - Risks / Mistakes To Avoid
-  - Do not build endpoints before Application handlers exist.
-  - Do not expose EF entities or Domain entities directly as API contracts.
-  - Do not hardcode future identity assumptions into route design.
+  - Do not treat successful account creation as successful Customer or DeliveryAgent profile creation.
+  - Do not over-design tokens before there are API consumers.
+  - Do not confuse the Identity cookie returned by the login endpoint with an API access token.
+  - Do not let the single-DbContext choice create Domain-to-Identity inheritance, navigation properties, or repository coupling.
+  - Do not let a tutorial's sample users, credentials, signing keys, redirect URIs, CORS policy, or in-memory stores become production configuration.
+  - Do not implement advanced account-management features merely because the framework exposes them.
 
-### Phase 6: Customer Website Backend Support
+### Phase 7: `Talabat.Customer.API`
+
+- Goal
+  - Expose customer-facing use cases through a dedicated HTTP host without moving business logic into controllers.
+- Strategy
+  - Rename the existing empty `Talabat.API` host to `Talabat.Customer.API` before adding business endpoints.
+  - Keep the API as a thin transport and composition root over Application and Infrastructure.
+  - Integrate with the already-running `Talabat.Identity` authority, beginning with the simplest viable token validation and refining scopes/claims in Phase 9.
+- Main decisions
+  - Controllers versus minimal APIs.
+  - API versioning approach.
+  - Error response format (`DomainException` to Problem Details).
+  - Anonymous catalog endpoints versus authenticated owner-scoped endpoints.
+  - How a validated account is temporarily represented before the account-to-Customer profile linkage is approved.
+  - Add an `AddApplication()` DI extension for handler registration.
+- Actions
+  - Rename `Talabat.API` to `Talabat.Customer.API` across project metadata and documentation.
+  - Remove the template WeatherForecast endpoint.
+  - Add Application and Infrastructure composition-root registration.
+  - Add exception mapping and OpenAPI descriptions.
+  - Configure token validation against `Talabat.Identity` using the smallest approved audience/scope contract.
+  - Add customer-facing Catalog, Basket, Customer, Checkout, and Ordering endpoints.
+  - Use `/api/me/...` for owner-scoped routes and never trust a caller-supplied `customerId` as authorization.
+  - Record every token/claim/scope limitation that must be resolved in Phase 9.
+- What Should Not Be Done
+  - Do not add login/register/logout endpoints to this API.
+  - Do not access `TalabatDbContext` or Identity stores directly from customer controllers; persistence remains behind registered services even though the approved single context lives in Infrastructure.
+  - Do not add DeliveryAgent endpoints.
+  - Do not put Domain rules in controllers.
+  - Do not expose EF or Domain entities as HTTP contracts.
+- Acceptance Criteria
+  - Public catalog endpoints behave as explicitly documented.
+  - Protected customer endpoints reject missing or invalid credentials.
+  - Controllers/endpoints only map requests and invoke Application use cases.
+  - Ownership-sensitive operations do not trust public customer IDs.
+  - Identity-specific framework types do not leak into Domain.
+
+#### Phase 7 Completion: Customer Workflow Contract Stabilization
 
 - Goal
   - Ensure the backend supports the future Customer Website workflows.
 - Strategy
   - Complete customer-facing API capabilities before building the frontend.
-  - Keep auth as a future integration concern, but avoid designs that assume anonymous permanent access.
+  - Use the minimal Identity host from Phase 6 while recording token/claim refinements for Phase 9.
 - Main decisions
   - Define customer-facing API contracts and response shapes.
-  - Define how temporary unauthenticated development flows map to future authenticated flows.
+  - Define how authenticated accounts will later map to Customer profiles without coupling Domain to Identity.
   - Decide whether Delivery status is visible in the customer order details at this phase or later.
 - Actions
   - Validate end-to-end customer workflow:
@@ -855,10 +949,10 @@ The immediate priority is to make the core business model stable, then define us
     - View order history.
   - Add customer-oriented read models.
   - Add pagination/filtering where needed.
-  - Document future auth policy per endpoint.
+  - Document the current access rule and Phase 9 refinement need per endpoint.
 - Files/Folders To Create Or Modify
   - `src/Talabat/Talabat.Application/`
-  - `src/Talabat/Talabat.API/`
+  - `src/Talabat/Talabat.Customer.API/`
   - `src/Talabat/Talabat.Infrastructure/` if read models or query persistence are needed.
   - API contract folders created in Phase 5.
 - API/Use Case Areas Required
@@ -875,21 +969,22 @@ The immediate priority is to make the core business model stable, then define us
   - Future authenticated customer scoping is documented for each endpoint.
 - What Should Not Be Done
   - Do not build the Customer Website frontend in this phase.
-  - Do not implement login/register.
-  - Do not select an identity framework.
+  - Do not duplicate login/register/logout behavior from `Talabat.Identity`.
+  - Do not implement advanced Identity/Auth features in the Customer API.
   - Do not rely on hardcoded customer IDs as final authorization design.
 - Risks / Mistakes To Avoid
   - Do not build the frontend before backend contracts are stable.
   - Do not bake the old single-customer assumption into public API contracts.
   - Do not require Identity framework-specific claims in Application results.
 
-### Phase 7: Delivery Website Backend Support
+### Phase 8: `Talabat.DeliveryAgent.API`
 
 - Goal
-  - Ensure the backend supports the future Delivery Website workflows.
+  - Implement Delivery Application workflows and expose them through a dedicated delivery-agent HTTP host.
 - Strategy
   - Build delivery backend capabilities after core checkout/order persistence exists.
   - Keep Delivery separate from Ordering while allowing Application workflows to create and update delivery tasks.
+  - Integrate with the minimal `Talabat.Identity` host without finalizing complex token or claim design until Phase 9.
 - Main decisions
   - Decide assignment model:
     - Manual operations assignment.
@@ -903,12 +998,12 @@ The immediate priority is to make the core business model stable, then define us
   - Implement delivery lifecycle flows.
   - Add delivery read models for agent dashboard and delivery status.
   - Add constraints preventing one agent from holding multiple active deliveries.
-  - Document future authorization policy per endpoint.
+  - Document current access behavior and the token/claim/policy refinements required in Phase 9.
 - Files/Folders To Create Or Modify
   - `src/Talabat/Talabat.Application/`
   - `src/Talabat/Talabat.Domain/` only if approved domain gaps are discovered.
   - `src/Talabat/Talabat.Infrastructure/`
-  - `src/Talabat/Talabat.API/` or a future delivery API host if that split is approved.
+  - `src/Talabat/Talabat.DeliveryAgent.API/` (new host; reuses `AddApplication()`/`AddInfrastructure()` and shared API plumbing established by the Customer API).
   - `docs/delivery/`
 - API/Use Case Areas Required
   - Delivery agent profile.
@@ -925,11 +1020,12 @@ The immediate priority is to make the core business model stable, then define us
   - Delivery Website can be built against stable backend contracts.
   - Delivery actions are backed by Application use cases and Domain invariants.
   - Delivery does not mutate Order directly.
-  - Future DeliveryAgent authorization scoping is documented.
+  - DeliveryAgent authorization and ownership assumptions are documented for Phase 9 refinement.
 - What Should Not Be Done
   - Do not build the Delivery Website frontend in this phase.
   - Do not add real-time GPS/maps.
-  - Do not implement Identity/Auth.
+  - Do not duplicate Identity/Auth account endpoints or user storage.
+  - Do not implement deferred advanced Identity/Auth features.
   - Do not merge Delivery lifecycle into Ordering.
 - Risks / Mistakes To Avoid
   - Do not put delivery lifecycle rules in controllers.
@@ -937,78 +1033,67 @@ The immediate priority is to make the core business model stable, then define us
   - Do not let a delivery agent act on another agent's assigned delivery once auth is introduced.
   - Do not implement real-time GPS/maps before basic lifecycle works.
 
-### Phase 8: IdentityServer Website / Auth Portal
-
-Reserved / TBD.
-
-Do not choose the framework yet.
-Do not add implementation tasks yet.
-Do not install packages yet.
-Do not write identity code yet.
-
-- Why this phase exists
-  - The final system needs authentication, authorization, token issuing, roles/policies, user management, and login/register flows.
-  - The three-website model requires a dedicated identity/auth experience or host.
-  - Customer Website and Delivery Website must eventually authenticate users and call protected APIs.
-- Decisions that must be made later
-  - Identity framework:
-    - IdentityServer4.
-    - Duende IdentityServer.
-    - OpenIddict.
-    - ASP.NET Core Identity only.
-    - Other.
-  - Whether Identity/Auth is a separate project/host.
-  - Token format and claims.
-  - Roles and policies.
-  - Account registration flows.
-  - Whether registration creates Customer and DeliveryAgent profiles.
-  - How account IDs map to domain profiles.
-  - Database/schema layout.
-  - Migration strategy.
-  - Signing credentials and production secrets.
-  - Password policy, lockout, email/phone confirmation, password reset, refresh tokens, external login.
-- Decision inputs to evaluate when the time comes (no framework is selected now)
-  - Support and maintenance status. IdentityServer4 is archived/end-of-life with known vulnerabilities — see `docs/identityserver4-readiness-report.md`, which is compatibility research, not a decision.
-  - Licensing and cost (commercial licensing vs open source).
-  - Protocol needs: OIDC/OAuth2 with Authorization Code + PKCE for the browser-based Customer and Delivery websites.
-  - Single sign-on expectations across the Customer Website and Delivery Website.
-  - User store vs token server: ASP.NET Core Identity can serve as the account/user store beneath any OIDC server choice — these are orthogonal decisions.
-  - Token audience/scope design per API surface (customer-facing vs delivery-facing), which must match however the API hosts were split in Phases 5–7.
-  - Account-to-profile linkage: the nullable, unique, framework-neutral `IdentityUserId` scalar on `Customer` and `DeliveryAgent`, and the registration flow that creates account then profile (see 2.4).
-- What the rest of the system must avoid now
-  - Do not add Identity framework types to Domain.
-  - Do not store `ClaimsPrincipal` or JWT claims in aggregates.
-  - Do not use auth roles to enforce domain invariants.
-  - Do not assume a specific token claim shape.
-  - Do not design Application use cases that require IdentityServer-specific services.
-  - Do not treat `docs/identityserver4-readiness-report.md` as a framework decision.
-
-### Phase 9: Authorization Strategy
+### Phase 9: Token, Claims, And Scopes Refinement
 
 - Goal
-  - Define role/policy boundaries after use cases are clear and before enabling authentication on production endpoints.
+  - Refine the minimal Identity setup using concrete requirements from both business API hosts.
+- Inputs
+  - Implemented `Talabat.Customer.API` endpoints and ownership requirements.
+  - Implemented `Talabat.DeliveryAgent.API` endpoints and assignment requirements.
+  - The simple register/login/logout behavior from Phase 6.
+- Decisions
+  - Define separate API resources and audiences for Customer and DeliveryAgent APIs.
+  - Define the minimum scopes required by real API operations.
+  - Define which standard and custom claims are actually needed.
+  - Decide whether roles, permissions, or both are needed for Delivery operations.
+  - Decide the account-to-Customer and account-to-DeliveryAgent profile-link strategy.
+  - Decide where profile resolution occurs and how stale links/claims are handled.
+  - Decide client registrations and redirect/logout URIs for the future websites.
+- Actions
+  - Replace temporary/minimal token settings with reviewed API-specific resource and scope configuration.
+  - Add only claims used by a documented API policy or profile-resolution flow.
+  - Add audience and scope validation to each API host.
+  - Document token lifetimes and refresh behavior, but defer advanced tuning unless required for a working client.
+  - Extend the authorization endpoint matrix with implemented routes.
+- What Should Not Be Done
+  - Do not place claims or Identity framework types in Domain.
+  - Do not make profile IDs caller-controlled.
+  - Do not add speculative roles, permissions, scopes, or claims.
+  - Do not implement external login, 2FA, admin UI, advanced consent/custom grants, or production key hardening here.
+- Acceptance Criteria
+  - Each API accepts only tokens intended for its audience and required scope.
+  - Every custom claim has a documented consumer.
+  - Account-to-profile linkage, if approved, remains framework-neutral at the Domain boundary.
+  - Customer tokens cannot call DeliveryAgent-only operations and vice versa.
+
+### Phase 10: Authorization Strategy And Quality Gates
+
+- Goal
+  - Finalize endpoint authorization and prove the complete system meets architecture, security, persistence, and behavior quality gates.
 - Strategy
   - Authorization belongs in API/Application boundary decisions, not Domain entities.
   - Model domain ownership separately from auth roles.
-  - Keep policy names framework-neutral until the identity framework is selected.
-  - Ownership scoping is already pre-staged in code: repository contracts expose customer-scoped reads (`IOrderRepository.GetByIdForCustomerAsync`, `GetByCustomerIdAsync`, `ICartRepository.GetActiveCartByCustomerIdAsync`), and Phase 3 use cases carry explicit `customerId`. Phase 9 re-binds these to token-derived identity instead of redesigning them.
+  - Use the refined Phase 9 token contract without making Domain depend on claims or Identity types.
+  - Ownership scoping is already pre-staged in code: repository contracts expose customer-scoped reads (`IOrderRepository.GetByIdForCustomerAsync`, `GetByCustomerIdAsync`, `ICartRepository.GetActiveCartByCustomerIdAsync`), and Application use cases carry explicit `customerId`. Phase 10 binds those inputs to trusted profile resolution instead of redesigning business use cases.
 - Main decisions
   - Which operations are customer-only.
   - Which operations are delivery-agent-only.
   - Which operations require admin/delivery-operations permissions.
   - Whether restaurant-owner workflows are in scope and what domain model they require.
 - Actions
-  - Create a policy matrix for endpoints/use cases.
+  - Create or finalize the policy matrix for every implemented endpoint/use case.
   - Define future role candidates.
   - Define ownership checks:
     - Customer can access only own cart/orders/profile.
     - DeliveryAgent can access only assigned delivery tasks where applicable.
     - Operations/Admin can assign or inspect broader delivery data if later approved.
-  - Add current-user abstraction only when implementation begins.
+  - Add a framework-neutral current-user/profile-resolution abstraction only if the implemented APIs require it.
+  - Run architecture, unit, integration, API authorization, migration, and package-vulnerability gates.
 - Files/Folders To Create Or Modify
-  - `docs/authorization-strategy.md` if a separate authorization document is approved.
-  - `src/Talabat/Talabat.Application/Abstractions/` later for current-user contracts.
-  - `src/Talabat/Talabat.API/` later for policies after framework selection.
+  - `docs/authorization-strategy.md`.
+  - `docs/authorization-endpoint-matrix.md`.
+  - `src/Talabat/Talabat.Application/Abstractions/` only for framework-neutral contracts that are proven necessary.
+  - `src/Talabat/Talabat.Customer.API/` and `src/Talabat/Talabat.DeliveryAgent.API/` for host-specific policies and token validation.
 - Future Role/Policy Candidates
   - `Customer`
   - `DeliveryAgent`
@@ -1020,17 +1105,16 @@ Do not write identity code yet.
   - Domain model remains independent from roles and claims.
   - Application use cases know when ownership checks are needed without depending on a concrete identity framework.
 - What Should Not Be Done
-  - Do not implement JWT validation.
-  - Do not add authorization middleware/policies until an identity framework is chosen.
   - Do not add role checks inside aggregates.
-  - Do not add `IdentityUserId` blindly before the profile-linking decision.
+  - Do not add account/profile linkage blindly; implement only the Phase 9 decision.
+  - Do not weaken quality gates to make authentication tests pass.
 - Risks / Mistakes To Avoid
   - Do not confuse authentication with domain profile existence.
   - Do not trust route IDs for ownership.
   - Do not add restaurant-owner role without deciding the restaurant ownership domain model.
-  - Do not implement policies before the identity framework decision.
+  - Do not implement policies before Phase 9 has concrete API requirements and a reviewed token/claim design.
 
-### Phase 10: Testing And Quality Gates
+#### Phase 10 Quality Gate Details
 
 - Goal
   - Make each phase reviewable and prevent architecture regressions.
@@ -1124,9 +1208,9 @@ Status update (2026-07-11): Phase 0 already applied the scope banners/notices to
 | File | Current Issue | Required Change | Priority |
 |---|---|---|---|
 | `PROJECT_IMPLEMENTATION_ROADMAP.md` | New roadmap file. | Use as the current high-level implementation sequence after approval. | High |
-| `Talabat_DDD_Project_Architecture_Prompt.md` | Mentions ASP.NET Core Identity and old MVP exclusions. | Update to say Identity/Auth is reserved/TBD and remove the framework decision. | High |
-| `Talabat_Implementation_Roadmap.md` | Old roadmap recommends implementing Identity in Infrastructure and says auth is out of scope for MVP v1. | Mark as superseded or revise to align with this phase order and reserved Identity phase. | High |
-| `PLAN.md` | Old plan includes Identity in stack/context and suggests auth service work before the new strategy is ready. | Mark as historical or update with new sequencing. | High |
+| `Talabat_DDD_Project_Architecture_Prompt.md` | Mentions ASP.NET Core Identity and old MVP exclusions. | Align it with the approved separate `Talabat.Identity` Web API host, Duende + ASP.NET Core Identity, and future Angular Authorization Code + PKCE client. | High |
+| `Talabat_Implementation_Roadmap.md` | Old roadmap mixes the Identity host boundary with Infrastructure and says auth is out of scope for MVP v1. | Mark as superseded or revise it to show the approved split: Identity EF storage in the single Infrastructure DbContext, Duende/account HTTP behavior in the separate Web API host. | High |
+| `PLAN.md` | Old plan includes Identity in stack/context and does not reflect the approved host boundaries. | Mark as historical or align it with the new Web API + future Angular sequence. | High |
 | `docs/bounded-contexts.md` | Says MVP v1 excludes auth, delivery drivers, roles, and assumes one normal customer. | Update to distinguish initial unauthenticated development from final Customer/Delivery/Auth direction. Add Identity/Auth as future boundary. | High |
 | `docs/business-rules.md` | Title and intro are MVP v1-only and assume no auth/single customer. | Update rule framing to include future authenticated ownership while keeping current domain rules. | High |
 | `docs/business-rule-classification.md` | Classifies auth, delivery, roles, and restaurant owners as out of scope. | Reclassify as deferred/reserved; add future Application/API authorization ownership notes. | High |
@@ -1152,29 +1236,29 @@ Status update (2026-07-11): Phase 0 already applied the scope banners/notices to
 | `AGENTS.md`, `.specify/`, `specs/001-application-use-cases/` | Active spec-kit governing Phase 3. | Keep in sync with this roadmap; where they conflict on Phase 3 scope, the spec-kit wins. Archive or mark the spec complete after Phase 3 ships. | Medium |
 | `.codex-scratch/ids4-net10-compat/` | Throwaway IdentityServer4 compatibility spike is now committed; it references an archived framework with vulnerable-era packages (excluded from the solution, so it does not affect builds). | Remove it (its findings are preserved in `docs/identityserver4-readiness-report.md`) or add a README disclaimer marking it as disposable research; consider gitignoring `.codex-scratch/`. | Low |
 
-## 7. First 10 Concrete Tasks
+## 7. Next 10 Concrete Tasks
 
-The original first-10 list (documentation baseline, Phase 1 decisions, Phase 2 contracts) was completed in commit `91dc805` and is recorded in the phase reports. The next 10 tasks execute Phase 3 through `specs/001-application-use-cases/tasks.md`:
+These tasks describe the next approved work. They are planning instructions only until Phase 6 is formally approved:
 
-1. Create the xUnit test project `tests/Talabat.Application.Tests` and add it to `src/Talabat/Talabat.slnx` (spec tasks T001–T004).
-2. Add the shared Application result contracts under `Talabat.Application/Common/Results/`: `ApplicationErrorCategory`, `ApplicationError`, `UseCaseResult`, `ApplicationErrorCodes`, `DomainExceptionMapper` (T005–T009).
-3. Add the bridge abstractions for application-side ID generation and `IRestaurantLocalTimeProvider` under `Talabat.Application/Abstractions/` (T010–T011).
-4. Add the test doubles: fake clock, ID generator, local-time provider, unit of work, and the four fake repositories (T012–T019).
-5. Implement Catalog read use cases with tests: browse restaurants, get restaurant menu (T020–T028).
-6. Implement Basket use cases with tests: get cart, add item (first-item cart creation, cross-restaurant conflict), update quantity, remove item, clear cart (T029–T046).
-7. Implement Customer use cases with tests: get/update profile, add/remove/set-default address (T047–T064).
-8. Implement the Checkout use case with success, unavailable-products, and invalid-state tests, committing once per successful checkout (T065–T072).
-9. Implement customer-scoped order history and order details reads with ownership tests (T073–T083).
-10. Run the guardrail check (no new packages in `Talabat.Application`), run the full build and test suite, write `docs/phase-3-application-use-cases.md`, and update the Status Snapshot in this file (T084–T088).
+1. Create a dedicated Phase 6 specification and update the constitution/current agent scope from completed persistence work to Minimal Identity/Auth.
+2. Confirm the supported Duende IdentityServer line for the repository's .NET target and verify licensing eligibility.
+3. Plan the new `Talabat.Identity` ASP.NET Core Web API host with a one-way project reference to Infrastructure and no references from Domain or Application.
+4. Define `ApplicationUser` in an Identity-specific Infrastructure namespace and extend the existing `TalabatDbContext` from the appropriate IdentityDbContext base.
+5. Plan ASP.NET Core Identity registration against `TalabatDbContext`, password policy, and development seed strategy without using sample production credentials.
+6. Plan Duende integration through ASP.NET Core Identity and the minimum discovery/interactive-client configuration.
+7. Plan JSON register/login/logout account endpoints for manual cookie-session testing; keep registration account-only and never return a custom JWT from login.
+8. Plan one reviewed Infrastructure migration that adds Identity tables to the existing database without unexpected business-schema changes.
+9. Define tests for register/login/logout, Domain isolation, and existing business regression behavior.
+10. Complete the Phase 6 quality review before creating or renaming either business API host.
 
 ## 8. Final Notes
 
-The recommended strategy is Domain-first, then contracts, then Application, then Infrastructure, then API, then website-specific backend support, and only then Identity/Auth implementation.
+The approved strategy is Domain-first, then contracts, Application, Infrastructure/persistence, a minimal separate Identity/Auth host, the two business API hosts, and finally token/authorization refinement and advanced features.
 
-Current position (2026-07-11): Phases 0–3.5 are complete. The next step is Phase 4 — Persistence And Infrastructure — specced with spec-kit at `specs/002-persistence-infrastructure/` under the updated `.specify/memory/constitution.md` (permanent principles + Phase 4 scope guard). Keys are database-generated SQL Server IDENTITY; do not reintroduce application-side ID generation while writing EF Core mappings.
+Current position (2026-07-14): the historical work through Persistence and Infrastructure is complete and is normalized as Phases 1–5 in this roadmap. The next step is Phase 6 — Minimal Identity/Auth Setup Before Business APIs. Its detailed learner procedure is documented in `docs/identity/duende-aspnet-identity-setup-guide.md`.
 
-IdentityServer/Auth Portal should not be started now. The project is not ready for that decision because the Application layer, repositories, persistence model, transaction boundaries, API contracts, and authorization matrix are not yet stable.
+Phase 6 creates `Talabat.Identity` as an ASP.NET Core Web API host with Duende IdentityServer integrated with ASP.NET Core Identity. It starts with JSON register/login/logout endpoints for manual Identity-cookie testing and does not return custom tokens from the login endpoint. A future Angular SPA supplies the interactive UI and uses Authorization Code with PKCE. `Talabat.Customer.API` and `Talabat.DeliveryAgent.API` follow in Phases 7 and 8. Token audiences, scopes, custom claims, profile linkage, and detailed authorization are deliberately refined in Phases 9 and 10 after the API requirements are concrete.
 
-The Domain should remain independent from IdentityServer, ASP.NET Core Identity, EF Core, controllers, HTTP, JWT, and claims. Future authentication should resolve users to domain profiles at the API/Application boundary and pass domain identifiers into use cases.
+The Domain remains independent from Duende, ASP.NET Core Identity, `IdentityUser`, `ApplicationUser`, `ClaimsPrincipal`, `HttpContext`, JWT, controllers, and HTTP. `Customer` and `DeliveryAgent` remain domain profiles and never inherit from Identity account classes.
 
-Do not implement phases, install packages, create migrations, refactor source code, or build websites until the relevant phase is approved.
+Do not install packages, create projects or migrations, refactor source code, or begin a phase until its scope and quality gates are approved.
