@@ -1,15 +1,20 @@
 # Agent Context
 
 <!-- SPECKIT START -->
-Active spec-kit implementation plan:
+Current roadmap increment:
 
-- Feature: Persistence And Infrastructure
-- Plan: `specs/002-persistence-infrastructure/plan.md`
-- Spec: `specs/002-persistence-infrastructure/spec.md`
-- Research: `specs/002-persistence-infrastructure/research.md`
-- Data model: `specs/002-persistence-infrastructure/data-model.md`
-- Contracts: `specs/002-persistence-infrastructure/contracts/persistence-boundary.md`
-- Quickstart: `specs/002-persistence-infrastructure/quickstart.md`
+- Phase: Minimal Identity/Auth Setup Before Business APIs (Phase 6)
+- Roadmap: `PROJECT_IMPLEMENTATION_ROADMAP.md`
+- Manual guide: `docs/identity/duende-aspnet-identity-setup-guide.md`
+- Completed persistence plan: `specs/002-persistence-infrastructure/plan.md`
 
-Scope guard: Phase 4 covers persistence and infrastructure only. Do not add API endpoints, Identity/Auth implementation, Delivery Application use cases, MediatR, frontend code, repository interface changes, or business-rule changes while implementing this plan. EF Core SQL Server work belongs in Infrastructure, with API changes limited to composition-root wiring and the approved OpenAPI vulnerability fix.
+Scope guard for the current increment: review and complete only the compile-ready Identity persistence
+foundation. This increment may make `ApplicationUser` a valid ASP.NET Core Identity persistence model,
+extend the existing Infrastructure `TalabatDbContext` with the Identity model, add the approved one-way
+`Talabat.Identity -> Talabat.Infrastructure` project reference, add the host to the solution, and apply
+the existing approved OpenAPI vulnerability fix.
+
+Do not add register/login/logout endpoints, Duende or Identity service registration, migrations,
+business APIs, Angular/frontend code, profile linkage, custom tokens, or advanced authentication in
+this increment. Domain and Application must remain free of Identity/Auth dependencies and types.
 <!-- SPECKIT END -->

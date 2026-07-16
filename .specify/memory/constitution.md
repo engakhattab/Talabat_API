@@ -1,44 +1,129 @@
+<!--
+Sync Impact Report
+- Version change: unversioned legacy constitution -> 2.0.0
+- Modified principles:
+  - API composition root -> Separate HTTP composition roots
+  - Identity/Auth fully deferred -> Minimal Identity/Auth before business APIs
+- Added sections:
+  - Phase 6 scope and quality gates
+  - Governance and version metadata
+- Removed sections:
+  - Phase 4 persistence-only scope (that phase is complete)
+- Templates reviewed:
+  - ✅ .specify/templates/plan-template.md (no change required)
+  - ✅ .specify/templates/spec-template.md (no change required)
+  - ✅ .specify/templates/tasks-template.md (no change required)
+  - ✅ .specify/templates/commands/ (no command templates present)
+- Runtime guidance:
+  - ✅ AGENTS.md updated for the current incremental Phase 6 scope
+  - ✅ PROJECT_IMPLEMENTATION_ROADMAP.md already contains the approved sequence
+- Deferred follow-up:
+  - Create the complete Phase 6 spec-kit feature artifacts before broad Phase 6 implementation.
+-->
+
 # Talabat Project Constitution
 
-Authoritative sequencing lives in `PROJECT_IMPLEMENTATION_ROADMAP.md` (Status Snapshot + Section 5). This constitution holds the permanent architecture rules plus a scope guard for the phase currently being implemented. Update the "Current Phase Scope" section when a phase completes; the permanent principles do not change per phase.
+Authoritative sequencing lives in `PROJECT_IMPLEMENTATION_ROADMAP.md` (Status Snapshot and
+Section 5). This constitution holds permanent architecture rules plus the scope guard for the phase
+currently being implemented. Update "Current Phase Scope" when a phase completes; permanent
+principles change only through an explicit constitution amendment.
 
 ## Core Architecture Principles (permanent)
 
-1. Domain stays independent from ASP.NET Core, EF Core, Identity/Auth frameworks, HTTP, controllers, and external service implementations. `Talabat.Domain` and `Talabat.Application` must never reference Infrastructure or carry any persistence/web/identity package.
-2. Application orchestrates use cases through abstractions and returns transport-neutral results; business rules live in Domain aggregates and domain services only.
-3. Aggregate roots protect invariants; child entities (`Product`, `CartItem`, `OrderItem`, `CustomerAddress`) are modified only through their roots and never get repositories.
-4. Repository contracts live in `Talabat.Domain/Interfaces/` for aggregate roots only; Infrastructure implements them. `IQueryable`, `DbContext`, and EF types never leak outside Infrastructure.
-5. API is the composition root and a thin transport layer: request/response mapping, DI wiring, middleware, and (in later phases) authentication/authorization. No business logic in controllers.
-6. Identity/Auth is a reserved boundary (roadmap Phase 8). Do not select a framework, install identity packages, or add identity types, claims, or `IdentityUserId` fields to Domain or Application before that phase. `Customer` and `DeliveryAgent` remain pure domain profiles.
-7. Persisted entity IDs are database-generated SQL Server IDENTITY values (Phase 3.5 decision). Entities are constructed with `Id == 0`; persistence assigns positive IDs during `SaveChangesAsync`. Do not reintroduce application-side ID generation, database sequences, or `ValueGeneratedNever` keys.
-8. EF mapping must never weaken encapsulation: use private parameterless constructors and backing-field mapping; do not add public setters, public mutable collections, or domain members that exist only to satisfy the ORM.
-9. Database constraints back domain invariants; every constraint or index maps to a documented rule in the roadmap or design docs.
+1. Domain MUST stay independent from ASP.NET Core, EF Core, Identity/Auth frameworks, HTTP,
+   controllers, and external service implementations. `Talabat.Domain` and `Talabat.Application`
+   MUST NOT reference Infrastructure or carry persistence, web, or Identity packages.
+2. Application MUST orchestrate use cases through abstractions and return transport-neutral results.
+   Business rules MUST live in Domain aggregates and domain services only.
+3. Aggregate roots MUST protect invariants. Child entities (`Product`, `CartItem`, `OrderItem`, and
+   `CustomerAddress`) MUST be modified only through their roots and MUST NOT have repositories.
+4. Repository contracts MUST live in `Talabat.Domain/Interfaces/` for aggregate roots only, and
+   Infrastructure MUST implement them. `IQueryable`, `DbContext`, and EF types MUST NOT leak outside
+   Infrastructure.
+5. Each HTTP host MUST be a thin composition root responsible only for transport mapping, dependency
+   wiring, middleware, and its host-specific authentication responsibilities. Business logic MUST NOT
+   live in controllers or endpoints.
+6. Identity/Auth MUST remain a separate boundary. Minimal Identity/Auth is introduced in roadmap
+   Phase 6 in the `Talabat.Identity` host, using Duende IdentityServer with ASP.NET Core Identity.
+   Identity EF persistence MAY live in Infrastructure because the approved design uses the existing
+   `TalabatDbContext`, but Identity framework types MUST NOT enter Domain or Application. `Customer`
+   and `DeliveryAgent` MUST remain pure domain profiles and MUST NOT inherit from Identity types.
+7. Persisted entity IDs MUST be database-generated SQL Server IDENTITY values. Entities are
+   constructed with `Id == 0`; persistence assigns positive IDs during `SaveChangesAsync`.
+   Application-side ID generation, database sequences, and `ValueGeneratedNever` keys MUST NOT be
+   reintroduced.
+8. EF mapping MUST NOT weaken encapsulation. Use private parameterless constructors and backing-field
+   mapping; do not add public setters, public mutable collections, or Domain members solely for the
+   ORM.
+9. Database constraints MUST back Domain invariants. Every constraint or index MUST map to a
+   documented rule in the roadmap or an approved design document.
 
 ## Decided Standards
 
-- Handlers: CQRS-lite — one explicit handler per use case; no MediatR or command-bus packages.
-- Identity context: use cases receive explicit `customerId`/`agentId` request data until Phase 8; no current-user abstraction yet.
-- Results: transport-neutral `UseCaseResult`/`ApplicationError`; handlers return Application read models, never Domain aggregates; generated IDs are read only after `SaveChangesAsync`.
+- Handlers: CQRS-lite, with one explicit handler per use case and no MediatR or command-bus packages.
+- Identity framework: Duende IdentityServer integrated with ASP.NET Core Identity in the separate
+  `Talabat.Identity` ASP.NET Core Web API host.
+- Identity persistence: one physical SQL Server database and the existing Infrastructure
+  `TalabatDbContext`; the dependency direction is `Talabat.Identity -> Talabat.Infrastructure` and
+  never the reverse.
+- Account/profile separation: Phase 6 registration creates an account only. Account-to-`Customer` or
+  account-to-`DeliveryAgent` linkage and any current-user abstraction remain deferred.
+- Results: transport-neutral `UseCaseResult`/`ApplicationError`; handlers return Application read
+  models, never Domain aggregates; generated IDs are read only after `SaveChangesAsync`.
 - Tests: xUnit; every phase ships its own tests as part of its acceptance criteria.
 
-## Current Phase Scope: Phase 4 — Persistence And Infrastructure
+## Current Phase Scope: Phase 6 — Minimal Identity/Auth Before Business APIs
 
 Allowed in this phase:
 
-- EF Core SQL Server packages in `Talabat.Infrastructure` (plus design/tooling packages where required), `DbContext`, entity type configurations, repository and `IUnitOfWork` implementations, migrations, seed data, and integration tests under `tests/`.
-- Composition-root wiring: `Talabat.API` project reference to `Talabat.Infrastructure` plus an `AddInfrastructure()` DI extension; connection-string configuration.
-- Updating `Microsoft.AspNetCore.OpenApi` to clear the NU1903 vulnerability warning.
+- A separate `Talabat.Identity` ASP.NET Core Web API host with a one-way reference to Infrastructure.
+- ASP.NET Core Identity EF support in Infrastructure, an empty `ApplicationUser : IdentityUser`, and
+  extending the existing `TalabatDbContext` with the standard Identity model.
+- Duende IdentityServer integration in the Identity host, minimal development configuration, and
+  discovery endpoint verification.
+- Minimal JSON register, login, and logout endpoints for account-only cookie-session learning.
+- One reviewed Infrastructure migration that adds the standard Identity schema to `TalabatDb`.
+- Focused Identity tests, existing regression tests, and package vulnerability checks.
 
 Prohibited in this phase:
 
-- Business API endpoints, API request/response contracts, or middleware behavior beyond DI wiring.
-- Identity/Auth packages, identity tables, or auth-related migrations.
-- Delivery Application use cases (Phase 7), websites/frontend, MediatR, payment, notifications, coupons, or reviews.
-- Domain changes except mechanics EF genuinely requires (private parameterless constructors, backing-field mapping); any other Domain edit needs explicit approval before it is made.
+- `Talabat.Customer.API`, `Talabat.DeliveryAgent.API`, Angular/frontend work, or business endpoints.
+- Identity, Duende, HTTP, JWT, `ClaimsPrincipal`, `ApplicationUser`, or `IdentityUser` types in Domain
+  or Application.
+- Making `Customer` or `DeliveryAgent` inherit from an Identity type or adding account/profile linkage.
+- A custom password-to-token endpoint, hand-built JWTs, or Resource Owner Password Credentials.
+- A second application `DbContext` or Duende EF configuration/operational stores during the approved
+  minimal single-context setup.
+- Refresh-token tuning, external login, password reset, email confirmation, 2FA, admin UI, advanced
+  consent/custom grants, or production signing/secrets hardening.
 
 ## Quality Gates
 
-- Solution builds with all tests green; `Talabat.Domain` and `Talabat.Application` project files still contain no package references.
-- Integration tests prove: IDs are populated after `SaveChangesAsync`; checkout persists one order and closes one cart atomically; the one-active-cart-per-customer and unique-delivery-per-order constraints reject violations; owned value objects round-trip correctly.
-- Migrations are generated only after entity configurations are reviewed, and reflect aggregate boundaries (snapshots mapped as owned data, never as independent tables).
-- `dotnet list package --vulnerable` reports no known vulnerabilities after the OpenApi update.
+- The whole solution MUST build and all existing tests MUST remain green.
+- `Talabat.Domain` and `Talabat.Application` project files MUST contain no Identity/Auth packages.
+- Dependency direction MUST remain `Talabat.Identity -> Talabat.Infrastructure ->
+  Talabat.Application -> Talabat.Domain`, with no reverse reference.
+- Registration, login-cookie creation, and logout MUST be tested incrementally; no response or log may
+  expose a password, password hash, security stamp, or full Identity entity.
+- Login MUST NOT mint or return a custom JWT. End-to-end Angular OIDC MUST remain deferred until an
+  interaction UI/client exists.
+- Any Identity migration MUST be reviewed before database update and MUST NOT unexpectedly alter
+  existing business tables or add profile-link columns.
+- Package vulnerability auditing MUST report no known vulnerabilities before the phase is accepted.
+
+## Governance
+
+- This constitution governs all implementation work. The roadmap determines phase sequence, while
+  `AGENTS.md` may narrow the current increment further but MUST NOT broaden this constitution.
+- Amendments require an explicit approved direction, a documented Sync Impact Report, semantic
+  versioning, and consistency review of the spec-kit templates and runtime guidance.
+- MAJOR versions redefine or remove a principle, MINOR versions add materially new governance, and
+  PATCH versions clarify without changing meaning.
+- Plans and reviews MUST include a constitution check before implementation and again before phase
+  acceptance. Any exception MUST be documented and approved before code is changed.
+
+**Version**: 2.0.0
+
+**Ratified**: 2026-07-03
+
+**Last Amended**: 2026-07-14

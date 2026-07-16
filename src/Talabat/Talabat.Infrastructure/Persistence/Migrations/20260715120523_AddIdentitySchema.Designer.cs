@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Talabat.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Talabat.Infrastructure.Persistence;
 namespace Talabat.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(TalabatDbContext))]
-    partial class TalabatDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715120523_AddIdentitySchema")]
+    partial class AddIdentitySchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

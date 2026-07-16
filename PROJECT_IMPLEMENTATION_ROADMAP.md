@@ -1,6 +1,6 @@
 # Project Implementation Roadmap
 
-## 0. Status Snapshot (2026-07-14)
+## 0. Status Snapshot (2026-07-15)
 
 | Phase | Status | Record |
 |---|---|---|
@@ -9,7 +9,7 @@
 | Phase 3: Domain And Application Contracts | Completed | Historical record: `docs/phase-2-domain-and-application-contracts.md` |
 | Phase 4: Application Layer Use Cases | Completed | `docs/phase-3-application-use-cases.md` + `specs/001-application-use-cases/`; includes the completed ID-strategy supporting milestone |
 | Phase 5: Infrastructure And Persistence Foundation | Completed | `docs/phase-4-persistence-and-infrastructure.md` + `specs/002-persistence-infrastructure/` |
-| Phase 6: Minimal Identity/Auth Setup Before Business APIs | Next | `docs/identity/duende-aspnet-identity-setup-guide.md` |
+| Phase 6: Minimal Identity/Auth Setup Before Business APIs | Completed | `docs/phase-6-identity.md` |
 | Phase 7: `Talabat.Customer.API` | Not started | — |
 | Phase 8: `Talabat.DeliveryAgent.API` | Not started | — |
 | Phase 9: Token, Claims, And Scopes Refinement | Not started | — |

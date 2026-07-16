@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Talabat.Domain.Aggregates.Basket;
@@ -9,7 +10,7 @@ using Talabat.Infrastructure.Identity;
 
 namespace Talabat.Infrastructure.Persistence;
 
-public sealed class TalabatDbContext : IdentityDbContext<ApplicationUser>
+public sealed class TalabatDbContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
 {
     public TalabatDbContext(DbContextOptions<TalabatDbContext> options)
         : base(options)
