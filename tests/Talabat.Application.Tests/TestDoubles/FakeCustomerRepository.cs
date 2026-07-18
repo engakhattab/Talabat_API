@@ -25,6 +25,13 @@ public sealed class FakeCustomerRepository : ICustomerRepository
         return GetByIdAsync(customerId, cancellationToken);
     }
 
+    public Task<Customer?> GetByIdentityUserIdAsync(
+        string identityUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Customers.SingleOrDefault(customer => customer.IdentityUserId == identityUserId));
+    }
+
     public Task AddAsync(
         Customer customer,
         CancellationToken cancellationToken = default)

@@ -26,6 +26,14 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(customer => customer.PhoneNumber)
             .HasMaxLength(50);
 
+        builder.Property(customer => customer.IdentityUserId)
+            .HasMaxLength(450);
+
+        builder.HasIndex(customer => customer.IdentityUserId)
+            .IsUnique()
+            .HasFilter("[IdentityUserId] IS NOT NULL")
+            .HasDatabaseName("UX_Customers_IdentityUserId");
+
         builder.OwnsMany<CustomerAddress>(
             "_addresses",
             address =>

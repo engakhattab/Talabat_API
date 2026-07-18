@@ -12,6 +12,10 @@ public interface ICustomerRepository
         int customerId,
         CancellationToken cancellationToken = default);
 
+    Task<Customer?> GetByIdentityUserIdAsync(
+        string identityUserId,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Customer customer,
         CancellationToken cancellationToken = default);

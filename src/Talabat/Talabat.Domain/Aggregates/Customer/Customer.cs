@@ -17,6 +17,8 @@ public sealed class Customer : AuditableEntity
 
     public string? PhoneNumber { get; private set; }
 
+    public string? IdentityUserId { get; private set; }
+
     public IReadOnlyCollection<CustomerAddress> Addresses => _addresses.AsReadOnly();
 
     private Customer()
@@ -29,6 +31,20 @@ public sealed class Customer : AuditableEntity
         FullName = Guard.RequiredText(fullName, nameof(fullName));
         Age = Guard.Positive(age, nameof(age));
         PhoneNumber = Guard.OptionalText(phoneNumber);
+    }
+
+    public static Customer CreateForAccount(
+        string identityUserId,
+        string fullName,
+        int age,
+        string? phoneNumber = null)
+    {
+        var normalizedIdentityUserId = Guard.RequiredText(identityUserId, nameof(identityUserId));
+
+        return new Customer(fullName, age, phoneNumber)
+        {
+            IdentityUserId = normalizedIdentityUserId
+        };
     }
 
     public void UpdateProfile(string fullName, int age, string? phoneNumber = null)

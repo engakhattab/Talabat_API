@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Talabat.Application.Abstractions;
 using Talabat.Domain.Interfaces;
 using Talabat.Infrastructure.Persistence;
 using Talabat.Infrastructure.Persistence.Auditing;
 using Talabat.Infrastructure.Persistence.Repositories;
+using Talabat.Infrastructure.Time;
 
 namespace Talabat.Infrastructure;
 
@@ -36,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IDeliveryAgentRepository, DeliveryAgentRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<IRestaurantLocalTimeProvider, RestaurantLocalTimeProvider>();
 
         return services;
     }

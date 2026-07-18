@@ -18,6 +18,8 @@ public static class ApplicationErrorCodes
     public const string OrderNotFound = nameof(OrderNotFound);
     public const string ProductNotFound = nameof(ProductNotFound);
     public const string ProductUnavailable = nameof(ProductUnavailable);
+    public const string ProfileAlreadyExists = nameof(ProfileAlreadyExists);
+    public const string ProfileNotCreated = nameof(ProfileNotCreated);
     public const string RestaurantClosed = nameof(RestaurantClosed);
     public const string RestaurantInactive = nameof(RestaurantInactive);
     public const string RestaurantNotFound = nameof(RestaurantNotFound);

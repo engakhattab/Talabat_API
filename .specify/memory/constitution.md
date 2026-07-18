@@ -1,24 +1,30 @@
 <!--
 Sync Impact Report
-- Version change: unversioned legacy constitution -> 2.0.0
+- Version change: 2.0.0 -> 2.1.0 (MINOR: materially new governance — provisional account/profile
+  linkage and a current-user abstraction, previously deferred, are now permitted in Phase 7)
 - Modified principles:
-  - API composition root -> Separate HTTP composition roots
-  - Identity/Auth fully deferred -> Minimal Identity/Auth before business APIs
-- Added sections:
-  - Phase 6 scope and quality gates
-  - Governance and version metadata
-- Removed sections:
-  - Phase 4 persistence-only scope (that phase is complete)
+  - Principle 6 clarified: `Customer`/`DeliveryAgent` MAY carry a nullable, framework-neutral scalar
+    linkage key (e.g. `IdentityUserId` string); a scalar string is not an Identity framework type.
+- Modified standards:
+  - Account/profile separation: linkage + current-user abstraction move from "deferred" to
+    "provisional, introduced in Phase 7"; finalization deferred to Phase 9.
+- Replaced sections:
+  - Current Phase Scope: Phase 6 (Minimal Identity/Auth) -> Phase 7 (`Talabat.Customer.API`)
+  - Quality Gates: rewritten for Phase 7
 - Templates reviewed:
   - ✅ .specify/templates/plan-template.md (no change required)
   - ✅ .specify/templates/spec-template.md (no change required)
   - ✅ .specify/templates/tasks-template.md (no change required)
-  - ✅ .specify/templates/commands/ (no command templates present)
 - Runtime guidance:
-  - ✅ AGENTS.md updated for the current incremental Phase 6 scope
-  - ✅ PROJECT_IMPLEMENTATION_ROADMAP.md already contains the approved sequence
-- Deferred follow-up:
-  - Create the complete Phase 6 spec-kit feature artifacts before broad Phase 6 implementation.
+  - ✅ AGENTS.md re-scoped to Phase 7
+  - ✅ PROJECT_IMPLEMENTATION_ROADMAP.md already contains the approved sequence (Phase 7 = Customer.API)
+  - Source spec: `specs/003-customer-api/spec.md`
+- Open decision recorded in scope:
+  - Token issuance: Phase 7 validates bearer tokens against the Identity authority; real user-token
+    acquisition (interactive client) stays deferred to Phase 9; tests use test-minted JWTs.
+- 2.1.1 (PATCH, clarification): account->profile strategy is explicit create-on-first-use (no
+  auto-provisioning of empty profiles); Phase-7 Domain change permits the `IdentityUserId` scalar
+  plus a `CreateForAccount` factory, with `Customer` name/age invariants unchanged.
 -->
 
 # Talabat Project Constitution
@@ -47,7 +53,10 @@ principles change only through an explicit constitution amendment.
    Phase 6 in the `Talabat.Identity` host, using Duende IdentityServer with ASP.NET Core Identity.
    Identity EF persistence MAY live in Infrastructure because the approved design uses the existing
    `TalabatDbContext`, but Identity framework types MUST NOT enter Domain or Application. `Customer`
-   and `DeliveryAgent` MUST remain pure domain profiles and MUST NOT inherit from Identity types.
+   and `DeliveryAgent` MUST remain domain profiles and MUST NOT inherit from Identity types. They MAY
+   carry a nullable, framework-neutral scalar linkage key (e.g. `IdentityUserId` as a `string`) to
+   associate an account with a profile; a scalar string is not an Identity framework type and does
+   not violate Principle 1.
 7. Persisted entity IDs MUST be database-generated SQL Server IDENTITY values. Entities are
    constructed with `Id == 0`; persistence assigns positive IDs during `SaveChangesAsync`.
    Application-side ID generation, database sequences, and `ValueGeneratedNever` keys MUST NOT be
@@ -66,49 +75,78 @@ principles change only through an explicit constitution amendment.
 - Identity persistence: one physical SQL Server database and the existing Infrastructure
   `TalabatDbContext`; the dependency direction is `Talabat.Identity -> Talabat.Infrastructure` and
   never the reverse.
-- Account/profile separation: Phase 6 registration creates an account only. Account-to-`Customer` or
-  account-to-`DeliveryAgent` linkage and any current-user abstraction remain deferred.
+- Account/profile separation: accounts (Identity) and profiles (`Customer`/`DeliveryAgent`) are
+  distinct records joined only by a scalar linkage key. Phase 6 registration creates an account only.
+  Phase 7 introduces a **provisional** account->`Customer` linkage keyed on the token `sub` claim; the
+  profile is created explicitly on first use (`POST /api/me/profile`) through an Application use case,
+  never auto-provisioned as an empty profile, plus a read-only framework-neutral `ICurrentUser`
+  abstraction in `Talabat.Application`. Linkage finalization (uniqueness/reconciliation rules,
+  `DeliveryAgent` linkage) and the token/claims/scopes contract are deferred to Phase 9.
 - Results: transport-neutral `UseCaseResult`/`ApplicationError`; handlers return Application read
   models, never Domain aggregates; generated IDs are read only after `SaveChangesAsync`.
 - Tests: xUnit; every phase ships its own tests as part of its acceptance criteria.
 
-## Current Phase Scope: Phase 6 — Minimal Identity/Auth Before Business APIs
+## Current Phase Scope: Phase 7 — `Talabat.Customer.API` (Customer-Facing Business API)
+
+Source spec: `specs/003-customer-api/spec.md`.
 
 Allowed in this phase:
 
-- A separate `Talabat.Identity` ASP.NET Core Web API host with a one-way reference to Infrastructure.
-- ASP.NET Core Identity EF support in Infrastructure, an empty `ApplicationUser : IdentityUser`, and
-  extending the existing `TalabatDbContext` with the standard Identity model.
-- Duende IdentityServer integration in the Identity host, minimal development configuration, and
-  discovery endpoint verification.
-- Minimal JSON register, login, and logout endpoints for account-only cookie-session learning.
-- One reviewed Infrastructure migration that adds the standard Identity schema to `TalabatDb`.
-- Focused Identity tests, existing regression tests, and package vulnerability checks.
+- Rename the existing `Talabat.API` -> `Talabat.Customer.API` (project file, assembly name, namespace
+  root, solution, docs) before adding endpoints, and remove the template `WeatherForecast` code.
+- An `AddApplication()` DI extension registering the use-case handlers; the host composes
+  `AddApplication()` + `AddInfrastructure()`.
+- Thin attribute-routed controllers grouped by domain area (Catalog, Cart, Customer, Order) that
+  delegate to Application handlers only, with host-specific request/response DTOs.
+- Global `DomainException` -> RFC 9457 ProblemDetails mapping.
+- JwtBearer **validation** against the `Talabat.Identity` authority (issuer/JWKS/discovery); anonymous
+  catalog endpoints; `[Authorize]` owner-scoped endpoints on `/api/me/...` routes.
+- Explicit `Customer` profile creation on first use via `POST /api/me/profile` (the token `sub` sets
+  the linkage) through an Application use case — never an empty or placeholder profile. Plus a
+  read-only framework-neutral `ICurrentUser` in `Talabat.Application`, the nullable `IdentityUserId`
+  scalar on `Customer`, and a `Customer.CreateForAccount(...)` factory that keeps the existing
+  name/age invariants. Owner-scoped endpoints return `409 Conflict` (`ProfileNotCreated`) until a
+  profile exists.
+- Complete OpenAPI, a development-only `localhost` CORS policy, and a public `/health` endpoint
+  (host + database connectivity).
+- `tests/Talabat.Customer.API.Tests` integration tests, and a per-endpoint authorization matrix
+  documenting current behavior and its Phase 9 refinement need.
 
 Prohibited in this phase:
 
-- `Talabat.Customer.API`, `Talabat.DeliveryAgent.API`, Angular/frontend work, or business endpoints.
-- Identity, Duende, HTTP, JWT, `ClaimsPrincipal`, `ApplicationUser`, or `IdentityUser` types in Domain
-  or Application.
-- Making `Customer` or `DeliveryAgent` inherit from an Identity type or adding account/profile linkage.
-- A custom password-to-token endpoint, hand-built JWTs, or Resource Owner Password Credentials.
-- A second application `DbContext` or Duende EF configuration/operational stores during the approved
-  minimal single-context setup.
-- Refresh-token tuning, external login, password reset, email confirmation, 2FA, admin UI, advanced
-  consent/custom grants, or production signing/secrets hardening.
+- `Talabat.DeliveryAgent.API` or any Delivery-agent endpoints (Phase 8); login/register/logout or any
+  account-management endpoints (owned by `Talabat.Identity`); `Talabat.Customer.API` MUST NOT
+  reference `Talabat.Identity`.
+- Adding an interactive/authorization-code, ROPC/password, or client-credentials token-**issuing**
+  client to `Talabat.Identity`, or minting production user tokens. Real end-to-end user-token
+  acquisition stays deferred until an interaction UI/client exists (Phase 9). Integration tests MUST
+  use test-minted JWTs trusted only in the Test environment.
+- Final token audiences, scopes, custom claims, per-endpoint authorization policies, or linkage
+  finalization — all Phase 9.
+- Business logic, direct database access, or EF Core types in controllers; exposing Domain entities or
+  Application read models directly as HTTP response bodies.
+- Anonymous/guest carts, client-generated cart identifiers, or making `Cart.CustomerId` nullable. Cart
+  endpoints in Phase 7 are authenticated and customer-scoped; the guest-cart / Basket redesign is a
+  separate future phase.
+- Angular/frontend; payment, notifications, coupons, reviews, restaurant-owner workflows (Phase 11);
+  API versioning, rate limiting, or deployment/CI concerns.
 
 ## Quality Gates
 
-- The whole solution MUST build and all existing tests MUST remain green.
-- `Talabat.Domain` and `Talabat.Application` project files MUST contain no Identity/Auth packages.
-- Dependency direction MUST remain `Talabat.Identity -> Talabat.Infrastructure ->
-  Talabat.Application -> Talabat.Domain`, with no reverse reference.
-- Registration, login-cookie creation, and logout MUST be tested incrementally; no response or log may
-  expose a password, password hash, security stamp, or full Identity entity.
-- Login MUST NOT mint or return a custom JWT. End-to-end Angular OIDC MUST remain deferred until an
-  interaction UI/client exists.
-- Any Identity migration MUST be reviewed before database update and MUST NOT unexpectedly alter
-  existing business tables or add profile-link columns.
+- The whole solution MUST build; existing Application/Infrastructure/Identity tests MUST stay green;
+  the new `Talabat.Customer.API.Tests` MUST pass.
+- `Talabat.Domain` and `Talabat.Application` project files MUST contain no web or Identity/Auth
+  packages; controllers MUST contain no business logic and no EF Core types.
+- Dependency direction MUST remain `Talabat.Customer.API -> Talabat.Application` (with
+  `Talabat.Infrastructure` referenced only for composition-root wiring) `-> Talabat.Domain`, with no
+  reverse reference and no reference to `Talabat.Identity`.
+- Every owner-scoped endpoint MUST reject unauthenticated requests with `401`; catalog endpoints MUST
+  be anonymous. Owner-scoped data MUST be resolved from the validated token, never a route/body
+  `customerId`.
+- `DomainException`s MUST map to ProblemDetails with correct `4xx` codes; responses MUST be
+  host-specific DTOs only.
+- The authorization matrix MUST be committed, recording each endpoint's current behavior and its
+  Phase 9 refinement need.
 - Package vulnerability auditing MUST report no known vulnerabilities before the phase is accepted.
 
 ## Governance
@@ -122,8 +160,8 @@ Prohibited in this phase:
 - Plans and reviews MUST include a constitution check before implementation and again before phase
   acceptance. Any exception MUST be documented and approved before code is changed.
 
-**Version**: 2.0.0
+**Version**: 2.1.1
 
 **Ratified**: 2026-07-03
 
-**Last Amended**: 2026-07-14
+**Last Amended**: 2026-07-16

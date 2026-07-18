@@ -430,6 +430,10 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("IdentityUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -447,6 +451,11 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IdentityUserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Customers_IdentityUserId")
+                        .HasFilter("[IdentityUserId] IS NOT NULL");
 
                     b.ToTable("Customers", null, t =>
                         {

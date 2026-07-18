@@ -31,6 +31,15 @@ public sealed class CustomerRepository : ICustomerRepository
             .SingleOrDefaultAsync(customer => customer.Id == customerId, cancellationToken);
     }
 
+    public Task<Customer?> GetByIdentityUserIdAsync(
+        string identityUserId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Customers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(customer => customer.IdentityUserId == identityUserId, cancellationToken);
+    }
+
     public async Task AddAsync(
         Customer customer,
         CancellationToken cancellationToken = default)
