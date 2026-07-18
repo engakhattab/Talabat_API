@@ -32,10 +32,19 @@
 **Purpose**: Prove the additive Phase 1 is accepted and recoverable before deleting its legacy
 runtime fallback.
 
-- [ ] T001 STOP-AND-VERIFY branch `feature/user-aggregate-refactor`, completed Phase 1 T029/T030, and a recorded Phase 1 commit using `specs/004-unified-user-domain-model/tasks.md` and `AGENTS.md`; if any item is missing, stop without changing Phase 2 code
-- [ ] T002 Run the baseline `dotnet build src/Talabat/Talabat.slnx` and `dotnet test src/Talabat/Talabat.slnx`, require both to pass, and record any failure in `specs/005-unified-user-identity-cutover/tasks.md` without entering the compile-break window
-- [ ] T003 Run `dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive`, require zero vulnerabilities including the `src/Talabat/Talabat.Delivery.API/Talabat.Delivery.API.csproj` graph, and stop if the Phase 1 OpenAPI blocker remains
-- [ ] T004 Re-read the immutable contracts in `specs/005-unified-user-identity-cutover/contracts/`, record the Phase 1 checkpoint commit and completed T001–T004 evidence in `specs/005-unified-user-identity-cutover/tasks.md`, obtain the authorized planning/preflight checkpoint commit containing those updates, and require empty `git status --short` before starting T005
+- [x] T001 STOP-AND-VERIFY branch `feature/user-aggregate-refactor`, completed Phase 1 T029/T030, and a recorded Phase 1 commit using `specs/004-unified-user-domain-model/tasks.md` and `AGENTS.md`; if any item is missing, stop without changing Phase 2 code
+- [x] T002 Run the baseline `dotnet build src/Talabat/Talabat.slnx` and `dotnet test src/Talabat/Talabat.slnx`, require both to pass, and record any failure in `specs/005-unified-user-identity-cutover/tasks.md` without entering the compile-break window
+- [x] T003 Run `dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive`, require zero vulnerabilities including the `src/Talabat/Talabat.Delivery.API/Talabat.Delivery.API.csproj` graph, and stop if the Phase 1 OpenAPI blocker remains
+- [x] T004 Re-read the immutable contracts in `specs/005-unified-user-identity-cutover/contracts/`, record the Phase 1 checkpoint commit and completed T001–T004 evidence in `specs/005-unified-user-identity-cutover/tasks.md`, obtain the authorized planning/preflight checkpoint commit containing those updates, and require empty `git status --short` before starting T005
+
+### T001–T004 Evidence
+
+- Phase 1 commit: `6caf9dd` ("Phase 1 complete: unified User domain model + vulnerability fix")
+- Branch: `feature/user-aggregate-refactor`
+- Build: succeeded (0 errors, 1 expected CS0628 warning)
+- Tests: 209 passed, 0 failed (Application 152, Customer.API 29, Identity 9, Infrastructure 19)
+- Vulnerability audit: zero known vulnerabilities across all 10 projects and transitive dependencies
+- Contracts reviewed: `application-ports.md`, `identity-api.md`, `persistence-schema.md` — all frozen signatures acknowledged
 
 **Checkpoint**: Phase 2 implementation is authorized only when T001–T004 are complete.
 
