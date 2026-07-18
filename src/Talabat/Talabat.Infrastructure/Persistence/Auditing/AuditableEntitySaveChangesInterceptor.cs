@@ -32,7 +32,7 @@ public sealed class AuditableEntitySaveChangesInterceptor : SaveChangesIntercept
 
         var now = DateTime.UtcNow;
 
-        foreach (var entry in dbContext.ChangeTracker.Entries<AuditableEntity>())
+        foreach (var entry in dbContext.ChangeTracker.Entries<IAuditable>())
         {
             if (entry.State == EntityState.Added)
             {

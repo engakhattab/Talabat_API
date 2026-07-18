@@ -100,6 +100,7 @@ Confirm the approved package is the only direct Domain package and legacy types 
 
 ```powershell
 dotnet list src/Talabat/Talabat.Domain/Talabat.Domain.csproj package
+dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive
 Test-Path src/Talabat/Talabat.Domain/Aggregates/Customer/Customer.cs
 Test-Path src/Talabat/Talabat.Domain/Aggregates/Customer/CustomerAddress.cs
 Test-Path src/Talabat/Talabat.Domain/Aggregates/DeliveryManagement/DeliveryAgent.cs
@@ -109,9 +110,11 @@ Expected results:
 
 - the build and every pre-existing/new test pass;
 - the Domain direct-package list contains only `Microsoft.Extensions.Identity.Stores` 10.0.9;
+- the solution vulnerability audit reports no known vulnerable packages;
 - both forbidden-symbol searches have zero hits;
 - all three legacy files return `True`;
-- no database, migration, host, endpoint, runtime registration, or public contract changed.
+- no database, migration, host, endpoint, runtime registration, or externally observable runtime,
+  HTTP, or public error contract changed.
 
 ## Rollback Boundary
 

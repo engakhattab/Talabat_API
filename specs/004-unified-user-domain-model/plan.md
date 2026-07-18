@@ -96,6 +96,7 @@ src/Talabat/
 │   └── Interfaces/
 │       └── IUserRepository.cs                       # NEW contract; no implementation
 ├── Talabat.Application/
+│   ├── Talabat.Application.csproj                  # MODIFY: align existing DI abstractions to 10.0.9
 │   └── Abstractions/
 │       └── IUserCapabilityService.cs                # NEW contract; no implementation
 └── Talabat.Infrastructure/
@@ -208,7 +209,7 @@ Domain package ──► audit interfaces ──► interceptor generalization �
 |-----------|--------------------------|
 | `UserCustomerCapabilityTests` | initialization/update, valid normalization, direct repeat behavior, customer guard, flag preservation, atomic failed validation |
 | `UserAddressInvariantTests` | duplicates, default uniqueness, no implicit default, removal, unknown/non-positive IDs, snapshot, guard, unchanged state after failure |
-| `UserAgentLifecycleTests` | submit/pending refresh/reject/resubmit/approve, out-of-order decisions, uninitialized guard, complete status matrix, location validation, internal reserve/release |
+| `UserAgentLifecycleTests` | submit/pending refresh/reject/resubmit/approve, out-of-order decisions, uninitialized guard, complete status matrix, location validation, internal reserve/release, same-user Customer + DeliveryAgent preservation |
 | `UserAccountStateTests` | registration defaults, ID/RowVersion defaults, activate/deactivate preservation, audit/soft-delete parity |
 
 ### Risks and Mitigations
@@ -216,6 +217,7 @@ Domain package ──► audit interfaces ──► interceptor generalization �
 | Risk | Mitigation |
 |------|------------|
 | Domain gains an unintended framework dependency | Inspect direct packages and forbidden symbols; allow only Identity Stores 10.0.9 |
+| Identity Stores transitively raises the DI abstractions floor | Align the existing Application `Microsoft.Extensions.DependencyInjection.Abstractions` reference to 10.0.9; do not add an Application package |
 | Audit behavior diverges between User and AuditableEntity | Copy the seven properties/four method bodies verbatim, retaining each member's existing visibility (business properties use `private set`; audit members keep their original modifiers, e.g. `CreatedAt`'s `protected set`), and cover parity in account-state tests |
 | Internal busy/release transitions become untestable or public | Keep methods internal and add SDK friend access only for Application.Tests |
 | A literal port throws the wrong pre-approval agent error | Run `RequireAgent` before every agent operation, including internal transitions and location update |
@@ -259,7 +261,7 @@ source file.
 | Audit/soft delete | PASS | Shared contracts and verbatim behavior parity are designed |
 | Concurrency | PASS | Future seam is present without premature persistence behavior |
 | Phase scope | PASS | Structure, sequence, contracts, tests, and exclusions remain additive |
-| Acceptance gates | PASS | Quickstart includes focused/full tests, build, dependency sweeps, and legacy checks |
+| Acceptance gates | PASS | Quickstart includes focused/full tests, build, dependency and vulnerability sweeps, and legacy checks |
 
 All pre- and post-design gates pass, and all clarifications are resolved. The feature is
 ready for `/speckit-tasks`.

@@ -1,6 +1,6 @@
 namespace Talabat.Domain.Common.Abstractions;
 
-public abstract class AuditableEntity
+public abstract class AuditableEntity : IAuditable, ISoftDeletable
 {
     public DateTime CreatedAt { get; protected set; }
 

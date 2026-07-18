@@ -5,7 +5,8 @@ Current roadmap increment:
 
 - Phase: User Aggregate Refactor — unified `User : IdentityUser<int>` Domain aggregate
 - Branch: `feature/user-aggregate-refactor`
-- Active Phase 1 plan (normative): `specs/004-unified-user-domain-model/plan.md`
+- Active Phase 2 technical plan (implementation remains blocked until the Phase 1 checkpoint is
+  accepted and committed): `specs/005-unified-user-identity-cutover/plan.md`
 - Governing three-phase plan: `user-aggregate-refactor-plan.md`
 - Governing scope: `.specify/memory/constitution.md` v3.0.0 -> "Current Phase Scope: User Aggregate Refactor"
 
