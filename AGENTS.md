@@ -3,10 +3,11 @@
 <!-- SPECKIT START -->
 Current roadmap increment:
 
-- Phase: User Aggregate Refactor — Phase 3 business behavior proof, Customer API hardening, and governance
+- Phase: **User Aggregate Refactor — COMPLETE** (Phase 3 final acceptance: `858fd28`)
 - Branch: `feature/user-aggregate-refactor`
-- Active Phase 3 technical plan (implementation-active): `specs/006-unified-user-behavior-governance/plan.md`
+- Phase 3 technical plan (completed): `specs/006-unified-user-behavior-governance/plan.md`
 - Phase 2 runtime and final evidence checkpoint: `cce10d0`
+- Phase 3 final checkpoint: `858fd28`
 - Governing three-phase plan: `user-aggregate-refactor-plan.md`
 - Governing scope: `.specify/memory/constitution.md` v3.0.1 -> "Current Phase Scope: User Aggregate Refactor"
 
