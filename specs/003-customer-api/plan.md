@@ -1,5 +1,15 @@
 # Implementation Plan: Talabat Customer API
 
+> **SUPERSEDED** — This plan describes the original Phase 7 implementation with a separate
+> `Customer` aggregate, `ICustomerRepository`, and `IdentityUserId` linkage. The unified
+> `User : IdentityUser<int>` aggregate and `IUserRepository` have replaced this design.
+> Controller, middleware, and exception-mapping code remain valid; identity, repository, and
+> data-model sections are superseded.
+>
+> Current authority: `user-aggregate-refactor-plan.md`,
+> `specs/004-unified-user-domain-model/`, `specs/005-unified-user-identity-cutover/`,
+> `specs/006-unified-user-behavior-governance/`.
+
 **Branch**: `main` | **Date**: 2026-07-16 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/003-customer-api/spec.md`
 

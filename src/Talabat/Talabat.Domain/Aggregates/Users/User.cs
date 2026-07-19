@@ -182,6 +182,7 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
 
     public bool IsAvailable()
     {
+        RequireAgent();
         return DeliveryAgentStatus == Users.DeliveryAgentStatus.Available;
     }
 

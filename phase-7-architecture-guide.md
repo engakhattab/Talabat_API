@@ -1,5 +1,15 @@
 # Phase 7 Architectural Guide: Lazy Profile Enforcement & Infrastructure
 
+> **SUPERSEDED** — This guide describes the original Phase 7 architecture with a separate
+> `Customer` aggregate, `IdentityUserId` linkage, `ICustomerRepository`, and a
+> string-keyed `ApplicationUser`. The unified `User : IdentityUser<int>` aggregate has
+> replaced all identity, repository, and data-model sections. Controller, middleware,
+> exception-handling, and CQRS handler patterns remain valid in their current form.
+>
+> Current authority: `user-aggregate-refactor-plan.md`,
+> `specs/004-unified-user-domain-model/`, `specs/005-unified-user-identity-cutover/`,
+> `specs/006-unified-user-behavior-governance/`.
+
 This guide serves as the definitive reference for the architectural design, business reasoning, technical mechanics, and runtime flow of the production components implemented during **Phase 7 (Customer-facing API / Lazy Profile Creation)** of the Talabat food delivery system.
 
 ---

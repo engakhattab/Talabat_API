@@ -13,6 +13,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 {
     public const string AuthenticationScheme = "Test";
     public const string SubjectHeader = "X-Test-Subject";
+    public const string RolesHeader = "X-Test-Roles";
     public const int TestUserId = 1;
 
     public TestAuthHandler(
@@ -36,13 +37,22 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
         var subjectValue = Request.Headers[SubjectHeader].FirstOrDefault()
             ?? TestUserId.ToString();
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, subjectValue),
-            new Claim("sub", subjectValue)
+            new(ClaimTypes.NameIdentifier, subjectValue),
+            new("sub", subjectValue)
         };
 
-        var identity = new ClaimsIdentity(claims, AuthenticationScheme);
+        var rolesValue = Request.Headers[RolesHeader].FirstOrDefault();
+        if (!string.IsNullOrEmpty(rolesValue))
+        {
+            foreach (var role in rolesValue.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                claims.Add(new Claim("role", role));
+            }
+        }
+
+        var identity = new ClaimsIdentity(claims, AuthenticationScheme, nameType: null, roleType: "role");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, AuthenticationScheme);
 

@@ -44,7 +44,8 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = identityAuthority,
         ValidateAudience = false,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true
+        ValidateIssuerSigningKey = true,
+        RoleClaimType = "role"
     };
 });
 
