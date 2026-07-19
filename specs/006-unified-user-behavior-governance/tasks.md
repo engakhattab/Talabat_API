@@ -36,7 +36,7 @@ before implementation.
 - [X] T003 Run the preflight `dotnet build src/Talabat/Talabat.slnx` without running the full test suite, require success, and record the result in `specs/006-unified-user-behavior-governance/tasks.md`
   - Build succeeded: 0 Warning(s), 0 Error(s). All 10 projects compiled successfully.
 - [X] T004 Mark T001-T004 evidence in `specs/006-unified-user-behavior-governance/tasks.md`, update the marker-bounded Phase 3 status in `AGENTS.md` from planning-blocked to implementation-active, obtain the authorized checkpoint commit containing `.specify/feature.json`, `AGENTS.md`, and `specs/006-unified-user-behavior-governance/`, record its hash in the execution transcript, and require empty `git status --short`
-  - Evidence recorded above. Checkpoint commit: `4ba16aa`
+  - Evidence recorded above. Checkpoint commit: `a34fcb1`
   - Working tree status: clean
 
 **Checkpoint**: Phase 3 runtime/test edits are authorized only after T004 succeeds.
