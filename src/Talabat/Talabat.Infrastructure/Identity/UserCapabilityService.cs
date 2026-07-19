@@ -47,7 +47,7 @@ public sealed class UserCapabilityService : IUserCapabilityService
             IdentityResult roleResult;
             try
             {
-                roleResult = await _userManager.AddToRoleAsync(user, IdentityRoleNames.Customer);
+                roleResult = await SynchronizeCapabilityRolesAsync(user);
             }
             catch (InvalidOperationException ex)
             {
@@ -84,6 +84,12 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -112,6 +118,14 @@ public sealed class UserCapabilityService : IUserCapabilityService
                     MapIdentityErrors(createResult, ApplicationErrorCategory.Validation));
             }
 
+            var roleResult = await SynchronizeCapabilityRolesAsync(user);
+            if (!roleResult.Succeeded)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    MapIdentityErrors(roleResult, ApplicationErrorCategory.Conflict));
+            }
+
             await CommitOrReleaseAsync(transaction);
             return UseCaseResult<int>.Success(user.Id);
         }
@@ -125,6 +139,12 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -163,7 +183,7 @@ public sealed class UserCapabilityService : IUserCapabilityService
             IdentityResult roleResult;
             try
             {
-                roleResult = await _userManager.AddToRoleAsync(user, IdentityRoleNames.Customer);
+                roleResult = await SynchronizeCapabilityRolesAsync(user);
             }
             catch (InvalidOperationException ex)
             {
@@ -200,6 +220,12 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -228,7 +254,7 @@ public sealed class UserCapabilityService : IUserCapabilityService
             IdentityResult roleResult;
             try
             {
-                roleResult = await _userManager.AddToRoleAsync(user, IdentityRoleNames.DeliveryAgent);
+                roleResult = await SynchronizeCapabilityRolesAsync(user);
             }
             catch (InvalidOperationException ex)
             {
@@ -265,6 +291,12 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -290,6 +322,14 @@ public sealed class UserCapabilityService : IUserCapabilityService
             user.RejectDeliveryAgentApplication();
             await _dbContext.SaveChangesAsync(ct);
 
+            var roleResult = await SynchronizeCapabilityRolesAsync(user);
+            if (!roleResult.Succeeded)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    MapIdentityErrors(roleResult, ApplicationErrorCategory.Conflict));
+            }
+
             await CommitOrReleaseAsync(transaction);
             return UseCaseResult<int>.Success(user.Id);
         }
@@ -303,6 +343,12 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -328,6 +374,14 @@ public sealed class UserCapabilityService : IUserCapabilityService
             user.Deactivate();
             await _dbContext.SaveChangesAsync(ct);
 
+            var roleResult = await SynchronizeCapabilityRolesAsync(user);
+            if (!roleResult.Succeeded)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    MapIdentityErrors(roleResult, ApplicationErrorCategory.Conflict));
+            }
+
             var stampResult = await _userManager.UpdateSecurityStampAsync(user);
             if (!stampResult.Succeeded)
             {
@@ -349,6 +403,71 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (OperationCanceledException)
         {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+    }
+
+    public async Task<UseCaseResult<int>> SoftDeleteUserAsync(
+        int userId,
+        string? deletedBy,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var transaction = await EnsureTransactionAsync(ct);
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+            if (user is null)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    new ApplicationError(ApplicationErrorCodes.UserNotFound, ApplicationErrorCategory.NotFound, "User not found."));
+            }
+
+            user.SoftDelete(DateTime.UtcNow, deletedBy);
+            await _dbContext.SaveChangesAsync(ct);
+
+            var roleResult = await SynchronizeCapabilityRolesAsync(user);
+            if (!roleResult.Succeeded)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    MapIdentityErrors(roleResult, ApplicationErrorCategory.Conflict));
+            }
+
+            var stampResult = await _userManager.UpdateSecurityStampAsync(user);
+            if (!stampResult.Succeeded)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    MapIdentityErrors(stampResult, ApplicationErrorCategory.Conflict));
+            }
+
+            await CommitOrReleaseAsync(transaction);
+            return UseCaseResult<int>.Success(user.Id);
+        }
+        catch (DomainException ex)
+        {
+            return await FailAsync(ex);
+        }
+        catch (ArgumentException ex)
+        {
+            return await FailAsync(ex);
+        }
+        catch (OperationCanceledException)
+        {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
             throw;
         }
     }
@@ -410,10 +529,53 @@ public sealed class UserCapabilityService : IUserCapabilityService
         return new ApplicationError(ApplicationErrorCodes.IdentityOperationFailed, category, description);
     }
 
+    private async Task<IdentityResult> SynchronizeCapabilityRolesAsync(User user)
+    {
+        var desiredRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (user.UserType.HasFlag(UserType.Customer))
+        {
+            desiredRoles.Add(IdentityRoleNames.Customer);
+        }
+        if (user.UserType.HasFlag(UserType.DeliveryAgent))
+        {
+            desiredRoles.Add(IdentityRoleNames.DeliveryAgent);
+        }
+        if (user.UserType.HasFlag(UserType.Admin))
+        {
+            desiredRoles.Add(IdentityRoleNames.Admin);
+        }
+        if (user.UserType.HasFlag(UserType.RestaurantOwner))
+        {
+            desiredRoles.Add(IdentityRoleNames.RestaurantOwner);
+        }
+
+        var currentRoles = await _userManager.GetRolesAsync(user);
+        var rolesToAdd = desiredRoles.Except(currentRoles, StringComparer.OrdinalIgnoreCase).ToArray();
+        var rolesToRemove = currentRoles.Except(desiredRoles, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        if (rolesToAdd.Length > 0)
+        {
+            var addResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+            if (!addResult.Succeeded)
+            {
+                return addResult;
+            }
+        }
+
+        return rolesToRemove.Length == 0
+            ? IdentityResult.Success
+            : await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+    }
+
     private async Task<UseCaseResult<int>> FailAsync(Exception exception)
     {
         await RollbackAsync(_transactionContext?.Transaction);
         return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception));
+    }
+
+    private Task RollbackAfterExceptionAsync()
+    {
+        return RollbackAsync(_transactionContext?.Transaction, CancellationToken.None);
     }
 
     private TransactionContext? _transactionContext;

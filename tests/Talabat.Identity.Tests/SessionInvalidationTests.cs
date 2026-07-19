@@ -2,10 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Talabat.Domain.Aggregates.Users;
+using Talabat.Application.Abstractions;
 using Talabat.Identity.Tests.Infrastructure;
 using Talabat.Infrastructure.Identity;
 using Xunit;
@@ -53,12 +51,9 @@ public sealed class SessionInvalidationTests : IAsyncLifetime
 
             using (var scope = factory.Factory.Services.CreateScope())
             {
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                var user = await userManager.FindByIdAsync(userId.ToString());
-                Assert.NotNull(user);
-                user!.Deactivate();
-                await userManager.UpdateAsync(user);
-                await userManager.UpdateSecurityStampAsync(user);
+                var capabilityService = scope.ServiceProvider.GetRequiredService<IUserCapabilityService>();
+                var result = await capabilityService.DeactivateUserAsync(userId);
+                Assert.True(result.IsSuccess, result.Error?.Message);
             }
 
             var meAfterDeactivate = await client.GetAsync("/account/me");
@@ -98,12 +93,9 @@ public sealed class SessionInvalidationTests : IAsyncLifetime
 
             using (var scope = factory.Factory.Services.CreateScope())
             {
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                var dbContext = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
-                var user = await dbContext.Users.FirstAsync(u => u.Id == userId);
-                user.SoftDelete(DateTime.UtcNow, "test deletion");
-                await dbContext.SaveChangesAsync();
-                await userManager.UpdateSecurityStampAsync(user);
+                var capabilityService = scope.ServiceProvider.GetRequiredService<IUserCapabilityService>();
+                var result = await capabilityService.SoftDeleteUserAsync(userId, "test deletion");
+                Assert.True(result.IsSuccess, result.Error?.Message);
             }
 
             var meAfterDelete = await client.GetAsync("/account/me");

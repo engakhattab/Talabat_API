@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Talabat.Customer.API.Tests.Infrastructure;
 using Xunit;
 
@@ -10,36 +13,36 @@ namespace Talabat.Customer.API.Tests;
 public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomWebApplicationFactory _factory;
 
     public OwnershipTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task Test_auth_handler_materializes_Customer_role_claim()
+    public void Production_jwt_configuration_uses_platform_role_claim()
     {
-        _client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "1");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        using var scope = _factory.Services.CreateScope();
+        var options = scope.ServiceProvider
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
 
-        var response = await _client.GetAsync("/api/me/profile");
-
-        Assert.True(response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.OK);
+        Assert.Equal("role", options.TokenValidationParameters.RoleClaimType);
     }
 
     [Fact]
-    public async Task Test_auth_handler_materializes_DeliveryAgent_role_claim()
+    public async Task Persisted_customer_capability_remains_business_gate_with_DeliveryAgent_claim()
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "1");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "DeliveryAgent");
 
         var response = await _client.GetAsync("/api/me/profile");
 
-        Assert.True(response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
@@ -106,15 +109,12 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, TestAuthHandler.TestUserId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
 
-        var response = await _client.DeleteAsync("/api/me/addresses/999999");
+        var response = await _client.DeleteAsync($"/api/me/addresses/{_factory.ForeignAddressId}");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.NotFound ||
-            response.StatusCode == HttpStatusCode.Conflict,
-            $"Expected 404/409 but got {(int)response.StatusCode}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -122,15 +122,12 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, TestAuthHandler.TestUserId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
 
-        var response = await _client.GetAsync("/api/me/orders/999999");
+        var response = await _client.GetAsync($"/api/me/orders/{_factory.ForeignOrderId}");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.NotFound ||
-            response.StatusCode == HttpStatusCode.Conflict,
-            $"Expected 404/409 but got {(int)response.StatusCode}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -138,14 +135,13 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, TestAuthHandler.TestUserId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
 
         var response = await _client.GetAsync("/api/me/cart");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.Conflict,
-            $"Expected 200/409 but got {(int)response.StatusCode}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(_factory.OwnerCustomerId, payload.GetProperty("customerId").GetInt32());
     }
 
     [Fact]
@@ -153,14 +149,13 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, TestAuthHandler.TestUserId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
 
         var response = await _client.GetAsync("/api/me/cart?customerId=999999");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.Conflict,
-            $"Expected 200/409 but got {(int)response.StatusCode}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(_factory.OwnerCustomerId, payload.GetProperty("customerId").GetInt32());
     }
 
     [Fact]
@@ -168,7 +163,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, TestAuthHandler.TestUserId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "999998");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
 
         var profileResponse = await _client.GetAsync("/api/me/profile");
@@ -186,7 +181,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "1");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
 
         var response = await _client.PostAsJsonAsync("/api/me/profile", new { FullName = "Test", Age = 25, PhoneNumber = (string?)null });
 

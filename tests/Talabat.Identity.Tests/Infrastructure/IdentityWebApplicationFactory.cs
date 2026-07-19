@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Talabat.Application;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
@@ -36,6 +37,7 @@ public sealed class IdentityWebApplicationFactory : IAsyncLifetime
 
                 services.AddDbContext<TalabatDbContext>(options =>
                     options.UseSqlServer(_database!.ConnectionString));
+                services.AddApplication();
 
                 if (_zeroValidationInterval)
                 {

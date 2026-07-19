@@ -39,4 +39,9 @@ public interface IUserCapabilityService
     Task<UseCaseResult<int>> DeactivateUserAsync(
         int userId,
         CancellationToken ct = default);
+
+    Task<UseCaseResult<int>> SoftDeleteUserAsync(
+        int userId,
+        string? deletedBy,
+        CancellationToken ct = default);
 }

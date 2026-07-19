@@ -124,6 +124,35 @@ public sealed class CapabilityRoleDriftTests
     }
 
     [Fact]
+    public async Task ApproveAgent_removes_role_without_matching_capability()
+    {
+        await using var database = await _fixture.CreateDatabaseAsync();
+        await using var provider = await CreateServiceProviderAsync(database.ConnectionString);
+
+        var capabilityService = provider.GetRequiredService<IUserCapabilityService>();
+        var registerResult = await capabilityService.RegisterDeliveryAgentApplicantAsync(
+            $"drift_{Guid.NewGuid():N}@test.com", "P@ssw0rd123!", "Drifted Agent", VehicleType.Car, null);
+        Assert.True(registerResult.IsSuccess);
+
+        var userManager = provider.GetRequiredService<UserManager<User>>();
+        var driftedUser = await userManager.FindByIdAsync(registerResult.Value.ToString());
+        Assert.NotNull(driftedUser);
+        Assert.True((await userManager.AddToRoleAsync(driftedUser!, "Customer")).Succeeded);
+        Assert.False(driftedUser.UserType.HasFlag(UserType.Customer));
+
+        var approveResult = await capabilityService.ApproveDeliveryAgentAsync(registerResult.Value);
+        Assert.True(approveResult.IsSuccess);
+
+        await using var freshProvider = await CreateServiceProviderAsync(database.ConnectionString);
+        var freshUserManager = freshProvider.GetRequiredService<UserManager<User>>();
+        var user = await freshUserManager.FindByIdAsync(registerResult.Value.ToString());
+        Assert.NotNull(user);
+        Assert.Equal(
+            ["DeliveryAgent"],
+            (await freshUserManager.GetRolesAsync(user!)).OrderBy(role => role).ToArray());
+    }
+
+    [Fact]
     public async Task RejectAgent_projects_rejected_no_flag_no_role()
     {
         await using var database = await _fixture.CreateDatabaseAsync();

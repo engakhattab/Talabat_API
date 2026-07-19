@@ -73,4 +73,12 @@ public sealed class FakeUserCapabilityService : IUserCapabilityService
         user.Deactivate();
         return Task.FromResult(UseCaseResult<int>.Success(userId));
     }
+
+    public Task<UseCaseResult<int>> SoftDeleteUserAsync(
+        int userId,
+        string? deletedBy,
+        CancellationToken ct = default)
+    {
+        return Task.FromResult(UseCaseResult<int>.Success(userId));
+    }
 }

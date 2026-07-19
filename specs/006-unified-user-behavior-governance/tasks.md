@@ -206,7 +206,8 @@ structural, schema, dependency, documentation, and worktree evidence.
 - [X] T040 Run `dotnet restore src/Talabat/Talabat.slnx` then `dotnet build src/Talabat/Talabat.slnx --no-restore`; require all production and four test projects to compile, including untouched `src/Talabat/Talabat.Delivery.API/`
   - 10 projects (6 src + 4 test) compiled: 0 Warning(s), 0 Error(s). Untouched Delivery.API scaffold compiles.
 - [X] T041 Run the single final `dotnet test src/Talabat/Talabat.slnx --no-build`; require all four test projects and all six Phase 3 behavior groups to pass, with no real-SQL acceptance skip
-  - Application.Tests: 176 passed; Customer.API.Tests: 48 passed; Infrastructure.Tests: 59 passed; Identity.Tests: 30 passed. Total: 313, Failed: 0
+  - Initial Phase 3 checkpoint evidence: Application.Tests: 176 passed; Customer.API.Tests: 48 passed; Infrastructure.Tests: 59 passed; Identity.Tests: 30 passed. Total: 313, Failed: 0.
+  - Post-review revalidation: Application.Tests: 176 passed; Customer.API.Tests: 48 passed; Infrastructure.Tests: 60 passed; Identity.Tests: 30 passed. Total: 314, Failed: 0. The additional Infrastructure test is `ApproveAgent_removes_role_without_matching_capability`.
 - [X] T042 Run `dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive` and `dotnet list src/Talabat/Talabat.Domain package`; require zero known vulnerabilities and only `Microsoft.Extensions.Identity.Stores` 10.0.9 in the Domain project
   - Zero vulnerable packages across all 10 projects. Domain has only `Microsoft.Extensions.Identity.Stores` 10.0.9.
 - [X] T043 Run `dotnet ef migrations list` and `dotnet ef migrations has-pending-model-changes` with `src/Talabat/Talabat.Infrastructure` and `src/Talabat/Talabat.API`; require exactly `20260719103927_InitialUnifiedUser`, no pending model change, and no Phase 3 migration file
@@ -230,7 +231,7 @@ structural, schema, dependency, documentation, and worktree evidence.
   - SC-005 (concurrency 409): PASS — ConcurrencyConflictTests (3) + ConcurrencyConflictEndpointTests (1) prove stale-write 409
   - SC-006 (session invalidation): PASS — LoginRejectionTests + SessionInvalidationTests (3) prove inactive/deleted login rejection and cookie invalidation
   - SC-007 (governance): PASS — Constitution v3.0.1 consistent; superseded notes on 3 spec/003 files + phase-7 guide; authorization-matrix rewritten; zero active contradictions
-  - SC-008 (build/test/schema/sweeps): PASS — 10 projects compile (0 errors); 313 tests pass (0 failures); 1 migration; zero prohibited symbols; Domain has only Identity.Stores 10.0.9
+  - SC-008 (build/test/schema/sweeps): PASS — 10 projects compile (0 errors); post-review full suite has 314 tests pass (0 failures); 1 migration; zero prohibited symbols; Domain has only Identity.Stores 10.0.9
   - SC-009 (contract preservation): PASS — ProfileNotCreated, auth, profile, address, cart, order, checkout, login, logout contract checks all pass with 0 unintended changes
 - [X] T048 Run `git diff --check` and review `git status --short`, obtain authorization for the final Phase 3 checkpoint, commit only the intended Phase 3 code/tests/docs/evidence, and require a clean worktree without recording the commit's own hash in a tracked file
   - `git diff --check`: clean ✓

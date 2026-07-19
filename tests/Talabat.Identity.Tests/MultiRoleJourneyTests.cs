@@ -6,9 +6,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Talabat.Application.Abstractions;
+using Talabat.Application.Basket.AddItem;
+using Talabat.Application.Basket.GetCart;
+using Talabat.Application.Catalog.BrowseRestaurants;
+using Talabat.Application.Ordering.Checkout;
+using Talabat.Application.Ordering.GetOrderDetails;
+using Talabat.Application.Ordering.GetOrderHistory;
+using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.Users;
+using Talabat.Domain.ValueObjects;
 using Talabat.Identity.Tests.Infrastructure;
 using Talabat.Infrastructure.Identity;
+using Talabat.Infrastructure.Persistence;
 using Xunit;
 
 namespace Talabat.Identity.Tests;
@@ -134,6 +143,58 @@ public sealed class MultiRoleJourneyTests : IAsyncLifetime
                 var capabilityService = scope.ServiceProvider.GetRequiredService<IUserCapabilityService>();
                 await capabilityService.ApproveDeliveryAgentAsync(userId);
                 await capabilityService.GrantCustomerCapabilityAsync(userId, "Journey Agent", 25, null);
+            }
+
+            using (var scope = factory.Factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+                var user = await dbContext.Users.Include("_addresses").SingleAsync(u => u.Id == userId);
+                user.AddAddress(new Address("10 Journey Street", "Cairo", "10"), makeDefault: true);
+
+                var restaurant = new Restaurant(
+                    "Journey Restaurant",
+                    "Multi-role journey restaurant",
+                    null,
+                    new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue));
+                dbContext.Restaurants.Add(restaurant);
+                await dbContext.SaveChangesAsync();
+
+                var product = restaurant.AddProduct(
+                    "Journey Meal",
+                    "Multi-role journey product",
+                    new Money(25m),
+                    null);
+                await dbContext.SaveChangesAsync();
+
+                var browse = await scope.ServiceProvider.GetRequiredService<BrowseRestaurantsHandler>()
+                    .Handle(new BrowseRestaurantsQuery());
+                Assert.True(browse.IsSuccess);
+                Assert.Contains(browse.Value, item => item.Id == restaurant.Id);
+
+                var addCart = await scope.ServiceProvider.GetRequiredService<AddCartItemHandler>()
+                    .Handle(new AddCartItemCommand(userId, restaurant.Id, product.Id, 2));
+                Assert.True(addCart.IsSuccess, addCart.Error?.Message);
+                Assert.Equal(userId, addCart.Value.CustomerId);
+
+                var cart = await scope.ServiceProvider.GetRequiredService<GetCartHandler>()
+                    .Handle(new GetCartQuery(userId));
+                Assert.True(cart.IsSuccess, cart.Error?.Message);
+                Assert.Single(cart.Value.Items);
+
+                var checkout = await scope.ServiceProvider.GetRequiredService<CheckoutHandler>()
+                    .Handle(new CheckoutCommand(userId, user.Addresses.Single().Id));
+                Assert.True(checkout.IsSuccess, checkout.Error?.Message);
+                var checkoutSucceeded = Assert.IsType<CheckoutSucceededOutcome>(checkout.Value);
+
+                var orders = await scope.ServiceProvider.GetRequiredService<GetOrderHistoryHandler>()
+                    .Handle(new GetOrderHistoryQuery(userId));
+                Assert.True(orders.IsSuccess, orders.Error?.Message);
+                Assert.Single(orders.Value);
+
+                var order = await scope.ServiceProvider.GetRequiredService<GetOrderDetailsHandler>()
+                    .Handle(new GetOrderDetailsQuery(userId, checkoutSucceeded.OrderId));
+                Assert.True(order.IsSuccess, order.Error?.Message);
+                Assert.Equal(userId, order.Value.CustomerId);
             }
 
             using (var scope = factory.Factory.Services.CreateScope())

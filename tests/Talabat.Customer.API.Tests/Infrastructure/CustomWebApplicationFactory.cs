@@ -8,6 +8,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Talabat.Domain.Aggregates.Users;
+using Talabat.Domain.Aggregates.Catalog;
+using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
 
@@ -16,6 +19,11 @@ namespace Talabat.Customer.API.Tests.Infrastructure;
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private string? _connectionString;
+
+    public int ForeignCustomerId { get; private set; }
+    public int OwnerCustomerId { get; private set; }
+    public int ForeignAddressId { get; private set; }
+    public int ForeignOrderId { get; private set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -83,6 +91,54 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 var user = User.Register("testuser", "test@test.com", "Test User");
                 userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
             }
+
+            var ownerUser = User.Register(
+                $"owner-{Guid.NewGuid():N}",
+                $"owner-{Guid.NewGuid():N}@test.com",
+                "Owner Customer");
+            ownerUser.InitializeCustomerProfile("Owner Customer", 30, null);
+            ownerUser.AddAddress(new Address("1 Owner Street", "Cairo", "1"), makeDefault: true);
+            userManager.CreateAsync(ownerUser, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(ownerUser, "Customer").GetAwaiter().GetResult();
+
+
+            var foreignUser = User.Register(
+                $"foreign-{Guid.NewGuid():N}",
+                $"foreign-{Guid.NewGuid():N}@test.com",
+                "Foreign Customer");
+            foreignUser.InitializeCustomerProfile("Foreign Customer", 31, null);
+            foreignUser.AddAddress(new Address("2 Foreign Street", "Giza", "2"), makeDefault: true);
+            userManager.CreateAsync(foreignUser, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(foreignUser, "Customer").GetAwaiter().GetResult();
+
+            var restaurant = new Restaurant(
+                "Ownership Restaurant",
+                "Ownership test fixture",
+                null,
+                new TimeRange(new TimeOnly(8, 0), new TimeOnly(23, 0)));
+            db.Restaurants.Add(restaurant);
+            db.SaveChanges();
+
+            var product = restaurant.AddProduct(
+                "Ownership Item",
+                "Ownership test product",
+                new Money(10m),
+                null);
+            db.SaveChanges();
+
+            var foreignOrder = Order.CreateFromCheckout(
+                foreignUser.Id,
+                restaurant.Id,
+                [new CheckoutItemSnapshot(product.Id, product.Name, product.CurrentPrice, 1)],
+                foreignUser.CreateDeliveryAddressSnapshot(foreignUser.Addresses.Single().Id),
+                DateTime.UtcNow);
+            db.Orders.Add(foreignOrder);
+            db.SaveChanges();
+
+            ForeignCustomerId = foreignUser.Id;
+            OwnerCustomerId = ownerUser.Id;
+            ForeignAddressId = foreignUser.Addresses.Single().Id;
+            ForeignOrderId = foreignOrder.Id;
         }
 
         return host;
