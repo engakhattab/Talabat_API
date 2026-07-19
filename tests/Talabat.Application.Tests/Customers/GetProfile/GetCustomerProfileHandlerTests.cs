@@ -9,9 +9,9 @@ public sealed class GetCustomerProfileHandlerTests
     [Fact]
     public async Task Handle_ReturnsCustomerProfileWithAddresses()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new GetCustomerProfileHandler(customers);
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new GetCustomerProfileHandler(users);
 
         var result = await handler.Handle(new GetCustomerProfileQuery(1));
 
@@ -23,7 +23,7 @@ public sealed class GetCustomerProfileHandlerTests
     [Fact]
     public async Task Handle_ReturnsNotFoundWhenCustomerMissing()
     {
-        var handler = new GetCustomerProfileHandler(new FakeCustomerRepository());
+        var handler = new GetCustomerProfileHandler(new FakeUserRepository());
 
         var result = await handler.Handle(new GetCustomerProfileQuery(404));
 

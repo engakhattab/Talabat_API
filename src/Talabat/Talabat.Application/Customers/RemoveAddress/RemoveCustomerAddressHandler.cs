@@ -8,14 +8,14 @@ namespace Talabat.Application.Customers.RemoveAddress;
 
 public sealed class RemoveCustomerAddressHandler
 {
-    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public RemoveCustomerAddressHandler(
-        ICustomerRepository customerRepository,
+        IUserRepository userRepository,
         IUnitOfWork unitOfWork)
     {
-        _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -23,11 +23,11 @@ public sealed class RemoveCustomerAddressHandler
         RemoveCustomerAddressCommand command,
         CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdWithAddressesAsync(
+        var user = await _userRepository.GetByIdWithAddressesAsync(
             command.CustomerId,
             cancellationToken);
 
-        if (customer is null)
+        if (user is null)
         {
             return UseCaseResult<CustomerProfile>.Failure(
                 DomainExceptionMapper.NotFound(
@@ -37,11 +37,11 @@ public sealed class RemoveCustomerAddressHandler
 
         try
         {
-            customer.RemoveAddress(command.AddressId);
-            _customerRepository.Update(customer);
+            user.RemoveAddress(command.AddressId);
+            _userRepository.Update(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(customer));
+            return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(user));
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {

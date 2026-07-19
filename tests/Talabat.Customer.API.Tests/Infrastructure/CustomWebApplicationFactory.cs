@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Talabat.Domain.Aggregates.Users;
+using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
 
 namespace Talabat.Customer.API.Tests.Infrastructure;
@@ -46,6 +49,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 }
             });
 
+            services.AddIdentityCore<User>()
+                .AddRoles<IdentityRole<int>>()
+                .AddEntityFrameworkStores<TalabatDbContext>();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
@@ -64,8 +71,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         using (var scope = host.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+            var services = scope.ServiceProvider;
+            var db = services.GetRequiredService<TalabatDbContext>();
             db.Database.EnsureCreated();
+
+            IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
+
+            var userManager = services.GetRequiredService<UserManager<User>>();
+            if (userManager.Users.All(u => u.Id != TestAuthHandler.TestUserId))
+            {
+                var user = User.Register("testuser", "test@test.com", "Test User");
+                userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
+            }
         }
 
         return host;

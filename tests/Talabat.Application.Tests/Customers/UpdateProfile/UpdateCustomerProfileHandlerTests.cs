@@ -9,10 +9,10 @@ public sealed class UpdateCustomerProfileHandlerTests
     [Fact]
     public async Task Handle_TrimsRequiredFullNameAndAllowsOptionalPhone()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
         var unitOfWork = new FakeUnitOfWork();
-        var handler = new UpdateCustomerProfileHandler(customers, unitOfWork);
+        var handler = new UpdateCustomerProfileHandler(users, unitOfWork);
 
         var result = await handler.Handle(
             new UpdateCustomerProfileCommand(1, "  New Name  ", 31, null));
@@ -30,9 +30,9 @@ public sealed class UpdateCustomerProfileHandlerTests
         string fullName,
         int age)
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new UpdateCustomerProfileHandler(customers, new FakeUnitOfWork());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new UpdateCustomerProfileHandler(users, new FakeUnitOfWork());
 
         var result = await handler.Handle(
             new UpdateCustomerProfileCommand(1, fullName, age, null));
@@ -45,7 +45,7 @@ public sealed class UpdateCustomerProfileHandlerTests
     public async Task Handle_ReturnsNotFoundWhenCustomerMissing()
     {
         var handler = new UpdateCustomerProfileHandler(
-            new FakeCustomerRepository(),
+            new FakeUserRepository(),
             new FakeUnitOfWork());
 
         var result = await handler.Handle(

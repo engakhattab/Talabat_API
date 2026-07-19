@@ -12,7 +12,8 @@ namespace Talabat.Customer.API.Tests.Infrastructure;
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public const string AuthenticationScheme = "Test";
-    public const string TestIdentityUserId = "test-user-123";
+    public const string SubjectHeader = "X-Test-Subject";
+    public const int TestUserId = 1;
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -32,10 +33,13 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
+        var subjectValue = Request.Headers[SubjectHeader].FirstOrDefault()
+            ?? TestUserId.ToString();
+
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, TestIdentityUserId),
-            new Claim("sub", TestIdentityUserId)
+            new Claim(ClaimTypes.NameIdentifier, subjectValue),
+            new Claim("sub", subjectValue)
         };
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme);

@@ -1,4 +1,5 @@
 using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Exceptions;
 
 namespace Talabat.Domain.DomainServices.DeliveryManagement;
@@ -7,7 +8,7 @@ public sealed class DeliveryAssignmentDomainService
 {
     public void Assign(
         Delivery delivery,
-        DeliveryAgent agent,
+        User agent,
         DateTime currentTime)
     {
         ArgumentNullException.ThrowIfNull(delivery);
@@ -24,7 +25,7 @@ public sealed class DeliveryAssignmentDomainService
 
     public void CompleteDelivery(
         Delivery delivery,
-        DeliveryAgent agent,
+        User agent,
         DateTime currentTime)
     {
         ArgumentNullException.ThrowIfNull(delivery);
@@ -37,7 +38,7 @@ public sealed class DeliveryAssignmentDomainService
 
     public void CancelDelivery(
         Delivery delivery,
-        DeliveryAgent agent,
+        User agent,
         DateTime currentTime)
     {
         ArgumentNullException.ThrowIfNull(delivery);
@@ -50,7 +51,7 @@ public sealed class DeliveryAssignmentDomainService
 
     public void FailDelivery(
         Delivery delivery,
-        DeliveryAgent agent,
+        User agent,
         string reason,
         DateTime currentTime)
     {
@@ -62,7 +63,7 @@ public sealed class DeliveryAssignmentDomainService
         agent.MarkAvailable();
     }
 
-    private static void EnsureAssignedBusyAgent(Delivery delivery, DeliveryAgent agent)
+    private static void EnsureAssignedBusyAgent(Delivery delivery, User agent)
     {
         if (!delivery.AssignedAgentId.HasValue)
         {
@@ -74,7 +75,7 @@ public sealed class DeliveryAssignmentDomainService
             throw new DeliveryAgentMismatchException();
         }
 
-        if (agent.Status != DeliveryAgentStatus.Busy)
+        if (agent.DeliveryAgentStatus != DeliveryAgentStatus.Busy)
         {
             throw new AgentNotAvailableException();
         }

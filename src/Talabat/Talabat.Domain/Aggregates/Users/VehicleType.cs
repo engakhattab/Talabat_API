@@ -1,4 +1,4 @@
-namespace Talabat.Domain.Aggregates.DeliveryManagement;
+namespace Talabat.Domain.Aggregates.Users;
 
 public enum VehicleType
 {

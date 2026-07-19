@@ -11,11 +11,15 @@ public static class DomainExceptionMapper
         return exception switch
         {
             AddressNotFoundException ex => NotFound(ApplicationErrorCodes.AddressNotFound, ex.Message),
+            AgentApplicationNotPendingException ex => Conflict(ex.GetType().Name, ex.Message),
             CartExpiredException ex => Conflict(ApplicationErrorCodes.CartExpired, ex.Message),
             CartItemNotFoundException ex => NotFound(ApplicationErrorCodes.CartItemNotFound, ex.Message),
             CartNotActiveException ex => Conflict(ApplicationErrorCodes.CartNotActive, ex.Message),
+            ConcurrencyConflictException ex => Conflict(ApplicationErrorCodes.ConcurrencyConflict, ex.Message),
             CrossRestaurantCartException ex => Conflict(ApplicationErrorCodes.CrossRestaurantCart, ex.Message),
             CurrentProductPriceMissingException ex => Conflict(ApplicationErrorCodes.CurrentProductPriceMissing, ex.Message),
+            CustomerProfileNotInitializedException ex => Conflict(ex.GetType().Name, ex.Message),
+            DeliveryAgentNotInitializedException ex => Conflict(ex.GetType().Name, ex.Message),
             DuplicateAddressException ex => Conflict(ApplicationErrorCodes.DuplicateAddress, ex.Message),
             EmptyCartCheckoutException ex => Validation(ApplicationErrorCodes.EmptyCart, ex.Message),
             InvalidQuantityException ex => Validation(ApplicationErrorCodes.InvalidQuantity, ex.Message),

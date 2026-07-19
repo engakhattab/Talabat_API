@@ -11,7 +11,7 @@ public sealed class CheckoutHandlerFailureTests
     public async Task Handle_ReturnsNotFoundWhenCustomerMissing()
     {
         var fixture = CreateFixture();
-        fixture.Customers.Customers.Clear();
+        fixture.Users.Users.Clear();
 
         var result = await fixture.Handler.Handle(new CheckoutCommand(1, 1));
 
@@ -96,13 +96,13 @@ public sealed class CheckoutHandlerFailureTests
         var cart = TestData.CreateCart(restaurant: restaurant);
         var carts = new FakeCartRepository { CartToReturn = cart };
         carts.Carts.Add(cart);
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var handler = new CheckoutHandler(
             carts,
-            customers,
+            users,
             restaurants,
             new FakeOrderRepository(),
             new FakeRestaurantLocalTimeProvider { LocalTime = localTime ?? new TimeOnly(12, 0) },
@@ -110,12 +110,12 @@ public sealed class CheckoutHandlerFailureTests
             new FakeUnitOfWork(),
             new CheckoutDomainService());
 
-        return new CheckoutFixture(handler, restaurant, cart, customers);
+        return new CheckoutFixture(handler, restaurant, cart, users);
     }
 
     private sealed record CheckoutFixture(
         CheckoutHandler Handler,
         Domain.Aggregates.Catalog.Restaurant Restaurant,
         Domain.Aggregates.Basket.Cart Cart,
-        FakeCustomerRepository Customers);
+        FakeUserRepository Users);
 }

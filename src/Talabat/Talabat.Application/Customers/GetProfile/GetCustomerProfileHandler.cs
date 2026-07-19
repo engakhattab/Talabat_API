@@ -7,22 +7,22 @@ namespace Talabat.Application.Customers.GetProfile;
 
 public sealed class GetCustomerProfileHandler
 {
-    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
 
-    public GetCustomerProfileHandler(ICustomerRepository customerRepository)
+    public GetCustomerProfileHandler(IUserRepository userRepository)
     {
-        _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
     }
 
     public async Task<UseCaseResult<CustomerProfile>> Handle(
         GetCustomerProfileQuery query,
         CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdWithAddressesAsync(
+        var user = await _userRepository.GetByIdWithAddressesAsync(
             query.CustomerId,
             cancellationToken);
 
-        if (customer is null)
+        if (user is null)
         {
             return UseCaseResult<CustomerProfile>.Failure(
                 DomainExceptionMapper.NotFound(
@@ -30,6 +30,6 @@ public sealed class GetCustomerProfileHandler
                     "Customer profile was not found."));
         }
 
-        return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(customer));
+        return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(user));
     }
 }

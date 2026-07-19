@@ -1,7 +1,7 @@
 namespace Talabat.Application.Customers.CreateProfile;
 
 public sealed record CreateCustomerProfileCommand(
-    string IdentityUserId,
+    int UserId,
     string FullName,
     int Age,
     string? PhoneNumber);

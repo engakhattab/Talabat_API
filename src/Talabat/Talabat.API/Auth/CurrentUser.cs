@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Talabat.Application.Abstractions;
+using Talabat.Application.Common.Results;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Infrastructure.Persistence;
 
 namespace Talabat.Customer.API.Auth;
@@ -17,15 +19,6 @@ public sealed class CurrentUser : ICurrentUser
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     }
 
-    public string IdentityUserId
-    {
-        get
-        {
-            EnsureResolved();
-            return _identityUserId ?? string.Empty;
-        }
-    }
-
     public bool IsAuthenticated
     {
         get
@@ -35,12 +28,21 @@ public sealed class CurrentUser : ICurrentUser
         }
     }
 
-    public bool HasProfile
+    public int? UserId
     {
         get
         {
             EnsureResolved();
-            return _hasProfile;
+            return _userId;
+        }
+    }
+
+    public bool HasCustomerCapability
+    {
+        get
+        {
+            EnsureResolved();
+            return _hasCustomerCapability;
         }
     }
 
@@ -53,9 +55,9 @@ public sealed class CurrentUser : ICurrentUser
         }
     }
 
-    private string? _identityUserId;
     private bool _isAuthenticated;
-    private bool _hasProfile;
+    private int? _userId;
+    private bool _hasCustomerCapability;
     private int? _customerId;
 
     private void EnsureResolved()
@@ -67,30 +69,37 @@ public sealed class CurrentUser : ICurrentUser
 
         var user = _httpContextAccessor.HttpContext?.User;
 
-        if (user is null || !user.Identity?.IsAuthenticated == true)
+        if (user is null || user.Identity?.IsAuthenticated != true)
         {
             _isAuthenticated = false;
-            _identityUserId = string.Empty;
+            _resolved = true;
+            return;
+        }
+
+        var subjectValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? user.FindFirstValue("sub");
+
+        if (!int.TryParse(subjectValue, out var parsedId) || parsedId <= 0)
+        {
+            _isAuthenticated = true;
+            _userId = null;
             _resolved = true;
             return;
         }
 
         _isAuthenticated = true;
-        _identityUserId = user.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? user.FindFirstValue("sub")
-            ?? string.Empty;
+        _userId = parsedId;
 
-        if (!string.IsNullOrEmpty(_identityUserId))
+        var userType = _dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == parsedId)
+            .Select(u => u.UserType)
+            .FirstOrDefault();
+
+        if (userType.HasFlag(UserType.Customer))
         {
-            var customer = _dbContext.Customers
-                .AsNoTracking()
-                .FirstOrDefault(c => c.IdentityUserId == _identityUserId);
-
-            if (customer is not null)
-            {
-                _hasProfile = true;
-                _customerId = customer.Id;
-            }
+            _hasCustomerCapability = true;
+            _customerId = parsedId;
         }
 
         _resolved = true;

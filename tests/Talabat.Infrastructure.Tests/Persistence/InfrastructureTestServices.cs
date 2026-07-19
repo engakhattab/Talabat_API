@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Interfaces;
 using Talabat.Infrastructure.Persistence;
 using Talabat.Infrastructure.Persistence.Auditing;
@@ -32,12 +34,15 @@ internal static class InfrastructureTestServices
                 serviceProvider.GetRequiredService<AuditableEntitySaveChangesInterceptor>());
         });
 
+        services.AddIdentityCore<User>()
+            .AddRoles<IdentityRole<int>>()
+            .AddEntityFrameworkStores<TalabatDbContext>();
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
-        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<IDeliveryAgentRepository, DeliveryAgentRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 
         return services.BuildServiceProvider();

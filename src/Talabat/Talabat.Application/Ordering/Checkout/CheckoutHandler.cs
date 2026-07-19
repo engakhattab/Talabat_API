@@ -10,7 +10,7 @@ namespace Talabat.Application.Ordering.Checkout;
 public sealed class CheckoutHandler
 {
     private readonly ICartRepository _cartRepository;
-    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IOrderRepository _orderRepository;
     private readonly IRestaurantLocalTimeProvider _restaurantLocalTimeProvider;
@@ -20,7 +20,7 @@ public sealed class CheckoutHandler
 
     public CheckoutHandler(
         ICartRepository cartRepository,
-        ICustomerRepository customerRepository,
+        IUserRepository userRepository,
         IRestaurantRepository restaurantRepository,
         IOrderRepository orderRepository,
         IRestaurantLocalTimeProvider restaurantLocalTimeProvider,
@@ -29,7 +29,7 @@ public sealed class CheckoutHandler
         CheckoutDomainService checkoutDomainService)
     {
         _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
-        _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _restaurantRepository = restaurantRepository ?? throw new ArgumentNullException(nameof(restaurantRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
         _restaurantLocalTimeProvider = restaurantLocalTimeProvider ?? throw new ArgumentNullException(nameof(restaurantLocalTimeProvider));
@@ -53,18 +53,18 @@ public sealed class CheckoutHandler
             return UseCaseResult<CheckoutOutcome>.Failure(CheckoutErrors.CartNotFound());
         }
 
-        var customer = await _customerRepository.GetByIdWithAddressesAsync(
+        var user = await _userRepository.GetByIdWithAddressesAsync(
             command.CustomerId,
             cancellationToken);
 
-        if (customer is null)
+        if (user is null)
         {
             return UseCaseResult<CheckoutOutcome>.Failure(CheckoutErrors.CustomerNotFound());
         }
 
         try
         {
-            var deliveryAddress = customer.CreateDeliveryAddressSnapshot(command.DeliveryAddressId);
+            var deliveryAddress = user.CreateDeliveryAddressSnapshot(command.DeliveryAddressId);
 
             var restaurant = await _restaurantRepository.GetByIdWithProductsAsync(
                 cart.RestaurantId,

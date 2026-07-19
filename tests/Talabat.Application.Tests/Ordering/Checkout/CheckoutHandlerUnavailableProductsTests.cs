@@ -14,15 +14,15 @@ public sealed class CheckoutHandlerUnavailableProductsTests
         restaurant.MarkProductUnavailable(11);
         var carts = new FakeCartRepository { CartToReturn = cart };
         carts.Carts.Add(cart);
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var orders = new FakeOrderRepository();
         var unitOfWork = new FakeUnitOfWork();
         var handler = new CheckoutHandler(
             carts,
-            customers,
+            users,
             restaurants,
             orders,
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },

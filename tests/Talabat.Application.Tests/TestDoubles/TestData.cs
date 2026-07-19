@@ -1,7 +1,7 @@
 using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
-using Talabat.Domain.Aggregates.Customer;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.ValueObjects;
 
 namespace Talabat.Application.Tests.TestDoubles;
@@ -60,18 +60,21 @@ public static class TestData
         return cart;
     }
 
-    public static Customer CreateCustomer(int id = 1)
+    public static User CreateCustomer(int id = 1)
     {
-        var customer = new Customer("Customer One", 30, "01000000000");
-        TestIds.SetId(customer, id);
+        var user = User.Register("customer1", "customer1@test.com", "Customer One");
+        user.InitializeCustomerProfile("Customer One", 30, "01000000000");
 
-        customer.AddAddress(new Address("Street", "Cairo", "10", "2"), makeDefault: true);
-        TestIds.SetId(customer.Addresses.Last(), 1);
+        TestIds.SetId(user, id);
 
-        customer.AddAddress(new Address("Other Street", "Cairo", "11"), makeDefault: false);
-        TestIds.SetId(customer.Addresses.Last(), 2);
+        user.AddAddress(new Address("Street", "Cairo", "10", "2"), makeDefault: true);
+        user.AddAddress(new Address("Other Street", "Cairo", "11"), makeDefault: false);
 
-        return customer;
+        var addresses = user.Addresses.ToList();
+        TestIds.SetId(addresses[0], 1);
+        TestIds.SetId(addresses[1], 2);
+
+        return user;
     }
 
     public static Order CreateOrder(

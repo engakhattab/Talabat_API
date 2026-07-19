@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Common;
 using Talabat.Domain.Exceptions;
 using Talabat.Domain.ValueObjects;
@@ -168,7 +167,7 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
 
         AgentApprovalStatus = AgentApproval.Approved;
         UserType |= UserType.DeliveryAgent;
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Offline;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Offline;
     }
 
     public void RejectDeliveryAgentApplication()
@@ -183,51 +182,51 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
 
     public bool IsAvailable()
     {
-        return DeliveryAgentStatus == DeliveryManagement.DeliveryAgentStatus.Available;
+        return DeliveryAgentStatus == Users.DeliveryAgentStatus.Available;
     }
 
     public void GoOnline()
     {
         RequireAgent();
 
-        if (DeliveryAgentStatus is DeliveryManagement.DeliveryAgentStatus.Suspended or DeliveryManagement.DeliveryAgentStatus.Busy)
+        if (DeliveryAgentStatus is Users.DeliveryAgentStatus.Suspended or Users.DeliveryAgentStatus.Busy)
         {
             throw new AgentNotAvailableException();
         }
 
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Available;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Available;
     }
 
     public void GoOffline()
     {
         RequireAgent();
 
-        if (DeliveryAgentStatus == DeliveryManagement.DeliveryAgentStatus.Busy)
+        if (DeliveryAgentStatus == Users.DeliveryAgentStatus.Busy)
         {
             throw new InvalidDeliveryAgentStatusTransitionException(
                 "A busy delivery agent cannot go offline.");
         }
 
-        if (DeliveryAgentStatus == DeliveryManagement.DeliveryAgentStatus.Suspended)
+        if (DeliveryAgentStatus == Users.DeliveryAgentStatus.Suspended)
         {
             throw new InvalidDeliveryAgentStatusTransitionException(
                 "A suspended delivery agent cannot change online status.");
         }
 
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Offline;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Offline;
     }
 
     public void Suspend()
     {
         RequireAgent();
 
-        if (DeliveryAgentStatus == DeliveryManagement.DeliveryAgentStatus.Busy)
+        if (DeliveryAgentStatus == Users.DeliveryAgentStatus.Busy)
         {
             throw new InvalidDeliveryAgentStatusTransitionException(
                 "A busy delivery agent cannot be suspended.");
         }
 
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Suspended;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Suspended;
     }
 
     internal void MarkBusy()
@@ -239,20 +238,20 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
             throw new AgentNotAvailableException();
         }
 
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Busy;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Busy;
     }
 
     internal void MarkAvailable()
     {
         RequireAgent();
 
-        if (DeliveryAgentStatus != DeliveryManagement.DeliveryAgentStatus.Busy)
+        if (DeliveryAgentStatus != Users.DeliveryAgentStatus.Busy)
         {
             throw new InvalidDeliveryAgentStatusTransitionException(
                 "Only a busy delivery agent can be released as available.");
         }
 
-        DeliveryAgentStatus = DeliveryManagement.DeliveryAgentStatus.Available;
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Available;
     }
 
     public void UpdateLocation(GeoLocation location)

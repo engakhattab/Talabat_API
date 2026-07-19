@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Identity;
 using Talabat.Infrastructure;
 using Talabat.Infrastructure.Identity;
@@ -8,9 +9,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<User, IdentityRole<int>>()
     .AddEntityFrameworkStores<TalabatDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddSignInManager<TalabatSignInManager>();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.FromMinutes(5);
+});
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -34,10 +41,15 @@ builder.Services.AddIdentityServer(options =>
     .AddInMemoryIdentityResources(IdentityConfig.IdentityResources)
     .AddInMemoryApiScopes(IdentityConfig.ApiScopes)
     .AddInMemoryClients(IdentityConfig.Clients)
-    .AddAspNetIdentity<ApplicationUser>()
+    .AddAspNetIdentity<User>()
     .AddDeveloperSigningCredential();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    await IdentityDataSeeder.SeedRolesAsync(scope.ServiceProvider);
+}
 
 if (app.Environment.IsDevelopment())
 {

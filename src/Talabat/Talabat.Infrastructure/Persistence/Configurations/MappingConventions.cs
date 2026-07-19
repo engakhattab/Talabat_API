@@ -15,34 +15,24 @@ internal static class MappingConventions
         builder.Property<int>("Id").ValueGeneratedOnAdd();
     }
 
+    public static void ConfigureAuditing<TEntity>(this EntityTypeBuilder<TEntity> builder)
+        where TEntity : class, IAuditable, ISoftDeletable
+    {
+        builder.Property(entity => entity.CreatedAt).HasColumnType("datetime2").IsRequired();
+        builder.Property(entity => entity.CreatedBy).HasMaxLength(200);
+        builder.Property(entity => entity.ModifiedAt).HasColumnType("datetime2");
+        builder.Property(entity => entity.ModifiedBy).HasMaxLength(200);
+        builder.Property(entity => entity.IsDeleted).HasDefaultValue(false).IsRequired();
+        builder.Property(entity => entity.DeletedAt).HasColumnType("datetime2");
+        builder.Property(entity => entity.DeletedBy).HasMaxLength(200);
+        builder.HasQueryFilter(entity => !entity.IsDeleted);
+    }
+
     public static void ConfigureAuditableEntity<TEntity>(
         this EntityTypeBuilder<TEntity> builder)
         where TEntity : AuditableEntity
     {
-        builder.Property(entity => entity.CreatedAt)
-            .HasColumnType("datetime2")
-            .IsRequired();
-
-        builder.Property(entity => entity.CreatedBy)
-            .HasMaxLength(200);
-
-        builder.Property(entity => entity.ModifiedAt)
-            .HasColumnType("datetime2");
-
-        builder.Property(entity => entity.ModifiedBy)
-            .HasMaxLength(200);
-
-        builder.Property(entity => entity.IsDeleted)
-            .HasDefaultValue(false)
-            .IsRequired();
-
-        builder.Property(entity => entity.DeletedAt)
-            .HasColumnType("datetime2");
-
-        builder.Property(entity => entity.DeletedBy)
-            .HasMaxLength(200);
-
-        builder.HasQueryFilter(entity => !entity.IsDeleted);
+        builder.ConfigureAuditing<TEntity>();
     }
 
     public static void ConfigureMoney<TOwner>(

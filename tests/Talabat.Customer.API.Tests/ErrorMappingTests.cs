@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
+using Talabat.Application.Common.Results;
+using Talabat.Customer.API.Extensions;
 using Talabat.Customer.API.Tests.Infrastructure;
 using Xunit;
 
@@ -49,14 +52,14 @@ public sealed class ErrorMappingTests : IClassFixture<CustomWebApplicationFactor
     }
 
     [Fact]
-    public async Task CartOperations_WithoutProfile_ReturnsConflictOrOk()
+    public async Task CartOperations_WithoutProfile_ReturnsProfileNotCreated409()
     {
         var response = await _client.GetAsync("/api/me/cart");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.NotFound ||
-            response.StatusCode == HttpStatusCode.Conflict);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"errorCode\":\"ProfileNotCreated\"", body);
+        Assert.Contains("\"status\":409", body);
     }
 
     [Fact]
@@ -71,6 +74,26 @@ public sealed class ErrorMappingTests : IClassFixture<CustomWebApplicationFactor
             response.StatusCode == HttpStatusCode.BadRequest ||
             response.StatusCode == HttpStatusCode.NotFound ||
             response.StatusCode == HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public void ConcurrencyConflict_ErrorCode_Produces409ProblemDetails()
+    {
+        var error = new ApplicationError(
+            ApplicationErrorCodes.ConcurrencyConflict,
+            ApplicationErrorCategory.Conflict,
+            "A concurrency conflict occurred.");
+        var result = UseCaseResult<int>.Failure(error);
+
+        var actionResult = result.ToActionResult(_ => new OkResult());
+
+        var objectResult = Assert.IsType<ObjectResult>(actionResult);
+        Assert.Equal(409, objectResult.StatusCode);
+        var problemDetails = Assert.IsType<ProblemDetails>(objectResult.Value);
+        Assert.Equal(409, problemDetails.Status);
+        Assert.Equal("Conflict", problemDetails.Title);
+        Assert.Equal("A concurrency conflict occurred.", problemDetails.Detail);
+        Assert.Equal("ConcurrencyConflict", problemDetails.Extensions["errorCode"]?.ToString());
     }
 
     private sealed record ProblemDetailsResponse(

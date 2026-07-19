@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
-using CustomerAggregate = Talabat.Domain.Aggregates.Customer.Customer;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence.Configurations;
 
@@ -28,7 +28,7 @@ internal sealed class CartConfiguration : IEntityTypeConfiguration<Cart>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.HasOne<CustomerAggregate>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(cart => cart.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);

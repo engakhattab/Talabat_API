@@ -8,62 +8,75 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Talabat.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialPersistence : Migration
+    public partial class InitialUnifiedUser : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Customers",
+                name: "AspNetRoles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Age = table.Column<int>(type: "int", nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Customers", x => x.Id);
-                    table.CheckConstraint("CK_Customers_Age_Positive", "[Age] > 0");
+                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "DeliveryAgents",
+                name: "AspNetUsers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    VehicleType = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
+                    Age = table.Column<int>(type: "int", nullable: true),
+                    UserType = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    VehicleType = table.Column<int>(type: "int", nullable: true),
+                    DeliveryAgentStatus = table.Column<int>(type: "int", nullable: true),
                     CurrentLatitude = table.Column<decimal>(type: "decimal(9,6)", precision: 9, scale: 6, nullable: true),
                     CurrentLongitude = table.Column<decimal>(type: "decimal(9,6)", precision: 9, scale: 6, nullable: true),
+                    AgentApprovalStatus = table.Column<int>(type: "int", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ModifiedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    DeletedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DeliveryAgents", x => x.Id);
-                    table.CheckConstraint("CK_DeliveryAgents_CurrentLatitude_Range", "([CurrentLatitude] IS NULL OR ([CurrentLatitude] >= -90 AND [CurrentLatitude] <= 90))");
-                    table.CheckConstraint("CK_DeliveryAgents_CurrentLocation_PairedNull", "(([CurrentLatitude] IS NULL AND [CurrentLongitude] IS NULL) OR ([CurrentLatitude] IS NOT NULL AND [CurrentLongitude] IS NOT NULL))");
-                    table.CheckConstraint("CK_DeliveryAgents_CurrentLongitude_Range", "([CurrentLongitude] IS NULL OR ([CurrentLongitude] >= -180 AND [CurrentLongitude] <= 180))");
-                    table.CheckConstraint("CK_DeliveryAgents_Status", "[Status] IN (1, 2, 3, 4)");
-                    table.CheckConstraint("CK_DeliveryAgents_VehicleType", "[VehicleType] IN (1, 2, 3)");
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.CheckConstraint("CK_Users_Age", "([Age] IS NULL OR [Age] > 0)");
+                    table.CheckConstraint("CK_Users_AgentApprovalStatus", "([AgentApprovalStatus] IS NULL OR [AgentApprovalStatus] IN (1, 2, 3))");
+                    table.CheckConstraint("CK_Users_CurrentLatitude_Range", "([CurrentLatitude] IS NULL OR ([CurrentLatitude] >= -90 AND [CurrentLatitude] <= 90))");
+                    table.CheckConstraint("CK_Users_CurrentLocation_PairedNull", "(([CurrentLatitude] IS NULL AND [CurrentLongitude] IS NULL) OR ([CurrentLatitude] IS NOT NULL AND [CurrentLongitude] IS NOT NULL))");
+                    table.CheckConstraint("CK_Users_CurrentLongitude_Range", "([CurrentLongitude] IS NULL OR ([CurrentLongitude] >= -180 AND [CurrentLongitude] <= 180))");
+                    table.CheckConstraint("CK_Users_DeliveryAgentStatus", "([DeliveryAgentStatus] IS NULL OR [DeliveryAgentStatus] IN (1, 2, 3, 4))");
+                    table.CheckConstraint("CK_Users_UserType_Range", "([UserType] >= 0 AND [UserType] <= 15)");
+                    table.CheckConstraint("CK_Users_VehicleType", "([VehicleType] IS NULL OR [VehicleType] IN (1, 2, 3))");
                 });
 
             migrationBuilder.CreateTable(
@@ -92,7 +105,113 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CustomerAddresses",
+                name: "AspNetRoleClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserLogins",
+                columns: table => new
+                {
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserRoles",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserTokens",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserAddresses",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -102,16 +221,16 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     BuildingNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Floor = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     IsDefault = table.Column<bool>(type: "bit", nullable: false),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    UserId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CustomerAddresses", x => x.Id);
+                    table.PrimaryKey("PK_UserAddresses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CustomerAddresses_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
+                        name: "FK_UserAddresses_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -138,9 +257,9 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     table.PrimaryKey("PK_Carts", x => x.Id);
                     table.CheckConstraint("CK_Carts_Status", "[Status] IN (1, 2, 3)");
                     table.ForeignKey(
-                        name: "FK_Carts_Customers_CustomerId",
+                        name: "FK_Carts_AspNetUsers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Customers",
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -177,9 +296,9 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     table.PrimaryKey("PK_Orders", x => x.Id);
                     table.CheckConstraint("CK_Orders_TotalAmount_NonNegative", "[TotalAmount] >= 0");
                     table.ForeignKey(
-                        name: "FK_Orders_Customers_CustomerId",
+                        name: "FK_Orders_AspNetUsers_CustomerId",
                         column: x => x.CustomerId,
-                        principalTable: "Customers",
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -258,15 +377,15 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     table.PrimaryKey("PK_Deliveries", x => x.Id);
                     table.CheckConstraint("CK_Deliveries_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8)");
                     table.ForeignKey(
-                        name: "FK_Deliveries_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
+                        name: "FK_Deliveries_AspNetUsers_AssignedAgentId",
+                        column: x => x.AssignedAgentId,
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Deliveries_DeliveryAgents_AssignedAgentId",
-                        column: x => x.AssignedAgentId,
-                        principalTable: "DeliveryAgents",
+                        name: "FK_Deliveries_AspNetUsers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -362,6 +481,45 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoleClaims_RoleId",
+                table: "AspNetRoleClaims",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "RoleNameIndex",
+                table: "AspNetRoles",
+                column: "NormalizedName",
+                unique: true,
+                filter: "[NormalizedName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserClaims_UserId",
+                table: "AspNetUserClaims",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserLogins_UserId",
+                table: "AspNetUserLogins",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserRoles_RoleId",
+                table: "AspNetUserRoles",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "EmailIndex",
+                table: "AspNetUsers",
+                column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "UserNameIndex",
+                table: "AspNetUsers",
+                column: "NormalizedUserName",
+                unique: true,
+                filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CartItems_ProductId",
                 table: "CartItems",
                 column: "ProductId");
@@ -377,13 +535,6 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 column: "CustomerId",
                 unique: true,
                 filter: "[Status] = 1 AND [IsDeleted] = CAST(0 AS bit)");
-
-            migrationBuilder.CreateIndex(
-                name: "UX_CustomerAddresses_CustomerId_Default",
-                table: "CustomerAddresses",
-                column: "CustomerId",
-                unique: true,
-                filter: "[IsDefault] = CAST(1 AS bit) AND [IsDeleted] = CAST(0 AS bit)");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Deliveries_CustomerId",
@@ -433,16 +584,35 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 name: "IX_Restaurants_IsActive",
                 table: "Restaurants",
                 column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_UserAddresses_UserId_Default",
+                table: "UserAddresses",
+                column: "UserId",
+                unique: true,
+                filter: "[IsDefault] = CAST(1 AS bit) AND [IsDeleted] = CAST(0 AS bit)");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "CartItems");
+                name: "AspNetRoleClaims");
 
             migrationBuilder.DropTable(
-                name: "CustomerAddresses");
+                name: "AspNetUserClaims");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserLogins");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserRoles");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "CartItems");
 
             migrationBuilder.DropTable(
                 name: "Deliveries");
@@ -451,10 +621,13 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 name: "OrderItems");
 
             migrationBuilder.DropTable(
-                name: "Carts");
+                name: "UserAddresses");
 
             migrationBuilder.DropTable(
-                name: "DeliveryAgents");
+                name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Carts");
 
             migrationBuilder.DropTable(
                 name: "Orders");
@@ -463,7 +636,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 name: "Products");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
                 name: "Restaurants");

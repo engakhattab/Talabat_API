@@ -38,7 +38,7 @@ public sealed class CustomerController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new CreateCustomerProfileCommand(
-            _currentUser.IdentityUserId,
+            _currentUser.UserId!.Value,
             request.FullName,
             request.Age,
             request.PhoneNumber);

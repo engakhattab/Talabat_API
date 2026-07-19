@@ -15,13 +15,13 @@ public sealed class CheckoutHandlerSuccessTests
         var cart = TestData.CreateCart(restaurant: restaurant, quantity: 2);
         var carts = new FakeCartRepository { CartToReturn = cart };
         carts.Carts.Add(cart);
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var orders = new FakeOrderRepository();
         var unitOfWork = new FakeUnitOfWork(orders);
-        var handler = CreateHandler(carts, customers, restaurants, orders, unitOfWork);
+        var handler = CreateHandler(carts, users, restaurants, orders, unitOfWork);
 
         var result = await handler.Handle(new CheckoutCommand(1, 1));
 
@@ -39,14 +39,14 @@ public sealed class CheckoutHandlerSuccessTests
 
     private static CheckoutHandler CreateHandler(
         FakeCartRepository carts,
-        FakeCustomerRepository customers,
+        FakeUserRepository users,
         FakeRestaurantRepository restaurants,
         FakeOrderRepository orders,
         FakeUnitOfWork unitOfWork)
     {
         return new CheckoutHandler(
             carts,
-            customers,
+            users,
             restaurants,
             orders,
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },

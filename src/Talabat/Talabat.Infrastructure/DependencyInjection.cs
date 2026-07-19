@@ -5,6 +5,8 @@ using Talabat.Application.Abstractions;
 using Talabat.Domain.Interfaces;
 using Talabat.Infrastructure.Persistence;
 using Talabat.Infrastructure.Persistence.Auditing;
+using Talabat.Domain.Aggregates.Users;
+using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence.Repositories;
 using Talabat.Infrastructure.Time;
 
@@ -33,11 +35,11 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
-        services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<IDeliveryAgentRepository, DeliveryAgentRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserCapabilityService, UserCapabilityService>();
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IRestaurantLocalTimeProvider, RestaurantLocalTimeProvider>();

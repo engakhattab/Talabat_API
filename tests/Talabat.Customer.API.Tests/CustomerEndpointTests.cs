@@ -32,9 +32,11 @@ public sealed class CustomerEndpointTests : IClassFixture<CustomWebApplicationFa
         var request = new { FullName = "John Doe", Age = 30, PhoneNumber = "+20123456789" };
         var response = await _client.PostAsJsonAsync("/api/me/profile", request);
 
+        var body = await response.Content.ReadAsStringAsync();
         Assert.True(
             response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.Created);
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected 200/201 but got {(int)response.StatusCode}: {body}");
     }
 
     [Fact]
@@ -46,17 +48,18 @@ public sealed class CustomerEndpointTests : IClassFixture<CustomWebApplicationFa
         Assert.True(
             response.StatusCode == HttpStatusCode.BadRequest ||
             response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.Created);
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected 400/200/201 but got {(int)response.StatusCode}");
     }
 
     [Fact]
-    public async Task GetProfile_BeforeCreation_ReturnsConflictOrNotFound()
+    public async Task GetProfile_BeforeCreation_ReturnsProfileNotCreated404()
     {
         var response = await _client.GetAsync("/api/me/profile");
 
-        Assert.True(
-            response.StatusCode == HttpStatusCode.NotFound ||
-            response.StatusCode == HttpStatusCode.OK ||
-            response.StatusCode == HttpStatusCode.Conflict);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("\"errorCode\":\"ProfileNotCreated\"", body);
+        Assert.Contains("\"status\":404", body);
     }
 }

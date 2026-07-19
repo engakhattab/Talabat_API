@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.Ordering;
-using CustomerAggregate = Talabat.Domain.Aggregates.Customer.Customer;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence.Configurations;
 
@@ -26,7 +26,7 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(order => order.RestaurantId)
             .IsRequired();
 
-        builder.HasOne<CustomerAggregate>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(order => order.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);

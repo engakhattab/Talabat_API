@@ -1,15 +1,15 @@
 using Talabat.Application.Customers.Models;
-using Talabat.Domain.Aggregates.Customer;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Application.Customers.Mapping;
 
 public static class CustomerMapper
 {
-    public static CustomerProfile ToProfile(Customer customer)
+    public static CustomerProfile ToProfile(User user)
     {
-        ArgumentNullException.ThrowIfNull(customer);
+        ArgumentNullException.ThrowIfNull(user);
 
-        var addresses = customer.Addresses
+        var addresses = user.Addresses
             .OrderByDescending(address => address.IsDefault)
             .ThenBy(address => address.Id)
             .Select(address => new CustomerAddressDetails(
@@ -23,10 +23,10 @@ public static class CustomerMapper
             .AsReadOnly();
 
         return new CustomerProfile(
-            customer.Id,
-            customer.FullName,
-            customer.Age,
-            customer.PhoneNumber,
+            user.Id,
+            user.FullName,
+            user.Age ?? throw new InvalidOperationException("Customer profile age is required."),
+            user.PhoneNumber,
             addresses);
     }
 }

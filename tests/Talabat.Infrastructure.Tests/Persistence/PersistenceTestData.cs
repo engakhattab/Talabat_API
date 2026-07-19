@@ -1,7 +1,6 @@
 using Talabat.Domain.Aggregates.Basket;
-using Talabat.Domain.Aggregates.Customer;
-using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Persistence;
 
@@ -30,21 +29,22 @@ internal static class PersistenceTestData
     public static DeliveryAddressSnapshot DeliveryAddress =>
         new("Tahrir Street", "Cairo", "10", "3");
 
-    public static async Task<Customer> AddCustomerAsync(
+    public static async Task<User> AddCustomerAsync(
         TalabatDbContext dbContext,
         bool withAddress = true)
     {
-        var customer = new Customer("Test Customer", 30, "+201000000000");
+        var user = User.Register("testcustomer@test.com", "testcustomer@test.com", "Test Customer");
+        user.InitializeCustomerProfile("Test Customer", 30, "+201000000000");
 
         if (withAddress)
         {
-            customer.AddAddress(Address, makeDefault: true);
+            user.AddAddress(Address, makeDefault: true);
         }
 
-        await dbContext.Customers.AddAsync(customer);
+        await dbContext.Users.AddAsync(user);
         await dbContext.SaveChangesAsync();
 
-        return customer;
+        return user;
     }
 
     public static async Task<Cart> AddActiveCartAsync(
@@ -82,21 +82,18 @@ internal static class PersistenceTestData
         return order;
     }
 
-    public static async Task<DeliveryAgent> AddAvailableAgentAsync(
+    public static async Task<User> AddAvailableAgentAsync(
         TalabatDbContext dbContext)
     {
-        var agent = new DeliveryAgent(
-            "Delivery Agent",
-            VehicleType.Motorcycle,
-            Now,
-            phoneNumber: "+201111111111",
-            currentLocation: new GeoLocation(30.0444m, 31.2357m));
+        var user = User.Register("agent@test.com", "agent@test.com", "Delivery Agent");
+        user.SubmitDeliveryAgentApplication(VehicleType.Motorcycle);
+        user.ApproveDeliveryAgentApplication();
+        user.GoOnline();
+        user.UpdateLocation(new GeoLocation(30.0444m, 31.2357m));
 
-        agent.GoOnline();
-
-        await dbContext.DeliveryAgents.AddAsync(agent);
+        await dbContext.Users.AddAsync(user);
         await dbContext.SaveChangesAsync();
 
-        return agent;
+        return user;
     }
 }

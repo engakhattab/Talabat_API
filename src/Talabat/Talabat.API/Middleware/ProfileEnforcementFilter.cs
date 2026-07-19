@@ -27,10 +27,16 @@ public sealed class ProfileEnforcementFilter : IAsyncActionFilter
             return;
         }
 
+        if (_currentUser.IsAuthenticated && !_currentUser.UserId.HasValue)
+        {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
+
         if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
             path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase) &&
             _currentUser.IsAuthenticated &&
-            !_currentUser.HasProfile)
+            !_currentUser.HasCustomerCapability)
         {
             context.Result = new NotFoundObjectResult(new
             {
@@ -45,7 +51,7 @@ public sealed class ProfileEnforcementFilter : IAsyncActionFilter
 
         if (path.StartsWith("/api/me/", StringComparison.OrdinalIgnoreCase) &&
             _currentUser.IsAuthenticated &&
-            !_currentUser.HasProfile)
+            !_currentUser.HasCustomerCapability)
         {
             context.Result = new ConflictObjectResult(new
             {

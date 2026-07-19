@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
-using CustomerAggregate = Talabat.Domain.Aggregates.Customer.Customer;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence.Configurations;
 
@@ -64,7 +64,7 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
             .HasForeignKey(delivery => delivery.OrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<CustomerAggregate>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(delivery => delivery.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -74,7 +74,7 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
             .HasForeignKey(delivery => delivery.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<DeliveryAgent>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(delivery => delivery.AssignedAgentId)
             .OnDelete(DeleteBehavior.Restrict);

@@ -1,5 +1,5 @@
 using Talabat.Application.Common.Results;
-using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Application.Abstractions;
 
