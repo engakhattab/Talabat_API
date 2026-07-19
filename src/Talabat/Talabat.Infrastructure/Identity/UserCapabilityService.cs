@@ -14,8 +14,6 @@ public sealed class UserCapabilityService : IUserCapabilityService
 {
     private readonly TalabatDbContext _dbContext;
     private readonly UserManager<User> _userManager;
-    private bool _ownsTransaction;
-    private string? _savepointName;
 
     public UserCapabilityService(TalabatDbContext dbContext, UserManager<User> userManager)
     {
@@ -78,11 +76,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -119,11 +117,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -194,11 +192,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -259,11 +257,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -297,11 +295,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -343,11 +341,11 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
         catch (DomainException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (ArgumentException ex)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return await FailAsync(ex);
         }
         catch (OperationCanceledException)
         {
@@ -359,42 +357,51 @@ public sealed class UserCapabilityService : IUserCapabilityService
     {
         if (_dbContext.Database.CurrentTransaction is not null)
         {
-            _savepointName = $"sp_uc_{Guid.NewGuid():N}";
-            await _dbContext.Database.CurrentTransaction.CreateSavepointAsync(_savepointName, ct);
+            var savepointName = $"sp_uc_{Guid.NewGuid():N}";
+            await _dbContext.Database.CurrentTransaction.CreateSavepointAsync(savepointName, ct);
+            _transactionContext = new TransactionContext(_dbContext.Database.CurrentTransaction, false, savepointName);
             return _dbContext.Database.CurrentTransaction;
         }
 
-        _ownsTransaction = true;
-        return await _dbContext.Database.BeginTransactionAsync(ct);
+        var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+        _transactionContext = new TransactionContext(transaction, true, null);
+        return transaction;
     }
 
     private async Task CommitOrReleaseAsync(IDbContextTransaction transaction)
     {
-        if (_ownsTransaction)
+        var context = _transactionContext ?? throw new InvalidOperationException("Transaction context was not initialized.");
+
+        if (context.OwnsTransaction)
         {
             await transaction.CommitAsync();
         }
-        else if (_savepointName is not null)
+        else if (context.SavepointName is not null)
         {
-            await transaction.ReleaseSavepointAsync(_savepointName);
+            await transaction.ReleaseSavepointAsync(context.SavepointName);
         }
+
+        _transactionContext = null;
     }
 
     private async Task RollbackAsync(IDbContextTransaction? transaction, CancellationToken ct = default)
     {
+        var context = _transactionContext;
+
         if (transaction is not null)
         {
-            if (_ownsTransaction)
+            if (context?.OwnsTransaction == true)
             {
                 await transaction.RollbackAsync(ct);
             }
-            else if (_savepointName is not null)
+            else if (context?.SavepointName is not null)
             {
-                await transaction.RollbackToSavepointAsync(_savepointName, ct);
+                await transaction.RollbackToSavepointAsync(context.SavepointName, ct);
             }
         }
 
         _dbContext.ChangeTracker.Clear();
+        _transactionContext = null;
     }
 
     private static ApplicationError MapIdentityErrors(IdentityResult result, ApplicationErrorCategory category)
@@ -402,4 +409,17 @@ public sealed class UserCapabilityService : IUserCapabilityService
         var description = string.Join("; ", result.Errors.Select(e => e.Description));
         return new ApplicationError(ApplicationErrorCodes.IdentityOperationFailed, category, description);
     }
+
+    private async Task<UseCaseResult<int>> FailAsync(Exception exception)
+    {
+        await RollbackAsync(_transactionContext?.Transaction);
+        return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception));
+    }
+
+    private TransactionContext? _transactionContext;
+
+    private sealed record TransactionContext(
+        IDbContextTransaction Transaction,
+        bool OwnsTransaction,
+        string? SavepointName);
 }

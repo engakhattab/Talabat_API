@@ -7,6 +7,7 @@ using Talabat.Application.Abstractions;
 using Talabat.Customer.API.Auth;
 using Talabat.Customer.API.Middleware;
 using Talabat.Infrastructure;
+using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddUnifiedUserIdentityCore();
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 

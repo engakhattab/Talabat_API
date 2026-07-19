@@ -20,16 +20,16 @@ public sealed class ProfileEnforcementFilter : IAsyncActionFilter
         var method = context.HttpContext.Request.Method;
         var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
+        if (_currentUser.IsAuthenticated && !_currentUser.UserId.HasValue)
+        {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
+
         if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) &&
             path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase))
         {
             await next();
-            return;
-        }
-
-        if (_currentUser.IsAuthenticated && !_currentUser.UserId.HasValue)
-        {
-            context.Result = new UnauthorizedResult();
             return;
         }
 

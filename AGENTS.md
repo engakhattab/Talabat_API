@@ -3,12 +3,12 @@
 <!-- SPECKIT START -->
 Current roadmap increment:
 
-- Phase: User Aggregate Refactor — unified `User : IdentityUser<int>` Domain aggregate
+- Phase: User Aggregate Refactor — Phase 3 business behavior proof, Customer API hardening, and governance
 - Branch: `feature/user-aggregate-refactor`
-- Active Phase 2 technical plan (implementation remains blocked until the Phase 1 checkpoint is
-  accepted and committed): `specs/005-unified-user-identity-cutover/plan.md`
+- Active Phase 3 technical plan (implementation-active): `specs/006-unified-user-behavior-governance/plan.md`
+- Phase 2 runtime and final evidence checkpoint: `cce10d0`
 - Governing three-phase plan: `user-aggregate-refactor-plan.md`
-- Governing scope: `.specify/memory/constitution.md` v3.0.0 -> "Current Phase Scope: User Aggregate Refactor"
+- Governing scope: `.specify/memory/constitution.md` v3.0.1 -> "Current Phase Scope: User Aggregate Refactor"
 
 Scope guard for the current increment: execute the plan's three phases in order. Phase 1 (additive):
 `Microsoft.Extensions.Identity.Stores` 10.0.9 into `Talabat.Domain`; `IAuditable`/`ISoftDeletable`
