@@ -1,11 +1,10 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Talabat.Application.Abstractions;
-using Talabat.Application.Common.Results;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Infrastructure.Persistence;
 
-namespace Talabat.Customer.API.Auth;
+namespace Talabat.Delivery.API.Auth;
 
 public sealed class CurrentUser : ICurrentUser
 {

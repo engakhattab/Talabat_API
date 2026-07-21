@@ -3,12 +3,9 @@
 <!-- SPECKIT START -->
 Current roadmap increment:
 
-- Phase: **User Aggregate Refactor — COMPLETE** (Phase 3 final acceptance: `858fd28`)
+- Phase: **DeliveryAgent API** (Phase 8)
 - Branch: `feature/user-aggregate-refactor`
-- Phase 3 technical plan (completed): `specs/006-unified-user-behavior-governance/plan.md`
-- Phase 2 runtime and final evidence checkpoint: `cce10d0`
-- Phase 3 final checkpoint: `858fd28`
-- Governing three-phase plan: `user-aggregate-refactor-plan.md`
+- Technical plan: `specs/007-deliveryagent-api/plan.md`
 - Governing scope: `.specify/memory/constitution.md` v3.0.1 -> "Current Phase Scope: User Aggregate Refactor"
 
 Scope guard for the current increment: execute the plan's three phases in order. Phase 1 (additive):

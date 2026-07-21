@@ -115,7 +115,7 @@ public sealed class CheckoutHandlerFailureTests
 
     private sealed record CheckoutFixture(
         CheckoutHandler Handler,
-        Domain.Aggregates.Catalog.Restaurant Restaurant,
-        Domain.Aggregates.Basket.Cart Cart,
+        Talabat.Domain.Aggregates.Catalog.Restaurant Restaurant,
+        Talabat.Domain.Aggregates.Basket.Cart Cart,
         FakeUserRepository Users);
 }

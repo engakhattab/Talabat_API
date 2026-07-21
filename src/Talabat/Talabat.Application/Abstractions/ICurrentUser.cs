@@ -9,4 +9,8 @@ public interface ICurrentUser
     bool HasCustomerCapability { get; }
 
     int? CustomerId { get; }
+
+    bool HasDeliveryAgentCapability { get; }
+
+    int? AgentId { get; }
 }

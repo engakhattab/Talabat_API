@@ -3,6 +3,7 @@ namespace Talabat.Application.Common.Results;
 public static class ApplicationErrorCodes
 {
     public const string AddressNotFound = nameof(AddressNotFound);
+    public const string AgentRequired = nameof(AgentRequired);
     public const string CartExpired = nameof(CartExpired);
     public const string ConcurrencyConflict = nameof(ConcurrencyConflict);
     public const string CartItemNotFound = nameof(CartItemNotFound);
@@ -11,6 +12,7 @@ public static class ApplicationErrorCodes
     public const string CrossRestaurantCart = nameof(CrossRestaurantCart);
     public const string CurrentProductPriceMissing = nameof(CurrentProductPriceMissing);
     public const string CustomerNotFound = nameof(CustomerNotFound);
+    public const string DeliveryNotFound = nameof(DeliveryNotFound);
     public const string DuplicateAddress = nameof(DuplicateAddress);
     public const string EmptyCart = nameof(EmptyCart);
     public const string InvalidAddress = nameof(InvalidAddress);
