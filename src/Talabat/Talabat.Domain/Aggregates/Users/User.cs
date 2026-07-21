@@ -29,7 +29,7 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
     public byte[] RowVersion { get; private set; }
 
     // IAuditable
-    public DateTime CreatedAt { get; protected set; }
+    public DateTime CreatedAt { get; private set; }
 
     public string? CreatedBy { get; private set; }
 
