@@ -23,12 +23,10 @@ public class LoginModel : PageModel
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
+    [BindProperty(SupportsGet = true)]
     public string? ReturnUrl { get; set; }
 
-    public void OnGet(string? returnUrl)
-    {
-        ReturnUrl = returnUrl;
-    }
+    public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync()
     {

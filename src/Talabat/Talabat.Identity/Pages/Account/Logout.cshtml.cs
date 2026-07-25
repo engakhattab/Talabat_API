@@ -19,24 +19,34 @@ public class LogoutModel : PageModel
         _interaction = interaction;
     }
 
-    public string? PostLogoutRedirectUri { get; set; }
+    [BindProperty(SupportsGet = true)]
+    public string? LogoutId { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string? logoutId)
+    public bool ShowSignoutPrompt { get; set; }
+
+    public async Task<IActionResult> OnGetAsync()
     {
+        var ctx = await _interaction.GetLogoutContextAsync(LogoutId, CancellationToken.None);
+
+        if (ctx is null || ctx.ShowSignoutPrompt)
+        {
+            ShowSignoutPrompt = true;
+            return Page();
+        }
+
         await _signInManager.SignOutAsync();
 
-        var ctx = await _interaction.GetLogoutContextAsync(logoutId, CancellationToken.None);
-        if (!string.IsNullOrEmpty(ctx?.PostLogoutRedirectUri))
+        if (!string.IsNullOrEmpty(ctx.PostLogoutRedirectUri))
             return Redirect(ctx.PostLogoutRedirectUri);
 
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string? logoutId)
+    public async Task<IActionResult> OnPostAsync()
     {
         await _signInManager.SignOutAsync();
 
-        var ctx = await _interaction.GetLogoutContextAsync(logoutId, CancellationToken.None);
+        var ctx = await _interaction.GetLogoutContextAsync(LogoutId, CancellationToken.None);
         if (!string.IsNullOrEmpty(ctx?.PostLogoutRedirectUri))
             return Redirect(ctx.PostLogoutRedirectUri);
 

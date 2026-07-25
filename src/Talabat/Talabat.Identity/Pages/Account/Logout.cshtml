@@ -1,8 +1,20 @@
-@page
+@page "/auth/logout"
 @model Talabat.Identity.Pages.Account.LogoutModel
 @{
-    ViewData["Title"] = "Signed Out";
+    ViewData["Title"] = "Sign Out";
 }
 
-<h1>Signed Out</h1>
-<p>You have been signed out successfully.</p>
+<h1>Sign Out</h1>
+
+@if (Model.ShowSignoutPrompt)
+{
+    <p>Are you sure you want to sign out?</p>
+    <form method="post">
+        <input type="hidden" name="LogoutId" value="@Model.LogoutId" />
+        <button type="submit">Sign out</button>
+    </form>
+}
+else
+{
+    <p>You have been signed out successfully.</p>
+}

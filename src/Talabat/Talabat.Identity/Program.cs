@@ -21,9 +21,9 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/Error";
+    options.LoginPath = "/auth/login";
+    options.LogoutPath = "/auth/logout";
+    options.AccessDeniedPath = "/auth/error";
 
     options.Events.OnRedirectToLogin = context =>
     {
@@ -68,9 +68,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddIdentityServer(options =>
 {
     options.EmitStaticAudienceClaim = true;
-    options.UserInteraction.LoginUrl = "/Account/Login";
-    options.UserInteraction.LogoutUrl = "/Account/Logout";
-    options.UserInteraction.ErrorUrl = "/Account/Error";
+    options.UserInteraction.LoginUrl = "/auth/login";
+    options.UserInteraction.LogoutUrl = "/auth/logout";
+    options.UserInteraction.ErrorUrl = "/auth/error";
 })
     .AddInMemoryIdentityResources(IdentityServerConfig.IdentityResources)
     .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes)
