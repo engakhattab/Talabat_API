@@ -4,12 +4,8 @@ namespace Talabat.Identity;
 
 internal static class IdentityConfig
 {
-    public static IEnumerable<IdentityResource> IdentityResources =>
-        [new IdentityResources.OpenId(), new IdentityResources.Profile()];
-
-    public static IEnumerable<ApiScope> ApiScopes =>
-        [new ApiScope("talabat.customer-api"), new ApiScope("talabat.deliveryagent-api")];
-
-    public static IEnumerable<Client> Clients =>
-        [];
+    public static IEnumerable<IdentityResource> IdentityResources => IdentityServerConfig.IdentityResources;
+    public static IEnumerable<ApiScope> ApiScopes => IdentityServerConfig.ApiScopes;
+    public static IEnumerable<ApiResource> ApiResources => IdentityServerConfig.ApiResources;
+    public static IEnumerable<Client> Clients => IdentityServerConfig.Clients;
 }

@@ -29,17 +29,28 @@ builder.Services.AddAuthentication(options =>
         ?? "https://localhost:7237";
 
     options.Authority = identityAuthority;
-    options.Audience = "talabat.deliveryagent-api";
+    options.Audience = "talabat.delivery.api";
     options.RequireHttpsMetadata = builder.Environment.IsDevelopment() is false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidIssuer = identityAuthority,
-        ValidateAudience = false,
+        ValidateAudience = true,
+        ValidAudience = "talabat.delivery.api",
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        RoleClaimType = "role"
+        RoleClaimType = "role",
+        NameClaimType = "sub"
     };
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SpaCorsPolicy", policy =>
+        policy.WithOrigins("http://localhost:4300")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 var app = builder.Build();
@@ -47,6 +58,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseCors("SpaCorsPolicy");
 }
 
 app.UseHttpsRedirection();
@@ -57,3 +69,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

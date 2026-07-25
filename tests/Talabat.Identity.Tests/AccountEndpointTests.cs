@@ -435,8 +435,8 @@ public sealed class AccountEndpointTests : IAsyncLifetime
         var scopes = json.RootElement.GetProperty("scopes_supported").EnumerateArray()
             .Select(s => s.GetString())
             .ToList();
-        Assert.Contains("talabat.customer-api", scopes);
-        Assert.Contains("talabat.deliveryagent-api", scopes);
+        Assert.Contains("customer.api", scopes);
+        Assert.Contains("delivery.api", scopes);
     }
 
     private WebApplicationFactory<Program> CreateFactory()

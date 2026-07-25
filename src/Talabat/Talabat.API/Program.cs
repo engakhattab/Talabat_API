@@ -36,35 +36,28 @@ builder.Services.AddAuthentication(options =>
         ?? "https://localhost:7237";
 
     options.Authority = identityAuthority;
-    options.Audience = "talabat.customer-api";
+    options.Audience = "talabat.customer.api";
     options.RequireHttpsMetadata = builder.Environment.IsDevelopment() is false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidIssuer = identityAuthority,
-        ValidateAudience = false,
+        ValidateAudience = true,
+        ValidAudience = "talabat.customer.api",
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        RoleClaimType = "role"
+        RoleClaimType = "role",
+        NameClaimType = "sub"
     };
 });
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Development", policy =>
-        policy.SetIsOriginAllowed(origin =>
-        {
-            try
-            {
-                return new Uri(origin).Host == "localhost";
-            }
-            catch
-            {
-                return false;
-            }
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+    options.AddPolicy("SpaCorsPolicy", policy =>
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 builder.Services.AddHealthChecks()
@@ -82,7 +75,7 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/openapi/v1.json", "Talabat Customer API v1");
         options.RoutePrefix = "swagger";
     });
-    app.UseCors("Development");
+    app.UseCors("SpaCorsPolicy");
 }
 
 app.UseExceptionHandler(_ => {});
@@ -96,3 +89,5 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program { }

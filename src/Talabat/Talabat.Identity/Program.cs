@@ -33,15 +33,28 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SpaCorsPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "http://localhost:4300")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddIdentityServer(options =>
         options.EmitStaticAudienceClaim = true)
-    .AddInMemoryIdentityResources(IdentityConfig.IdentityResources)
-    .AddInMemoryApiScopes(IdentityConfig.ApiScopes)
-    .AddInMemoryClients(IdentityConfig.Clients)
+    .AddInMemoryIdentityResources(IdentityServerConfig.IdentityResources)
+    .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes)
+    .AddInMemoryApiResources(IdentityServerConfig.ApiResources)
+    .AddInMemoryClients(IdentityServerConfig.Clients)
     .AddAspNetIdentity<User>()
+    .AddProfileService<TalabatProfileService>()
     .AddDeveloperSigningCredential();
 
 var app = builder.Build();
@@ -64,6 +77,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+app.UseCors("SpaCorsPolicy");
 app.UseIdentityServer();
 app.UseAuthorization();
 

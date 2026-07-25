@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Talabat.Application;
+using Talabat.Application.Abstractions;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
@@ -38,6 +39,7 @@ public sealed class IdentityWebApplicationFactory : IAsyncLifetime
                 services.AddDbContext<TalabatDbContext>(options =>
                     options.UseSqlServer(_database!.ConnectionString));
                 services.AddApplication();
+                services.TryAddSingleton<ICurrentUser>(new IdentityStubCurrentUser());
 
                 if (_zeroValidationInterval)
                 {
@@ -73,4 +75,14 @@ public sealed class IdentityWebApplicationFactory : IAsyncLifetime
     }
 
     public HttpClient CreateClient() => Factory!.CreateClient();
+}
+
+internal sealed class IdentityStubCurrentUser : ICurrentUser
+{
+    public bool IsAuthenticated => false;
+    public int? UserId => null;
+    public bool HasCustomerCapability => false;
+    public int? CustomerId => null;
+    public bool HasDeliveryAgentCapability => false;
+    public int? AgentId => null;
 }

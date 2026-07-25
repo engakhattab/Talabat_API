@@ -1036,35 +1036,31 @@ Advanced Identity/Auth remains deferred: refresh-token tuning, external login, p
 ### Phase 9: Token, Claims, And Scopes Refinement
 
 - Goal
-  - Refine the minimal Identity setup using concrete requirements from both business API hosts.
+  - Refine the central Identity setup using Duende IdentityServer to support OIDC interactive redirection flows and JWT validation for business API hosts. Every authentication request must route through `Talabat.Identity` and redirect back to the originating website/client.
 - Inputs
   - Implemented `Talabat.Customer.API` endpoints and ownership requirements.
-  - Implemented `Talabat.DeliveryAgent.API` endpoints and assignment requirements.
-  - The simple register/login/logout behavior from Phase 6.
+  - Implemented `Talabat.Delivery.API` endpoints and assignment requirements.
+  - The register/login/logout behavior and cookie session configurations from Phase 6.
 - Decisions
-  - Define separate API resources and audiences for Customer and DeliveryAgent APIs.
-  - Define the minimum scopes required by real API operations.
-  - Define which standard and custom claims are actually needed.
-  - Decide whether roles, permissions, or both are needed for Delivery operations.
-  - Decide the account-to-Customer and account-to-DeliveryAgent profile-link strategy.
-  - Decide where profile resolution occurs and how stale links/claims are handled.
-  - Decide client registrations and redirect/logout URIs for the future websites.
+  - Define separate API resources and audiences (`talabat.customer-api` and `talabat.deliveryagent-api`) for validation.
+  - Define client registrations in Duende IdentityServer for Customer Web App and DeliveryAgent Web App using Authorization Code flow with PKCE.
+  - Configure CORS origins, `RedirectUris`, and `PostLogoutRedirectUris` in Duende for both client websites to ensure successful login-to-redirect and logout-to-redirect journeys.
+  - Define custom claims (`UserType` capability flags, `sub` user ID claim, and Roles) to be mapped to the access token.
 - Actions
-  - Replace temporary/minimal token settings with reviewed API-specific resource and scope configuration.
-  - Add only claims used by a documented API policy or profile-resolution flow.
-  - Add audience and scope validation to each API host.
-  - Document token lifetimes and refresh behavior, but defer advanced tuning unless required for a working client.
-  - Extend the authorization endpoint matrix with implemented routes.
+  - Configure interactive OIDC client registrations inside `IdentityConfig.cs` (e.g. `Client` definitions with `AllowedGrantTypes = GrantTypes.Code`, `RequirePkce = true`, `RedirectUris`, `PostLogoutRedirectUris`, `AllowedScopes`).
+  - Configure Duende IdentityServer to support login/consent interaction UI (or SPA redirects) and map cookies to OIDC tokens.
+  - Add JWT Bearer token validation to both `Talabat.Customer.API` and `Talabat.Delivery.API` pointing to `Talabat.Identity` authority.
+  - Validate audience, issuer, signing key, and scope on every request.
 - What Should Not Be Done
   - Do not place claims or Identity framework types in Domain.
   - Do not make profile IDs caller-controlled.
   - Do not add speculative roles, permissions, scopes, or claims.
-  - Do not implement external login, 2FA, admin UI, advanced consent/custom grants, or production key hardening here.
+  - Do not bypass Duende protocol endpoints using custom JWT generator endpoints.
 - Acceptance Criteria
-  - Each API accepts only tokens intended for its audience and required scope.
-  - Every custom claim has a documented consumer.
-  - Account-to-profile linkage, if approved, remains framework-neutral at the Domain boundary.
-  - Customer tokens cannot call DeliveryAgent-only operations and vice versa.
+  - Every authentication is routed through `Talabat.Identity` Web API.
+  - Successfully authenticated users are redirected back to the originating client website via registered `RedirectUris`.
+  - Both business APIs (`Customer` and `Delivery`) accept only JWT tokens validated against the `Talabat.Identity` authority with the correct audience and scope.
+  - Customer tokens cannot call Delivery operations, and vice versa.
 
 ### Phase 10: Authorization Strategy And Quality Gates
 
