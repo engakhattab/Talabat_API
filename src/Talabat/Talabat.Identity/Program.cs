@@ -21,14 +21,31 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/Error";
+
     options.Events.OnRedirectToLogin = context =>
     {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        if (context.Request.Path.StartsWithSegments("/account") ||
+            context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     };
+
     options.Events.OnRedirectToAccessDenied = context =>
     {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        if (context.Request.Path.StartsWithSegments("/account") ||
+            context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     };
 });
@@ -44,11 +61,17 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddIdentityServer(options =>
-        options.EmitStaticAudienceClaim = true)
+{
+    options.EmitStaticAudienceClaim = true;
+    options.UserInteraction.LoginUrl = "/Account/Login";
+    options.UserInteraction.LogoutUrl = "/Account/Logout";
+    options.UserInteraction.ErrorUrl = "/Account/Error";
+})
     .AddInMemoryIdentityResources(IdentityServerConfig.IdentityResources)
     .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes)
     .AddInMemoryApiResources(IdentityServerConfig.ApiResources)
@@ -75,6 +98,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors("SpaCorsPolicy");
@@ -82,6 +106,7 @@ app.UseIdentityServer();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapRazorPages();
 
 app.Run();
 

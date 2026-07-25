@@ -1,0 +1,17 @@
+@page
+@model Talabat.Identity.Pages.Account.ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1>Error</h1>
+
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <p><strong>@Model.Error</strong></p>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorDescription))
+{
+    <p>@Model.ErrorDescription</p>
+}

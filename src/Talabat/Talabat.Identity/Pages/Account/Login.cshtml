@@ -1,0 +1,28 @@
+@page
+@model Talabat.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Sign In";
+}
+
+<h1>Sign In</h1>
+
+<div asp-validation-summary="All" class="validation-summary-errors"></div>
+
+<form method="post">
+    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+    <label asp-for="Input.Email">Email</label>
+    <input asp-for="Input.Email" type="email" autocomplete="username" />
+    <span asp-validation-for="Input.Email" class="field-validation-error"></span>
+
+    <label asp-for="Input.Password">Password</label>
+    <input asp-for="Input.Password" type="password" autocomplete="current-password" />
+    <span asp-validation-for="Input.Password" class="field-validation-error"></span>
+
+    <div class="checkbox">
+        <input asp-for="Input.RememberLogin" />
+        <label asp-for="Input.RememberLogin">Remember me</label>
+    </div>
+
+    <button type="submit">Sign In</button>
+</form>
