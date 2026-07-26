@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Aggregates.Catalog;
+using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.Ordering;
 using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
@@ -20,6 +22,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private string? _connectionString;
 
     public int DeliveryAgentUserId { get; private set; }
+    public int AgentBUserId { get; private set; }
+    public int DeliveryId { get; private set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -93,6 +97,58 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             userManager.UpdateAsync(agentUser).GetAwaiter().GetResult();
 
             DeliveryAgentUserId = agentUser.Id;
+
+            // Create Agent B (second delivery agent — for ownership tests)
+            var agentB = User.Register("testagentb", "agentb@test.com", "Test Agent B");
+            userManager.CreateAsync(agentB, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(agentB, "DeliveryAgent").GetAwaiter().GetResult();
+            agentB.SubmitDeliveryAgentApplication(VehicleType.Motorcycle);
+            agentB.ApproveDeliveryAgentApplication();
+            userManager.UpdateAsync(agentB).GetAwaiter().GetResult();
+
+            AgentBUserId = agentB.Id;
+
+            // Create a customer for the order
+            var customer = User.Register("testcustomer", "customer@test.com", "Test Customer");
+            userManager.CreateAsync(customer, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(customer, "Customer").GetAwaiter().GetResult();
+
+            // Seed restaurant, product, order, and delivery for ownership tests
+            var restaurant = new Restaurant(
+                "Ownership Restaurant",
+                "Ownership test fixture",
+                null,
+                new TimeRange(new TimeOnly(8, 0), new TimeOnly(23, 0)));
+            db.Restaurants.Add(restaurant);
+            db.SaveChanges();
+
+            var product = restaurant.AddProduct(
+                "Ownership Item",
+                "Ownership test product",
+                new Money(10m),
+                null);
+            db.SaveChanges();
+
+            var order = Order.CreateFromCheckout(
+                customer.Id,
+                restaurant.Id,
+                [new CheckoutItemSnapshot(product.Id, product.Name, product.CurrentPrice, 1)],
+                new DeliveryAddressSnapshot("1 Test Street", "Cairo", "1"),
+                DateTime.UtcNow);
+            db.Orders.Add(order);
+            db.SaveChanges();
+
+            var delivery = new Talabat.Domain.Aggregates.DeliveryManagement.Delivery(
+                order.Id,
+                customer.Id,
+                restaurant.Id,
+                new DeliveryAddressSnapshot("1 Test Street", "Cairo", "1"),
+                DateTime.UtcNow);
+            delivery.AssignAgent(agentUser.Id, DateTime.UtcNow);
+            db.Deliveries.Add(delivery);
+            db.SaveChanges();
+
+            DeliveryId = delivery.Id;
         }
 
         return host;

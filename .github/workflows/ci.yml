@@ -2,14 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main, feature/* ]
+    branches: [main, feature/**]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -18,7 +17,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Restore
         run: dotnet restore src/Talabat/Talabat.slnx
@@ -27,7 +26,7 @@ jobs:
         run: dotnet build src/Talabat/Talabat.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test src/Talabat/Talabat.slnx --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test src/Talabat/Talabat.slnx --no-build --configuration Release --verbosity normal
 
       - name: Check vulnerable packages
         run: dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive

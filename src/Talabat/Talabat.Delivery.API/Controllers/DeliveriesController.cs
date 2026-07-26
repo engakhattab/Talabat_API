@@ -59,6 +59,14 @@ public sealed class DeliveriesController : ControllerBase
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
+    private bool TryGetAgentId(out int agentId)
+    {
+        agentId = 0;
+        if (!_currentUser.HasDeliveryAgentCapability || _currentUser.AgentId is null) return false;
+        agentId = _currentUser.AgentId.Value;
+        return true;
+    }
+
     // ── Query endpoints ────────────────────────────────────────────
 
     [HttpGet("active")]
@@ -98,8 +106,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _assignDeliveryAgentHandler.Handle(
-            new AssignDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
+            new AssignDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -112,8 +123,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _outForDeliveryHandler.Handle(
-            new OutForDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
+            new OutForDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -124,8 +138,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _arrivedAtRestaurantHandler.Handle(
-            new ArrivedAtRestaurantCommand(deliveryId, _currentUser.AgentId!.Value),
+            new ArrivedAtRestaurantCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -136,8 +153,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _pickUpOrderHandler.Handle(
-            new PickUpOrderCommand(deliveryId, _currentUser.AgentId!.Value),
+            new PickUpOrderCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -148,8 +168,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _deliverOrderHandler.Handle(
-            new DeliverOrderCommand(deliveryId, _currentUser.AgentId!.Value),
+            new DeliverOrderCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -160,8 +183,11 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _cancelDeliveryHandler.Handle(
-            new CancelDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
+            new CancelDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -173,8 +199,11 @@ public sealed class DeliveriesController : ControllerBase
         [FromBody] FailDeliveryBody body,
         CancellationToken cancellationToken)
     {
+        if (!TryGetAgentId(out var agentId))
+            return Forbid();
+
         var result = await _failDeliveryHandler.Handle(
-            new FailDeliveryCommand(deliveryId, _currentUser.AgentId!.Value, body.Reason),
+            new FailDeliveryCommand(deliveryId, agentId, body.Reason),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
