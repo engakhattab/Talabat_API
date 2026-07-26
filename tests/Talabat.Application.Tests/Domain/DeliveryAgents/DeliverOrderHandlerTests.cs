@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.Tests.TestDoubles;
@@ -24,7 +23,7 @@ public sealed class DeliverOrderHandlerTests
 
         clock.UtcNow = Now.AddMinutes(10);
 
-        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value);
@@ -33,19 +32,11 @@ public sealed class DeliverOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DeliverOrder_WrongAgent_ShouldFail()
+    public async Task Handle_DeliverOrder_WrongAgent_ShouldReturnNotFound()
     {
         var agent = CreateBusyAgent(10);
         var delivery = CreateOutForDeliveryDelivery(1, 10);
         var wrongAgent = CreateAvailableAgent(20);
-
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = wrongAgent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = wrongAgent.Id
-        };
 
         var deliveryRepository = new FakeDeliveryRepository();
         deliveryRepository.Deliveries.Add(delivery);
@@ -57,13 +48,12 @@ public sealed class DeliverOrderHandlerTests
             userRepository,
             new DeliveryAssignmentDomainService(),
             new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
+            new FakeClock());
 
-        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1, AgentId: 20));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryAgentMismatchException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
@@ -72,27 +62,10 @@ public sealed class DeliverOrderHandlerTests
         var agent = CreateBusyAgent(10);
         var (handler, _) = CreateHandler(agent);
 
-        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 999));
+        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 999, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_DeliverOrder_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     [Fact]
@@ -102,7 +75,7 @@ public sealed class DeliverOrderHandlerTests
         var delivery = CreatePickedUpDelivery(1, 10);
         var (handler, _) = CreateHandler(agent, delivery);
 
-        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new DeliverOrderCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(InvalidDeliveryStatusTransitionException), result.Error?.Code);
@@ -177,33 +150,14 @@ public sealed class DeliverOrderHandlerTests
         userRepository.Users.Add(agent);
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new DeliverOrderHandler(
             deliveryRepository,
             userRepository,
             new DeliveryAssignmentDomainService(),
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static DeliverOrderHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new DeliverOrderHandler(
-            new FakeDeliveryRepository(),
-            new FakeUserRepository(),
-            new DeliveryAssignmentDomainService(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 }

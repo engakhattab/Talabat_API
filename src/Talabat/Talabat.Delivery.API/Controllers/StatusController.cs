@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.DeliveryAgents.GoOffline;
+using Talabat.Delivery.API.Auth;
 using Talabat.Application.DeliveryAgents.GoOnline;
 using Talabat.Delivery.API.Extensions;
 
@@ -8,7 +9,7 @@ namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/status")]
-[Authorize(Roles = "DeliveryAgent")]
+[Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
 public sealed class StatusController : ControllerBase
 {
     private readonly GoOnlineHandler _goOnlineHandler;

@@ -1,5 +1,10 @@
 # Authorization Matrix: Talabat Customer API
 
+> **SUPERSEDED** — This document is historical and covers only the Customer API.
+> The current, authoritative authorization documentation is:
+> - **Strategy**: [`docs/authorization-strategy.md`](authorization-strategy.md)
+> - **Endpoint matrix**: [`docs/authorization-endpoint-matrix.md`](authorization-endpoint-matrix.md)
+
 **Phase**: 3 — User Aggregate Refactor
 **Date**: 2026-07-19
 **Status**: Current

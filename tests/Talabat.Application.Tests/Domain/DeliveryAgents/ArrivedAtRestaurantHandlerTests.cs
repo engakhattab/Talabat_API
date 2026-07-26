@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
 using Talabat.Application.Tests.TestDoubles;
@@ -17,13 +16,12 @@ public sealed class ArrivedAtRestaurantHandlerTests
     [Fact]
     public async Task Handle_ArrivedAtRestaurant_FromAssigned_ShouldSucceed()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateAssignedDelivery(1, 10);
-        var (handler, clock) = CreateHandler(agent, delivery);
+        var (handler, clock) = CreateHandler(10, delivery);
 
         clock.UtcNow = Now.AddMinutes(5);
 
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1));
+        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value);
@@ -32,68 +30,47 @@ public sealed class ArrivedAtRestaurantHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ArrivedAtRestaurant_WrongAgent_ShouldFail()
+    public async Task Handle_ArrivedAtRestaurant_WrongAgent_ShouldReturnNotFound()
     {
-        var agent = CreateAvailableAgent(10);
-        var delivery = CreateAssignedDelivery(1, 99);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var delivery = CreateAssignedDelivery(1, 10);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryAgentMismatchException), result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_ArrivedAtRestaurant_DeliveryNotFound_ShouldReturnNotFound()
-    {
-        var agent = CreateAvailableAgent(10);
-        var (handler, _) = CreateHandler(agent);
-
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 999));
+        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1, AgentId: 99));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_ArrivedAtRestaurant_Unauthenticated_ShouldReturnOwnershipMismatch()
+    public async Task Handle_ArrivedAtRestaurant_DeliveryNotFound_ShouldReturnNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
+        var (handler, _) = CreateHandler(10);
 
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1));
+        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 999, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_ArrivedAtRestaurant_FromPendingAssignment_ShouldFail()
+    public async Task Handle_ArrivedAtRestaurant_FromPendingAssignment_ShouldReturnNotFound()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreatePendingDelivery(1);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1));
+        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryNotAssignedException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
     public async Task Handle_ArrivedAtRestaurant_FromDelivered_ShouldFail()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateDeliveredDelivery(1, 10);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1));
+        var result = await handler.Handle(new ArrivedAtRestaurantCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(DeliveryTerminalStateException), result.Error?.Code);
@@ -136,7 +113,7 @@ public sealed class ArrivedAtRestaurantHandlerTests
     }
 
     private static (ArrivedAtRestaurantHandler Handler, FakeClock Clock) CreateHandler(
-        User agent,
+        int agentId,
         params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
@@ -146,29 +123,12 @@ public sealed class ArrivedAtRestaurantHandlerTests
         }
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new ArrivedAtRestaurantHandler(
             deliveryRepository,
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static ArrivedAtRestaurantHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new ArrivedAtRestaurantHandler(
-            new FakeDeliveryRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 }

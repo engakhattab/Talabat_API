@@ -38,7 +38,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
-        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "DeliveryAgent");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -52,6 +53,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "999999");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -74,6 +76,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "not-a-number");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -86,6 +90,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "0");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -98,6 +104,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "-5");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -111,6 +119,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.DeleteAsync($"/api/me/addresses/{_factory.ForeignAddressId}");
 
@@ -124,6 +133,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync($"/api/me/orders/{_factory.ForeignOrderId}");
 
@@ -136,6 +146,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/cart");
 
@@ -150,6 +162,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/cart?customerId=999999");
 
@@ -165,6 +179,7 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "999998");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var profileResponse = await _client.GetAsync("/api/me/profile");
 
@@ -182,6 +197,8 @@ public sealed class OwnershipTests : IClassFixture<CustomWebApplicationFactory>
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, _factory.OwnerCustomerId.ToString());
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.PostAsJsonAsync("/api/me/profile", new { FullName = "Test", Age = 25, PhoneNumber = (string?)null });
 

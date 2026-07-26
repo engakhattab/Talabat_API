@@ -1,3 +1,3 @@
 namespace Talabat.Application.DeliveryAgents.ProgressPickup;
 
-public sealed record PickUpOrderCommand(int DeliveryId);
+public sealed record PickUpOrderCommand(int DeliveryId, int AgentId);

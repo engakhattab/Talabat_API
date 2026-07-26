@@ -14,6 +14,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
     public const string AuthenticationScheme = "Test";
     public const string SubjectHeader = "X-Test-Subject";
     public const string RolesHeader = "X-Test-Roles";
+    public const string ScopeHeader = "X-Test-Scope";
     public const int TestUserId = 1;
 
     public TestAuthHandler(
@@ -50,6 +51,12 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             {
                 claims.Add(new Claim("role", role));
             }
+        }
+
+        var scopeValue = Request.Headers[ScopeHeader].FirstOrDefault();
+        if (!string.IsNullOrEmpty(scopeValue))
+        {
+            claims.Add(new Claim("scope", scopeValue));
         }
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme, nameType: null, roleType: "role");

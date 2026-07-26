@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +25,20 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddUnifiedUserIdentityCore();
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+builder.Services.AddSingleton<IAuthorizationHandler, ScopeHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.CustomerAccess, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("customer.api"));
+        policy.RequireRole("Customer");
+    })
+    .AddPolicy(AuthorizationPolicies.CustomerScopeOnly, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("customer.api"));
+    });
 
 builder.Services.AddAuthentication(options =>
 {

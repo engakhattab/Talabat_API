@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressCancel;
 using Talabat.Application.Tests.TestDoubles;
@@ -24,7 +23,7 @@ public sealed class CancelDeliveryHandlerTests
 
         clock.UtcNow = Now.AddMinutes(5);
 
-        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value);
@@ -33,18 +32,11 @@ public sealed class CancelDeliveryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_CancelDelivery_WrongAgent_ShouldFail()
+    public async Task Handle_CancelDelivery_WrongAgent_ShouldReturnNotFound()
     {
         var agent = CreateBusyAgent(10);
         var delivery = CreateAssignedDelivery(1, 10);
         var wrongAgent = CreateAvailableAgent(20);
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = wrongAgent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = wrongAgent.Id
-        };
 
         var deliveryRepository = new FakeDeliveryRepository();
         deliveryRepository.Deliveries.Add(delivery);
@@ -56,13 +48,12 @@ public sealed class CancelDeliveryHandlerTests
             userRepository,
             new DeliveryAssignmentDomainService(),
             new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
+            new FakeClock());
 
-        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1, AgentId: 20));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryAgentMismatchException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
@@ -71,40 +62,23 @@ public sealed class CancelDeliveryHandlerTests
         var agent = CreateBusyAgent(10);
         var (handler, _) = CreateHandler(agent);
 
-        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 999));
+        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 999, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_CancelDelivery_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_CancelDelivery_FromPendingAssignment_ShouldFail()
+    public async Task Handle_CancelDelivery_FromPendingAssignment_ShouldReturnNotFound()
     {
         var agent = CreateBusyAgent(10);
         var delivery = CreatePendingDelivery(1);
         var (handler, _) = CreateHandler(agent, delivery);
 
-        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new CancelDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryNotAssignedException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     private static User CreateAvailableAgent(int id)
@@ -155,33 +129,14 @@ public sealed class CancelDeliveryHandlerTests
         userRepository.Users.Add(agent);
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new CancelDeliveryHandler(
             deliveryRepository,
             userRepository,
             new DeliveryAssignmentDomainService(),
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static CancelDeliveryHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new CancelDeliveryHandler(
-            new FakeDeliveryRepository(),
-            new FakeUserRepository(),
-            new DeliveryAssignmentDomainService(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 }

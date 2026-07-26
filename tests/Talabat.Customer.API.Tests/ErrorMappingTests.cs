@@ -18,6 +18,8 @@ public sealed class ErrorMappingTests : IClassFixture<CustomWebApplicationFactor
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
     }
 
     [Fact]

@@ -8,6 +8,11 @@ public interface IDeliveryRepository
         int deliveryId,
         CancellationToken cancellationToken = default);
 
+    Task<Delivery?> GetByIdForAgentAsync(
+        int deliveryId,
+        int agentId,
+        CancellationToken cancellationToken = default);
+
     Task<Delivery?> GetByOrderIdAsync(
         int orderId,
         CancellationToken cancellationToken = default);

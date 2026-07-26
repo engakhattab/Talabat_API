@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Ordering.GetOrderDetails;
 using Talabat.Application.Ordering.GetOrderHistory;
@@ -12,7 +13,7 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/orders")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 public sealed class OrderController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

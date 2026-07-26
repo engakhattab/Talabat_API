@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Talabat.Application.Abstractions;
 using Talabat.Application.DeliveryAgents.AssignDelivery;
+using Talabat.Delivery.API.Auth;
 using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
@@ -16,7 +18,7 @@ namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/deliveries")]
-[Authorize(Roles = "DeliveryAgent")]
+[Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
 public sealed class DeliveriesController : ControllerBase
 {
     private readonly OutForDeliveryHandler _outForDeliveryHandler;
@@ -29,6 +31,7 @@ public sealed class DeliveriesController : ControllerBase
     private readonly GetActiveDeliveryHandler _getActiveDeliveryHandler;
     private readonly GetPendingDeliveriesHandler _getPendingDeliveriesHandler;
     private readonly GetDeliveryHistoryHandler _getDeliveryHistoryHandler;
+    private readonly ICurrentUser _currentUser;
 
     public DeliveriesController(
         OutForDeliveryHandler outForDeliveryHandler,
@@ -40,7 +43,8 @@ public sealed class DeliveriesController : ControllerBase
         AssignDeliveryAgentHandler assignDeliveryAgentHandler,
         GetActiveDeliveryHandler getActiveDeliveryHandler,
         GetPendingDeliveriesHandler getPendingDeliveriesHandler,
-        GetDeliveryHistoryHandler getDeliveryHistoryHandler)
+        GetDeliveryHistoryHandler getDeliveryHistoryHandler,
+        ICurrentUser currentUser)
     {
         _outForDeliveryHandler = outForDeliveryHandler ?? throw new ArgumentNullException(nameof(outForDeliveryHandler));
         _arrivedAtRestaurantHandler = arrivedAtRestaurantHandler ?? throw new ArgumentNullException(nameof(arrivedAtRestaurantHandler));
@@ -52,6 +56,7 @@ public sealed class DeliveriesController : ControllerBase
         _getActiveDeliveryHandler = getActiveDeliveryHandler ?? throw new ArgumentNullException(nameof(getActiveDeliveryHandler));
         _getPendingDeliveriesHandler = getPendingDeliveriesHandler ?? throw new ArgumentNullException(nameof(getPendingDeliveriesHandler));
         _getDeliveryHistoryHandler = getDeliveryHistoryHandler ?? throw new ArgumentNullException(nameof(getDeliveryHistoryHandler));
+        _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
     // ── Query endpoints ────────────────────────────────────────────
@@ -91,11 +96,10 @@ public sealed class DeliveriesController : ControllerBase
     [HttpPost("{deliveryId:int}/assign")]
     public async Task<IActionResult> AssignDelivery(
         int deliveryId,
-        [FromBody] AssignDeliveryBody body,
         CancellationToken cancellationToken)
     {
         var result = await _assignDeliveryAgentHandler.Handle(
-            new AssignDeliveryCommand(deliveryId, body.AgentId),
+            new AssignDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -109,7 +113,7 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _outForDeliveryHandler.Handle(
-            new OutForDeliveryCommand(deliveryId),
+            new OutForDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -121,7 +125,7 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _arrivedAtRestaurantHandler.Handle(
-            new ArrivedAtRestaurantCommand(deliveryId),
+            new ArrivedAtRestaurantCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -133,7 +137,7 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _pickUpOrderHandler.Handle(
-            new PickUpOrderCommand(deliveryId),
+            new PickUpOrderCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -145,7 +149,7 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _deliverOrderHandler.Handle(
-            new DeliverOrderCommand(deliveryId),
+            new DeliverOrderCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -157,7 +161,7 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _cancelDeliveryHandler.Handle(
-            new CancelDeliveryCommand(deliveryId),
+            new CancelDeliveryCommand(deliveryId, _currentUser.AgentId!.Value),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
@@ -170,15 +174,13 @@ public sealed class DeliveriesController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _failDeliveryHandler.Handle(
-            new FailDeliveryCommand(deliveryId, body.Reason),
+            new FailDeliveryCommand(deliveryId, _currentUser.AgentId!.Value, body.Reason),
             cancellationToken);
 
         return result.ToActionResult(id => Ok(id));
     }
 
     // ── Request bodies ─────────────────────────────────────────────
-
-    public sealed record AssignDeliveryBody(int AgentId);
 
     public sealed record FailDeliveryBody(string Reason);
 }

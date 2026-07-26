@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.AssignDelivery;
 using Talabat.Application.Tests.TestDoubles;
@@ -30,23 +29,6 @@ public sealed class AssignDeliveryHandlerTests
         Assert.Equal(1, result.Value);
         Assert.Equal(DeliveryStatus.Assigned, delivery.Status);
         Assert.Equal(10, delivery.AssignedAgentId);
-    }
-
-    [Fact]
-    public async Task Handle_AssignDelivery_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new AssignDeliveryCommand(DeliveryId: 1, AgentId: 10));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     [Fact]
@@ -83,13 +65,6 @@ public sealed class AssignDeliveryHandlerTests
         var domainService = new DeliveryAssignmentDomainService();
         domainService.Assign(delivery, agent1, Now);
 
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 1,
-            HasDeliveryAgentCapability = true,
-            AgentId = 1
-        };
         var deliveryRepository = new FakeDeliveryRepository();
         deliveryRepository.Deliveries.Add(delivery);
         var userRepository = new FakeUserRepository();
@@ -100,8 +75,7 @@ public sealed class AssignDeliveryHandlerTests
             userRepository,
             domainService,
             new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
+            new FakeClock());
 
         var result = await handler.Handle(new AssignDeliveryCommand(DeliveryId: 1, AgentId: 20));
 
@@ -141,33 +115,14 @@ public sealed class AssignDeliveryHandlerTests
         userRepository.Users.Add(agent);
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new AssignDeliveryAgentHandler(
             deliveryRepository,
             userRepository,
             new DeliveryAssignmentDomainService(),
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static AssignDeliveryAgentHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new AssignDeliveryAgentHandler(
-            new FakeDeliveryRepository(),
-            new FakeUserRepository(),
-            new DeliveryAssignmentDomainService(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 }

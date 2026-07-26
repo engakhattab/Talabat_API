@@ -21,6 +21,17 @@ public sealed class DeliveryRepository : IDeliveryRepository
             .SingleOrDefaultAsync(delivery => delivery.Id == deliveryId, cancellationToken);
     }
 
+    public Task<Delivery?> GetByIdForAgentAsync(
+        int deliveryId,
+        int agentId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Deliveries
+            .SingleOrDefaultAsync(
+                delivery => delivery.Id == deliveryId && delivery.AssignedAgentId == agentId,
+                cancellationToken);
+    }
+
     public Task<Delivery?> GetByOrderIdAsync(
         int orderId,
         CancellationToken cancellationToken = default)

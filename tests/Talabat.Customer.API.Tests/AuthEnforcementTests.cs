@@ -52,6 +52,8 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/cart");
 
@@ -77,6 +79,8 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "not-a-number");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -89,6 +93,8 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "0");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -101,6 +107,8 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "-1");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 
@@ -113,6 +121,8 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.SubjectHeader, "999999");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var response = await _client.GetAsync("/api/me/profile");
 

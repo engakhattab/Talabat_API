@@ -1,6 +1,10 @@
 <Solution>
+  <Folder Name="/Talabat.API/" />
   <Project Path="../../tests/Talabat.Application.Tests/Talabat.Application.Tests.csproj" />
+  <Project Path="../../tests/Talabat.ArchitectureTests/Talabat.ArchitectureTests.csproj" />
   <Project Path="../../tests/Talabat.Customer.API.Tests/Talabat.Customer.API.Tests.csproj" />
+  <Project Path="../../tests/Talabat.Delivery.API.Tests/Talabat.Delivery.API.Tests.csproj" />
+  <Project Path="../../tests/Talabat.Domain.Tests/Talabat.Domain.Tests.csproj" />
   <Project Path="../../tests/Talabat.Identity.Tests/Talabat.Identity.Tests.csproj" />
   <Project Path="../../tests/Talabat.Infrastructure.Tests/Talabat.Infrastructure.Tests.csproj" />
   <Project Path="Talabat.API/Talabat.Customer.API.csproj" Id="0de74048-5d7d-4ef3-8b6d-6cf43fdef8de" />

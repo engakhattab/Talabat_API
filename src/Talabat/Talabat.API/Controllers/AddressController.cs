@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Customers.AddAddress;
 using Talabat.Application.Customers.RemoveAddress;
@@ -12,7 +13,7 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/addresses")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 public sealed class AddressController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

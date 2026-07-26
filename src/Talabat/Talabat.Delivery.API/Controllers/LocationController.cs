@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.DeliveryAgents.UpdateLocation;
+using Talabat.Delivery.API.Auth;
 using Talabat.Delivery.API.Extensions;
 
 namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/location")]
-[Authorize(Roles = "DeliveryAgent")]
+[Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
 public sealed class LocationController : ControllerBase
 {
     private readonly UpdateLocationHandler _updateLocationHandler;

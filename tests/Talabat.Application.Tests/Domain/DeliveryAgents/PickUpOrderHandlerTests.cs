@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
 using Talabat.Application.Tests.TestDoubles;
@@ -17,13 +16,12 @@ public sealed class PickUpOrderHandlerTests
     [Fact]
     public async Task Handle_PickUpOrder_FromArrivedAtRestaurant_ShouldSucceed()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
-        var (handler, clock) = CreateHandler(agent, delivery);
+        var (handler, clock) = CreateHandler(10, delivery);
 
         clock.UtcNow = Now.AddMinutes(5);
 
-        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value);
@@ -32,55 +30,35 @@ public sealed class PickUpOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_PickUpOrder_WrongAgent_ShouldFail()
+    public async Task Handle_PickUpOrder_WrongAgent_ShouldReturnNotFound()
     {
-        var agent = CreateAvailableAgent(10);
-        var delivery = CreateArrivedAtRestaurantDelivery(1, 99);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryAgentMismatchException), result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_PickUpOrder_DeliveryNotFound_ShouldReturnNotFound()
-    {
-        var agent = CreateAvailableAgent(10);
-        var (handler, _) = CreateHandler(agent);
-
-        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 999));
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 99));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_PickUpOrder_Unauthenticated_ShouldReturnOwnershipMismatch()
+    public async Task Handle_PickUpOrder_DeliveryNotFound_ShouldReturnNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
+        var (handler, _) = CreateHandler(10);
 
-        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 999, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
     public async Task Handle_PickUpOrder_FromAssigned_ShouldFail()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateAssignedDelivery(1, 10);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1));
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(InvalidDeliveryStatusTransitionException), result.Error?.Code);
@@ -119,7 +97,7 @@ public sealed class PickUpOrderHandlerTests
     }
 
     private static (PickUpOrderHandler Handler, FakeClock Clock) CreateHandler(
-        User agent,
+        int agentId,
         params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
@@ -129,29 +107,12 @@ public sealed class PickUpOrderHandlerTests
         }
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new PickUpOrderHandler(
             deliveryRepository,
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static PickUpOrderHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new PickUpOrderHandler(
-            new FakeDeliveryRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 }

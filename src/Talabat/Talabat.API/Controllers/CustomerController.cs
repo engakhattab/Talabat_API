@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Customers.CreateProfile;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Customers.GetProfile;
 using Talabat.Application.Customers.UpdateProfile;
 using Talabat.Customer.API.Contracts.Customer;
@@ -12,7 +13,6 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/profile")]
-[Authorize]
 public sealed class CustomerController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -33,6 +33,7 @@ public sealed class CustomerController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
     public async Task<IActionResult> CreateProfile(
         [FromBody] CreateProfileRequest request,
         CancellationToken cancellationToken)
@@ -57,6 +58,7 @@ public sealed class CustomerController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var result = await _getProfileHandler.Handle(
@@ -67,6 +69,7 @@ public sealed class CustomerController : ControllerBase
     }
 
     [HttpPut]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateProfileRequest request,
         CancellationToken cancellationToken)

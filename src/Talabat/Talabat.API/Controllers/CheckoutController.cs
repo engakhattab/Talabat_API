@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Customer.API.Contracts.Checkout;
@@ -10,7 +11,7 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/checkout")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 public sealed class CheckoutController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

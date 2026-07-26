@@ -118,34 +118,36 @@ principles change only through an explicit constitution amendment.
   models, never Domain aggregates; generated IDs are read only after `SaveChangesAsync`.
 - Tests: xUnit; every phase ships its own tests as part of its acceptance criteria.
 
-## Current Phase Scope: User Aggregate Refactor (`feature/user-aggregate-refactor`)
+## Current Phase Scope: Authorization Strategy And Quality Gates (`feature/user-aggregate-refactor`)
 
-Governing plan: `user-aggregate-refactor-plan.md` (repository root; three phases; the plan's ordered steps,
+Governing plan: `specs/009-authorization-quality-gates/plan.md` (Phase 10; the plan's ordered steps,
 acceptance criteria, and quality gates are normative for this increment).
 
 Allowed in this phase:
 
-- Everything the plan specifies: the Domain `User : IdentityUser<int>` aggregate and `UserAddress`;
-  deletion of `Customer`, `CustomerAddress`, `DeliveryAgent`, their repositories and EF
-  configurations, and Infrastructure's `ApplicationUser`; `TalabatDbContext` ->
-  `IdentityDbContext<User, IdentityRole<int>, int>`; `IUserRepository`/`UserRepository`;
-  `IUserCapabilityService`/`UserCapabilityService`; `TalabatSignInManager`; `IdentityDataSeeder`;
-  registration/approval endpoints in `Talabat.Identity`; `ICurrentUser` v2 (int `UserId`);
-  Customer API capability enforcement; destructive development database rebuild with a single clean
-  `InitialUnifiedUser` migration; full test-suite migration; documentation updates.
-- The `Talabat.Domain` package reference `Microsoft.Extensions.Identity.Stores` (10.0.9 line).
+- Scope enforcement: `ScopeRequirement` + `ScopeHandler` in both API hosts (`Auth/` directories).
+- Named authorization policies (`CustomerAccess`, `CustomerScopeOnly`, `DeliveryAgentAccess`)
+  registered in each host's `Program.cs` and applied to controllers via `[Authorize(Policy = ...)]`.
+- Delivery ownership hardening: lifecycle commands gain `AgentId` from the controller (not from
+  `ICurrentUser` in handlers); `AssignDelivery` becomes self-assignment (no body-supplied agent id).
+- New repository method `GetByIdForAgentAsync` in `IDeliveryRepository` (Domain/Interfaces) and
+  its Infrastructure implementation.
+- Refactoring of 6 lifecycle handlers + `AssignDeliveryHandler` to remove `ICurrentUser` dependency.
+- Refactoring of `DeliveriesController` to inject `ICurrentUser` and populate `AgentId` in commands.
+- New test projects: `Talabat.Domain.Tests`, `Talabat.Delivery.API.Tests`, `Talabat.ArchitectureTests`.
+- Authorization integration tests in both API test projects.
+- GitHub Actions CI workflow (`.github/workflows/ci.yml`).
+- Documentation: `docs/authorization-strategy.md` and `docs/authorization-endpoint-matrix.md`.
+- The `Talabat.Domain` package reference `Microsoft.Extensions.Identity.Stores` remains (unchanged).
 
 Prohibited in this phase:
 
-- Full `Talabat.Delivery.API` implementation (compile/wiring integrity only; the scaffold stays).
-- Interactive Duende clients/redirect UI, token/claims/scopes finalization, production signing keys.
-- Admin website/controllers (approval stays service-level, covered by tests).
-- Product discount/employee-offer logic (only the multi-role identity information that enables it
-  later).
-- Data-preserving migrations, seeded users with fixed passwords, Angular/frontend, deployment/CI
-  concerns.
+- `Admin`, `DeliveryOperations`, `RestaurantOwner` policies — candidate names only, no approved use cases.
+- Payment, notifications, coupons, reviews, Angular, API versioning, rate limiting.
+- Production key hardening, refresh-token tuning, external login, 2FA, password reset.
+- Replacing `ProfileEnforcementFilter` with a policy-based mechanism.
+- Optimizing `CurrentUser` to read claims from the JWT instead of querying the database.
 - Any mutation of `UserType` or Identity roles outside `IUserCapabilityService`.
-
 ## Quality Gates
 
 - The whole solution (`src/Talabat/Talabat.slnx`) MUST build at the end of every plan phase; at final

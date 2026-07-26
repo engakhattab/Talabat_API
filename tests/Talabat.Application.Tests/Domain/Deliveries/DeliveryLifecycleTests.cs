@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.Tests.TestDoubles;
@@ -17,13 +16,12 @@ public sealed class DeliveryLifecycleTests
     [Fact]
     public async Task Handle_OutForDelivery_TransitionsFromPickedUp()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreatePickedUpDelivery(1, 10);
-        var (handler, clock) = CreateHandler(agent, delivery);
+        var (handler, clock) = CreateHandler(10, delivery);
 
         clock.UtcNow = Now.AddMinutes(10);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value);
@@ -34,14 +32,13 @@ public sealed class DeliveryLifecycleTests
     [Fact]
     public async Task Handle_OutForDelivery_SetsCorrectTimestamp()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreatePickedUpDelivery(1, 10);
-        var (handler, clock) = CreateHandler(agent, delivery);
+        var (handler, clock) = CreateHandler(10, delivery);
         var expectedTime = new DateTime(2026, 7, 21, 15, 30, 0, DateTimeKind.Utc);
 
         clock.UtcNow = expectedTime;
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(expectedTime, delivery.OutForDeliveryAt);
@@ -50,11 +47,10 @@ public sealed class DeliveryLifecycleTests
     [Fact]
     public async Task Handle_OutForDelivery_FromAssignedStatus_ThrowsInvalidTransition()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateAssignedDelivery(1, 10);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(InvalidDeliveryStatusTransitionException), result.Error?.Code);
@@ -63,11 +59,10 @@ public sealed class DeliveryLifecycleTests
     [Fact]
     public async Task Handle_OutForDelivery_FromArrivedAtRestaurant_ThrowsInvalidTransition()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(InvalidDeliveryStatusTransitionException), result.Error?.Code);
@@ -76,93 +71,53 @@ public sealed class DeliveryLifecycleTests
     [Fact]
     public async Task Handle_OutForDelivery_FromDelivered_ThrowsTerminalState()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreateDeliveredDelivery(1, 10);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(DeliveryTerminalStateException), result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_OutForDelivery_WrongAgent_ThrowsAgentMismatch()
+    public async Task Handle_OutForDelivery_WrongAgent_ReturnsNotFound()
     {
-        var agent = CreateAvailableAgent(10);
-        var delivery = CreatePickedUpDelivery(1, 99);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var delivery = CreatePickedUpDelivery(1, 10);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryAgentMismatchException), result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_OutForDelivery_DeliveryNotFound_ReturnsNotFound()
-    {
-        var agent = CreateAvailableAgent(10);
-        var (handler, _) = CreateHandler(agent);
-
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 999));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 99));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_OutForDelivery_Unauthenticated_ReturnsOwnershipMismatch()
+    public async Task Handle_OutForDelivery_DeliveryNotFound_ReturnsNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
+        var (handler, _) = CreateHandler(10);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 999, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_OutForDelivery_NonAgentUser_ReturnsOwnershipMismatch()
+    public async Task Handle_OutForDelivery_FromPendingAssignment_ReturnsNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 5,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_OutForDelivery_FromPendingAssignment_ThrowsNotAssigned()
-    {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreatePendingDelivery(1);
-        var (handler, _) = CreateHandler(agent, delivery);
+        var (handler, _) = CreateHandler(10, delivery);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(nameof(DeliveryNotAssignedException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
     }
 
     [Fact]
     public async Task Handle_OutForDelivery_CompleteLifecycle_OutForDeliveryIsStep4()
     {
-        var agent = CreateAvailableAgent(10);
         var delivery = CreatePendingDelivery(1);
 
         delivery.AssignAgent(10, Now.AddMinutes(1));
@@ -170,22 +125,14 @@ public sealed class DeliveryLifecycleTests
         delivery.MarkPickedUp(10, Now.AddMinutes(3));
 
         var clock = new FakeClock { UtcNow = Now.AddMinutes(4) };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
         var deliveryRepository = new FakeDeliveryRepository();
         deliveryRepository.Deliveries.Add(delivery);
         var handler = new OutForDeliveryHandler(
             deliveryRepository,
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
-        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1));
+        var result = await handler.Handle(new OutForDeliveryCommand(DeliveryId: 1, AgentId: 10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(DeliveryStatus.OutForDelivery, delivery.Status);
@@ -240,7 +187,7 @@ public sealed class DeliveryLifecycleTests
     }
 
     private static (OutForDeliveryHandler Handler, FakeClock Clock) CreateHandler(
-        User agent,
+        int agentId,
         params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
@@ -250,31 +197,12 @@ public sealed class DeliveryLifecycleTests
         }
 
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
 
         var handler = new OutForDeliveryHandler(
             deliveryRepository,
             new FakeUnitOfWork(),
-            clock,
-            currentUser);
+            clock);
 
         return (handler, clock);
-    }
-
-    private static OutForDeliveryHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        var handler = new OutForDeliveryHandler(
-            new FakeDeliveryRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
-
-        return handler;
     }
 }

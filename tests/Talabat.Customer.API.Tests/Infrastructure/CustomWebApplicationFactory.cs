@@ -90,6 +90,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 var user = User.Register("testuser", "test@test.com", "Test User");
                 userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
+                userManager.AddToRoleAsync(user, "Customer").GetAwaiter().GetResult();
             }
 
             var ownerUser = User.Register(

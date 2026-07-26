@@ -12,6 +12,11 @@ public sealed class FakeDeliveryRepository : IDeliveryRepository
         return Task.FromResult(Deliveries.SingleOrDefault(d => d.Id == deliveryId));
     }
 
+    public Task<Delivery?> GetByIdForAgentAsync(int deliveryId, int agentId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(Deliveries.SingleOrDefault(d => d.Id == deliveryId && d.AssignedAgentId == agentId));
+    }
+
     public Task<Delivery?> GetByOrderIdAsync(int orderId, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(Deliveries.SingleOrDefault(d => d.OrderId == orderId));

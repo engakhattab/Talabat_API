@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Talabat.Application;
@@ -17,6 +18,15 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddUnifiedUserIdentityCore();
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+builder.Services.AddSingleton<IAuthorizationHandler, ScopeHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.DeliveryAgentAccess, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("delivery.api"));
+        policy.RequireRole("DeliveryAgent");
+    });
 
 builder.Services.AddAuthentication(options =>
 {

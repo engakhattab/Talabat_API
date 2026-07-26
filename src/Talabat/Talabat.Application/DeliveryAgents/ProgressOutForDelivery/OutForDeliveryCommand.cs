@@ -1,3 +1,3 @@
 namespace Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 
-public sealed record OutForDeliveryCommand(int DeliveryId);
+public sealed record OutForDeliveryCommand(int DeliveryId, int AgentId);

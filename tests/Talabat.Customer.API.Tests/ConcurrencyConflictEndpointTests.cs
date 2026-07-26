@@ -32,6 +32,8 @@ public sealed class ConcurrencyConflictEndpointTests : IClassFixture<Concurrency
         _client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue(
                 "Bearer", "test-token");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
+        _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
 
         var update = new { FullName = "Updated Name", Age = 30, PhoneNumber = (string?)null };
         var response = await _client.PutAsJsonAsync("/api/me/profile", update);

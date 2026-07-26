@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Basket.AddItem;
 using Talabat.Application.Basket.ClearCart;
 using Talabat.Application.Basket.GetCart;
@@ -15,7 +16,7 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/cart")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 public sealed class CartController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
