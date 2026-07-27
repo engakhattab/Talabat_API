@@ -7,9 +7,7 @@ namespace Talabat.ArchitectureTests;
 public sealed class DomainArchitectureTests
 {
     private static readonly Assembly DomainAssembly = typeof(Talabat.Domain.Aggregates.Users.User).Assembly;
-    private static readonly string DomainCsprojPath = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "src", "Talabat", "Talabat.Domain", "Talabat.Domain.csproj"));
+    private static readonly string DomainCsprojPath = FindCsproj("Talabat.Domain", "Talabat.Domain.csproj");
 
     [Fact]
     public void Domain_ShouldNotReference_EntityFrameworkCore()
@@ -94,5 +92,21 @@ public sealed class DomainArchitectureTests
     private static IEnumerable<AssemblyName> GetReferencedAssemblyNames()
     {
         return DomainAssembly.GetReferencedAssemblies();
+    }
+
+    private static string FindCsproj(string projectFolder, string csprojFileName)
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir, "src", "Talabat", projectFolder, csprojFileName);
+            if (File.Exists(candidate))
+                return candidate;
+            candidate = Path.Combine(dir, "tests", "Talabat.ArchitectureTests", csprojFileName);
+            if (File.Exists(candidate))
+                return Path.Combine(dir, "src", "Talabat", projectFolder, csprojFileName);
+            dir = Path.GetDirectoryName(dir);
+        }
+        throw new FileNotFoundException($"Could not locate {csprojFileName} from {AppContext.BaseDirectory}");
     }
 }

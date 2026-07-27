@@ -14,7 +14,6 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/profile")]
-[RequireCustomerProfile]
 public sealed class CustomerController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -61,6 +60,7 @@ public sealed class CustomerController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
+    [RequireCustomerProfile(notFoundOnMissing: true)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var result = await _getProfileHandler.Handle(
@@ -72,6 +72,7 @@ public sealed class CustomerController : ControllerBase
 
     [HttpPut]
     [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
+    [RequireCustomerProfile]
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateProfileRequest request,
         CancellationToken cancellationToken)

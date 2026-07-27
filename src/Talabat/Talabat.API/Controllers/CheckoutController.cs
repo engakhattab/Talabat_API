@@ -43,15 +43,17 @@ public sealed class CheckoutController : ControllerBase
 
         var result = await _checkoutHandler.Handle(command, cancellationToken);
 
+        if (result.IsSuccess && result.Value is CheckoutSucceededOutcome succeeded)
+        {
+            await TryCreateDeliveryAsync(succeeded, _currentUser.CustomerId!.Value, cancellationToken);
+        }
+
         if (result.IsSuccess)
         {
             return result.ToActionResult(outcome =>
             {
-                if (outcome is CheckoutSucceededOutcome succeeded)
-                {
-                    _ = TryCreateDelivery(succeeded, _currentUser.CustomerId!.Value, cancellationToken);
-                    return StatusCode(201, new CheckoutSuccessResponse(succeeded.OrderId));
-                }
+                if (outcome is CheckoutSucceededOutcome ok)
+                    return StatusCode(201, new CheckoutSuccessResponse(ok.OrderId));
 
                 if (outcome is CheckoutProductsUnavailableOutcome unavailable)
                 {
@@ -70,7 +72,7 @@ public sealed class CheckoutController : ControllerBase
         return result.ToActionResult(_ => StatusCode(500));
     }
 
-    private async Task TryCreateDelivery(
+    private async Task TryCreateDeliveryAsync(
         CheckoutSucceededOutcome succeeded,
         int customerId,
         CancellationToken cancellationToken)

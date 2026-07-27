@@ -5,7 +5,7 @@ using Talabat.Application.Abstractions;
 namespace Talabat.Customer.API.Middleware;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public sealed class RequireCustomerProfileAttribute : Attribute, IAsyncActionFilter
+public sealed class RequireCustomerProfileAttribute(bool notFoundOnMissing = false) : Attribute, IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(
         ActionExecutingContext context,
@@ -13,51 +13,25 @@ public sealed class RequireCustomerProfileAttribute : Attribute, IAsyncActionFil
     {
         var currentUser = context.HttpContext.RequestServices.GetRequiredService<ICurrentUser>();
 
-        if (!currentUser.IsAuthenticated)
+        if (!currentUser.IsAuthenticated || currentUser.HasCustomerCapability)
         {
             await next();
             return;
         }
 
-        var method = context.HttpContext.Request.Method;
-        var path = context.HttpContext.Request.Path.Value ?? string.Empty;
+        var status = notFoundOnMissing
+            ? StatusCodes.Status404NotFound
+            : StatusCodes.Status409Conflict;
 
-        if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) &&
-            path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase))
+        var rfcSection = notFoundOnMissing ? "15.5.5" : "15.5.10";
+
+        context.Result = new ObjectResult(new
         {
-            await next();
-            return;
-        }
-
-        if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
-            path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase) &&
-            !currentUser.HasCustomerCapability)
-        {
-            context.Result = new NotFoundObjectResult(new
-            {
-                type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
-                title = "Not Found",
-                status = 404,
-                detail = "A customer profile has not been created yet. Use POST /api/me/profile to create one.",
-                extensions = new { errorCode = "ProfileNotCreated" }
-            });
-            return;
-        }
-
-        if (path.StartsWith("/api/me/", StringComparison.OrdinalIgnoreCase) &&
-            !currentUser.HasCustomerCapability)
-        {
-            context.Result = new ConflictObjectResult(new
-            {
-                type = "https://tools.ietf.org/html/rfc9110#section-15.5.10",
-                title = "Conflict",
-                status = 409,
-                detail = "A customer profile has not been created yet. Use POST /api/me/profile to create one.",
-                extensions = new { errorCode = "ProfileNotCreated" }
-            });
-            return;
-        }
-
-        await next();
+            type = $"https://tools.ietf.org/html/rfc9110#section-{rfcSection}",
+            title = notFoundOnMissing ? "Not Found" : "Conflict",
+            status,
+            detail = "A customer profile has not been created yet. Use POST /api/me/profile to create one.",
+            extensions = new { errorCode = "ProfileNotCreated" }
+        }) { StatusCode = status };
     }
 }

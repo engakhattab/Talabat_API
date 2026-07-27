@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
 using Talabat.Application.Tests.TestDoubles;
@@ -11,6 +10,7 @@ public sealed class GetPendingDeliveriesHandlerTests
 {
     private static readonly DeliveryAddressSnapshot Address = new("Street", "City", "1", null);
     private static readonly DateTime Now = new(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc);
+    private const int AgentId = 1;
 
     [Fact]
     public async Task Handle_GetPendingDeliveries_WhenPendingExist_ShouldReturnList()
@@ -19,7 +19,7 @@ public sealed class GetPendingDeliveriesHandlerTests
         var delivery2 = CreatePendingDelivery(2);
         var handler = CreateHandler(delivery1, delivery2);
 
-        var result = await handler.Handle(new GetPendingDeliveriesQuery());
+        var result = await handler.Handle(new GetPendingDeliveriesQuery(AgentId));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
@@ -31,46 +31,11 @@ public sealed class GetPendingDeliveriesHandlerTests
     {
         var handler = CreateHandler();
 
-        var result = await handler.Handle(new GetPendingDeliveriesQuery());
+        var result = await handler.Handle(new GetPendingDeliveriesQuery(AgentId));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         Assert.Empty(result.Value);
-    }
-
-    [Fact]
-    public async Task Handle_GetPendingDeliveries_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GetPendingDeliveriesQuery());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_GetPendingDeliveries_AuthenticatedNoAgentCapability_ShouldReturnAgentRequired()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 1,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GetPendingDeliveriesQuery());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     [Fact]
@@ -79,7 +44,7 @@ public sealed class GetPendingDeliveriesHandlerTests
         var delivery = CreatePendingDelivery(1);
         var handler = CreateHandler(delivery);
 
-        var result = await handler.Handle(new GetPendingDeliveriesQuery());
+        var result = await handler.Handle(new GetPendingDeliveriesQuery(AgentId));
 
         Assert.True(result.IsSuccess);
         var dto = result.Value!.Single();
@@ -112,21 +77,6 @@ public sealed class GetPendingDeliveriesHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 1,
-            HasDeliveryAgentCapability = true,
-            AgentId = 1
-        };
-
-        return new GetPendingDeliveriesHandler(deliveryRepository, currentUser);
-    }
-
-    private static GetPendingDeliveriesHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new GetPendingDeliveriesHandler(
-            new FakeDeliveryRepository(),
-            currentUser);
+        return new GetPendingDeliveriesHandler(deliveryRepository);
     }
 }

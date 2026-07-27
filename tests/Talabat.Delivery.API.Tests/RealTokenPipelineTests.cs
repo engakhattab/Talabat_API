@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Talabat.Domain.Aggregates.Users;
 using Xunit;
 
 namespace Talabat.Delivery.API.Tests;
@@ -17,6 +18,7 @@ namespace Talabat.Delivery.API.Tests;
 public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTests.Factory>
 {
     private readonly HttpClient _client;
+    private readonly int _agentId;
 
     private static readonly SymmetricSecurityKey TestSigningKey = new(
         Encoding.UTF8.GetBytes("Talabat-Test-Secret-Key-For-Real-Pipeline-Tests-2024!"));
@@ -24,25 +26,24 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     public RealTokenPipelineTests(Factory factory)
     {
         _client = factory.CreateClient();
+        _agentId = factory.SeededAgentId;
     }
 
     [Fact]
     public async Task ValidToken_Returns200()
     {
-        var token = MintToken("DeliveryAgent", "delivery.api", "talabat.delivery.api");
+        var token = MintToken(_agentId, "DeliveryAgent", "delivery.api", "talabat.delivery.api");
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
         var response = await _client.GetAsync("/api/agent/deliveries/active");
 
-        Assert.True(
-            (int)response.StatusCode is >= 200 and < 400,
-            $"Expected 2xx/3xx but got {(int)response.StatusCode}");
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
     public async Task WrongAudience_Returns401()
     {
-        var token = MintToken("DeliveryAgent", "delivery.api", "talabat.customer.api");
+        var token = MintToken(_agentId, "DeliveryAgent", "delivery.api", "talabat.customer.api");
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
         var response = await _client.GetAsync("/api/agent/deliveries/active");
@@ -53,7 +54,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     [Fact]
     public async Task MissingScope_Returns403()
     {
-        var token = MintToken("DeliveryAgent", "customer.api", "talabat.delivery.api");
+        var token = MintToken(_agentId, "DeliveryAgent", "customer.api", "talabat.delivery.api");
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
         var response = await _client.GetAsync("/api/agent/deliveries/pending");
@@ -64,7 +65,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     [Fact]
     public async Task WrongRole_Returns403()
     {
-        var token = MintToken("Customer", "delivery.api", "talabat.delivery.api");
+        var token = MintToken(_agentId, "Customer", "delivery.api", "talabat.delivery.api");
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
         var response = await _client.GetAsync("/api/agent/deliveries/pending");
@@ -75,7 +76,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     [Fact]
     public async Task ExpiredToken_Returns401()
     {
-        var token = MintToken("DeliveryAgent", "delivery.api", "talabat.delivery.api", expired: true);
+        var token = MintToken(_agentId, "DeliveryAgent", "delivery.api", "talabat.delivery.api", expired: true);
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
         var response = await _client.GetAsync("/api/agent/deliveries/active");
@@ -92,6 +93,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     }
 
     private static string MintToken(
+        int subjectId,
         string role,
         string scope,
         string audience,
@@ -99,10 +101,10 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     {
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, "9999"),
+            new(JwtRegisteredClaimNames.Sub, subjectId.ToString()),
             new("role", role),
             new("scope", scope),
-            new("delivery_agent_id", "9999"),
+            new("delivery_agent_id", subjectId.ToString()),
         };
 
         var expires = expired
@@ -126,6 +128,8 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
     public sealed class Factory : WebApplicationFactory<Program>
     {
         private string? _connectionString;
+
+        public int SeededAgentId { get; private set; }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -167,6 +171,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
                 {
                     o.Authority = null!;
                     o.MetadataAddress = null!;
+                    o.ConfigurationManager = null;
                     o.RequireHttpsMetadata = false;
                     o.TokenValidationParameters.IssuerSigningKey = TestSigningKey;
                     o.TokenValidationParameters.ValidIssuer = "https://localhost:7237";
@@ -188,6 +193,15 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
                 db.Database.Migrate();
 
                 global::Talabat.Infrastructure.Identity.IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
+
+                var userManager = services.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<User>>();
+                var agent = User.Register("jwttestagent", "jwtagent@test.com", "JWT Test Agent");
+                userManager.CreateAsync(agent, "Password1!").GetAwaiter().GetResult();
+                userManager.AddToRoleAsync(agent, "DeliveryAgent").GetAwaiter().GetResult();
+                agent.SubmitDeliveryAgentApplication(VehicleType.Motorcycle);
+                agent.ApproveDeliveryAgentApplication();
+                userManager.UpdateAsync(agent).GetAwaiter().GetResult();
+                SeededAgentId = agent.Id;
             }
 
             return host;

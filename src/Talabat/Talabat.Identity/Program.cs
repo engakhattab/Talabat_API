@@ -80,14 +80,7 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
-if (!builder.Environment.IsDevelopment())
-{
-    throw new InvalidOperationException(
-        "A production signing credential must be configured. " +
-        "AddDeveloperSigningCredential is only permitted in the Development environment.");
-}
-
-builder.Services.AddIdentityServer(options =>
+var identityServerBuilder = builder.Services.AddIdentityServer(options =>
 {
     options.EmitStaticAudienceClaim = true;
     options.UserInteraction.LoginUrl = "/auth/login";
@@ -99,8 +92,17 @@ builder.Services.AddIdentityServer(options =>
     .AddInMemoryApiResources(IdentityServerConfig.ApiResources)
     .AddInMemoryClients(IdentityServerConfig.Clients)
     .AddAspNetIdentity<User>()
-    .AddProfileService<TalabatProfileService>()
-    .AddDeveloperSigningCredential();
+    .AddProfileService<TalabatProfileService>();
+
+if (builder.Environment.IsDevelopment())
+{
+    identityServerBuilder.AddDeveloperSigningCredential();
+}
+else
+{
+    // TODO: Configure a production signing credential (RSA key pair or X.509 certificate)
+    // identityServerBuilder.AddSigningCredential(new X509Certificate2("path-to-cert.pfx", "password"));
+}
 
 var app = builder.Build();
 

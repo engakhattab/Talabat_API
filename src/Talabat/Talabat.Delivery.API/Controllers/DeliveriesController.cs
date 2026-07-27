@@ -77,8 +77,11 @@ public sealed class DeliveriesController : ControllerBase
     [HttpGet("pending")]
     public async Task<IActionResult> GetPendingDeliveries(CancellationToken cancellationToken)
     {
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
+            return Forbid();
+
         var result = await _getPendingDeliveriesHandler.Handle(
-            new GetPendingDeliveriesQuery(),
+            new GetPendingDeliveriesQuery(agentId),
             cancellationToken);
 
         return result.ToActionResult(dtos => Ok(dtos));

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
 using Talabat.Application.DeliveryAgents.UpdateLocation;
 using Talabat.Delivery.API.Auth;
+using Talabat.Delivery.API.Contracts;
 using Talabat.Delivery.API.Extensions;
 
 namespace Talabat.Delivery.API.Controllers;

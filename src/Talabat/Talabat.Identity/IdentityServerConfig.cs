@@ -46,7 +46,7 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4200/signin-callback", "https://oauth.pstmn.io/v1/browser-callback" },
+            RedirectUris = { "http://localhost:4200/signin-callback", "https://oauth.pstmn.io/v1/callback", "https://oauth.pstmn.io/v1/browser-callback" }, // dev only — remove before production
             PostLogoutRedirectUris = { "http://localhost:4200/signout-callback" },
             AllowedCorsOrigins = { "http://localhost:4200" },
             AllowedScopes =
@@ -70,7 +70,7 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4300/signin-callback", "https://oauth.pstmn.io/v1/browser-callback" },
+            RedirectUris = { "http://localhost:4300/signin-callback", "https://oauth.pstmn.io/v1/callback", "https://oauth.pstmn.io/v1/browser-callback" }, // dev only — remove before production
             PostLogoutRedirectUris = { "http://localhost:4300/signout-callback" },
             AllowedCorsOrigins = { "http://localhost:4300" },
             AllowedScopes =
