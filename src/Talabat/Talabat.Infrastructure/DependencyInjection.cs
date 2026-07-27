@@ -34,6 +34,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<ICurrentUserCapabilityResolver, CurrentUserCapabilityResolver>();
         services.AddScoped<IRestaurantRepository, RestaurantRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();

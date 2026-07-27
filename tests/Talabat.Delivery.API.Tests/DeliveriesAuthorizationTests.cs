@@ -3,9 +3,11 @@ namespace Talabat.Delivery.API.Tests;
 public sealed class DeliveriesAuthorizationTests : IClassFixture<Infrastructure.CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly Infrastructure.CustomWebApplicationFactory _factory;
 
     public DeliveriesAuthorizationTests(Infrastructure.CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -109,5 +111,20 @@ public sealed class DeliveriesAuthorizationTests : IClassFixture<Infrastructure.
         var response = await _client.PostAsync("/api/agent/deliveries/1/fail", content);
 
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetPendingDeliveries_RoleOnlyNoCapability_Returns403()
+    {
+        var userId = _factory.RoleOnlyAgentUserId;
+
+        _client.DefaultRequestHeaders.Authorization = new("Bearer", "test-token");
+        _client.DefaultRequestHeaders.Add("X-Test-Subject", userId.ToString());
+        _client.DefaultRequestHeaders.Add("X-Test-Roles", "DeliveryAgent");
+        _client.DefaultRequestHeaders.Add("X-Test-Scope", "delivery.api");
+
+        var response = await _client.GetAsync("/api/agent/deliveries/pending");
+
+        Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

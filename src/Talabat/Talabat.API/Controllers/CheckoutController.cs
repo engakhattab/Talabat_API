@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
 using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
+using Talabat.Application.Deliveries.CreateForOrder;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Customer.API.Contracts.Checkout;
 using Talabat.Customer.API.Extensions;
@@ -16,13 +17,19 @@ public sealed class CheckoutController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
     private readonly CheckoutHandler _checkoutHandler;
+    private readonly CreateDeliveryForOrderHandler _createDeliveryHandler;
+    private readonly ILogger<CheckoutController> _logger;
 
     public CheckoutController(
         ICurrentUser currentUser,
-        CheckoutHandler checkoutHandler)
+        CheckoutHandler checkoutHandler,
+        CreateDeliveryForOrderHandler createDeliveryHandler,
+        ILogger<CheckoutController> logger)
     {
         _currentUser = currentUser;
         _checkoutHandler = checkoutHandler;
+        _createDeliveryHandler = createDeliveryHandler;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -42,6 +49,7 @@ public sealed class CheckoutController : ControllerBase
             {
                 if (outcome is CheckoutSucceededOutcome succeeded)
                 {
+                    _ = TryCreateDelivery(succeeded, _currentUser.CustomerId!.Value, cancellationToken);
                     return StatusCode(201, new CheckoutSuccessResponse(succeeded.OrderId));
                 }
 
@@ -60,5 +68,26 @@ public sealed class CheckoutController : ControllerBase
         }
 
         return result.ToActionResult(_ => StatusCode(500));
+    }
+
+    private async Task TryCreateDelivery(
+        CheckoutSucceededOutcome succeeded,
+        int customerId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deliveryCmd = new CreateDeliveryForOrderCommand(
+                succeeded.OrderId,
+                customerId,
+                succeeded.RestaurantId,
+                succeeded.DeliveryAddress);
+
+            await _createDeliveryHandler.Handle(deliveryCmd, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Delivery creation failed for OrderId {OrderId}", succeeded.OrderId);
+        }
     }
 }

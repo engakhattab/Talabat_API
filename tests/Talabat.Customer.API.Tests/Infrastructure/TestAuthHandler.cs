@@ -7,7 +7,7 @@ using System.Text.Encodings.Web;
 
 namespace Talabat.Customer.API.Tests.Infrastructure;
 
-#pragma warning disable CS0618 // ISystemClock is obsolete in newer versions but required by AuthenticationHandler base
+#pragma warning disable CS0618
 
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {

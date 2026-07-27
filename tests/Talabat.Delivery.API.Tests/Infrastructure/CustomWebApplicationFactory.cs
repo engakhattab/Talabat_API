@@ -24,6 +24,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public int DeliveryAgentUserId { get; private set; }
     public int AgentBUserId { get; private set; }
     public int DeliveryId { get; private set; }
+    public int RoleOnlyAgentUserId { get; private set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -80,7 +81,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             var services = scope.ServiceProvider;
             var db = services.GetRequiredService<TalabatDbContext>();
-            db.Database.EnsureCreated();
+            db.Database.Migrate();
 
             IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
 
@@ -107,6 +108,16 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             userManager.UpdateAsync(agentB).GetAwaiter().GetResult();
 
             AgentBUserId = agentB.Id;
+
+            // Create a user with DeliveryAgent role but Customer-only UserType (for capability check test)
+            var roleOnlyAgent = User.Register("roleonlyagent", "roleonly@test.com", "Role Only Agent");
+            userManager.CreateAsync(roleOnlyAgent, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(roleOnlyAgent, "Customer").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(roleOnlyAgent, "DeliveryAgent").GetAwaiter().GetResult();
+            // Do NOT call SubmitDeliveryAgentApplication/ApproveDeliveryAgentApplication
+            // so UserType remains Customer-only despite having the DeliveryAgent role
+
+            RoleOnlyAgentUserId = roleOnlyAgent.Id;
 
             // Create a customer for the order
             var customer = User.Register("testcustomer", "customer@test.com", "Test Customer");

@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.Tests.TestDoubles;
@@ -19,9 +18,9 @@ public sealed class GetDeliveryHistoryHandlerTests
         var agent = CreateAvailableAgent(10);
         var delivered = CreateDeliveredDelivery(1, 10);
         var assigned = CreateAssignedDelivery(2, 10);
-        var handler = CreateHandler(agent, delivered, assigned);
+        var handler = CreateHandler(delivered, assigned);
 
-        var result = await handler.Handle(new GetDeliveryHistoryQuery());
+        var result = await handler.Handle(new GetDeliveryHistoryQuery(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
@@ -32,30 +31,13 @@ public sealed class GetDeliveryHistoryHandlerTests
     public async Task Handle_GetDeliveryHistory_WhenNoHistory_ShouldReturnEmptyList()
     {
         var agent = CreateAvailableAgent(10);
-        var handler = CreateHandler(agent);
+        var handler = CreateHandler();
 
-        var result = await handler.Handle(new GetDeliveryHistoryQuery());
+        var result = await handler.Handle(new GetDeliveryHistoryQuery(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         Assert.Empty(result.Value);
-    }
-
-    [Fact]
-    public async Task Handle_GetDeliveryHistory_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GetDeliveryHistoryQuery());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     private static User CreateAvailableAgent(int id)
@@ -93,7 +75,7 @@ public sealed class GetDeliveryHistoryHandlerTests
         return delivery;
     }
 
-    private static GetDeliveryHistoryHandler CreateHandler(User agent, params Delivery[] deliveries)
+    private static GetDeliveryHistoryHandler CreateHandler(params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
         foreach (var delivery in deliveries)
@@ -101,21 +83,6 @@ public sealed class GetDeliveryHistoryHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
-
-        return new GetDeliveryHistoryHandler(deliveryRepository, currentUser);
-    }
-
-    private static GetDeliveryHistoryHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new GetDeliveryHistoryHandler(
-            new FakeDeliveryRepository(),
-            currentUser);
+        return new GetDeliveryHistoryHandler(deliveryRepository);
     }
 }

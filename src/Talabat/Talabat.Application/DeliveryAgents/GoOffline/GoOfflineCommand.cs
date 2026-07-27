@@ -1,3 +1,3 @@
 namespace Talabat.Application.DeliveryAgents.GoOffline;
 
-public sealed record GoOfflineCommand;
+public sealed record GoOfflineCommand(int AgentId);

@@ -10,9 +10,27 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -Q 'SELECT 1' -C -b"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      ConnectionStrings__TalabatDb: "Server=localhost;Database=Talabat;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True"
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -23,10 +41,16 @@ jobs:
         run: dotnet restore src/Talabat/Talabat.slnx
 
       - name: Build
-        run: dotnet build src/Talabat/Talabat.slnx --no-restore --configuration Release
+        run: dotnet build src/Talabat/Talabat.slnx --no-restore -c Release
 
       - name: Test
-        run: dotnet test src/Talabat/Talabat.slnx --no-build --configuration Release --verbosity normal
+        run: dotnet test src/Talabat/Talabat.slnx --no-build -c Release --logger trx --results-directory TestResults
 
-      - name: Check vulnerable packages
-        run: dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive
+      - name: Vulnerability scan
+        run: |
+          output=$(dotnet list src/Talabat/Talabat.slnx package --vulnerable --include-transitive 2>&1)
+          echo "$output"
+          if echo "$output" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable packages detected"
+            exit 1
+          fi

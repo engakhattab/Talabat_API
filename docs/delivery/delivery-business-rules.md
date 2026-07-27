@@ -108,3 +108,25 @@ Valid latitude is between -90 and 90. Valid longitude is between -180 and 180.
 Given an assigned delivery is cancelled or failed,
 When the terminal transition succeeds through delivery coordination,
 Then the assigned Busy agent becomes `Available`.
+
+### BR-DEL-016 - Delivery creation failure does not invalidate a committed order
+
+Given checkout has succeeded and the order is committed,
+When delivery task creation fails,
+Then the order remains valid and the checkout response still reports success.
+
+The failure is logged at Error severity with the `OrderId`. The delivery is created later by
+retry or reconciliation. The order is never rolled back, and the two operations never share
+a transaction.
+
+**Rationale**: Everything needed to build the `Delivery` — `OrderId`, `CustomerId`,
+`RestaurantId`, `DeliveryAddressSnapshot` — is already persisted on the committed `Order`, so
+nothing is lost by deferring. Rolling the order back would invert the documented dependency
+direction (`docs/delivery/README.md`: "Ordering does not directly create or mutate Delivery")
+and cannot cleanly undo `cart.MarkCheckedOut(now)`.
+
+**Deferred**: Reconciliation for orders with no delivery row (repository query + dev-only backfill
+endpoint). The eventual correct solution is a transactional outbox (`OrderPlaced` domain event
+committed in the same transaction, dispatched at-least-once), which removes this failure mode
+rather than mitigating it. There is no domain-event dispatch or outbox table today, so this is
+explicitly deferred — but recorded so the gap stays a deliberate decision rather than an accident.

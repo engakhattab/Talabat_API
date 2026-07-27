@@ -8,12 +8,14 @@ using Talabat.Application.Customers.RemoveAddress;
 using Talabat.Application.Customers.SetDefaultAddress;
 using Talabat.Customer.API.Contracts.Address;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/addresses")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
 public sealed class AddressController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

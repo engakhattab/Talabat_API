@@ -1,3 +1,3 @@
 namespace Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 
-public sealed record GetDeliveryHistoryQuery;
+public sealed record GetDeliveryHistoryQuery(int AgentId);

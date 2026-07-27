@@ -261,6 +261,11 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
         CurrentLocation = location ?? throw new ArgumentNullException(nameof(location));
     }
 
+    public void SetPhoneNumber(string? phoneNumber)
+    {
+        PhoneNumber = Guard.OptionalText(phoneNumber);
+    }
+
     public void Activate()
     {
         IsActive = true;

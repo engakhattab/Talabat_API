@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.GoOffline;
 using Talabat.Application.DeliveryAgents.GoOnline;
@@ -22,7 +21,7 @@ public sealed class StatusHandlerTests
         var agent = CreateAvailableAgent(10);
         var (handler, _) = CreateGoOnlineHandler(agent);
 
-        var result = await handler.Handle(new GoOnlineCommand());
+        var result = await handler.Handle(new GoOnlineCommand(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(DeliveryAgentStatus.Available, agent.DeliveryAgentStatus);
@@ -34,7 +33,7 @@ public sealed class StatusHandlerTests
         var agent = CreateOfflineAgent(10);
         var (handler, _) = CreateGoOnlineHandler(agent);
 
-        var result = await handler.Handle(new GoOnlineCommand());
+        var result = await handler.Handle(new GoOnlineCommand(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(DeliveryAgentStatus.Available, agent.DeliveryAgentStatus);
@@ -46,7 +45,7 @@ public sealed class StatusHandlerTests
         var agent = CreateBusyAgent(10);
         var (handler, _) = CreateGoOnlineHandler(agent);
 
-        var result = await handler.Handle(new GoOnlineCommand());
+        var result = await handler.Handle(new GoOnlineCommand(agent.Id));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(AgentNotAvailableException), result.Error?.Code);
@@ -58,42 +57,21 @@ public sealed class StatusHandlerTests
         var agent = CreateSuspendedAgent(10);
         var (handler, _) = CreateGoOnlineHandler(agent);
 
-        var result = await handler.Handle(new GoOnlineCommand());
+        var result = await handler.Handle(new GoOnlineCommand(agent.Id));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(AgentNotAvailableException), result.Error?.Code);
     }
 
     [Fact]
-    public async Task Handle_GoOnline_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateGoOnlineHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GoOnlineCommand());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
-    }
-
-    [Fact]
     public async Task Handle_GoOnline_AgentNotFound_ShouldReturnNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 999,
-            HasDeliveryAgentCapability = true,
-            AgentId = 999
-        };
-        var handler = CreateGoOnlineHandlerWithCurrentUser(currentUser);
+        var handler = new GoOnlineHandler(
+            new FakeUserRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock());
 
-        var result = await handler.Handle(new GoOnlineCommand());
+        var result = await handler.Handle(new GoOnlineCommand(999));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.UserNotFound, result.Error?.Code);
@@ -109,7 +87,7 @@ public sealed class StatusHandlerTests
         var agent = CreateAvailableAgent(10);
         var (handler, _) = CreateGoOfflineHandler(agent);
 
-        var result = await handler.Handle(new GoOfflineCommand());
+        var result = await handler.Handle(new GoOfflineCommand(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(DeliveryAgentStatus.Offline, agent.DeliveryAgentStatus);
@@ -121,7 +99,7 @@ public sealed class StatusHandlerTests
         var agent = CreateOfflineAgent(10);
         var (handler, _) = CreateGoOfflineHandler(agent);
 
-        var result = await handler.Handle(new GoOfflineCommand());
+        var result = await handler.Handle(new GoOfflineCommand(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(DeliveryAgentStatus.Offline, agent.DeliveryAgentStatus);
@@ -133,27 +111,10 @@ public sealed class StatusHandlerTests
         var agent = CreateBusyAgent(10);
         var (handler, _) = CreateGoOfflineHandler(agent);
 
-        var result = await handler.Handle(new GoOfflineCommand());
+        var result = await handler.Handle(new GoOfflineCommand(agent.Id));
 
         Assert.True(result.IsFailure);
         Assert.Equal(nameof(InvalidDeliveryAgentStatusTransitionException), result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_GoOffline_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateGoOfflineHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GoOfflineCommand());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     #endregion
@@ -166,7 +127,7 @@ public sealed class StatusHandlerTests
         var agent = CreateAvailableAgent(10);
         var (handler, _) = CreateUpdateLocationHandler(agent);
 
-        var result = await handler.Handle(new UpdateLocationCommand(Latitude: 30.0m, Longitude: 31.0m));
+        var result = await handler.Handle(new UpdateLocationCommand(agent.Id, Latitude: 30.0m, Longitude: 31.0m));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new GeoLocation(30.0m, 31.0m), agent.CurrentLocation);
@@ -178,42 +139,21 @@ public sealed class StatusHandlerTests
         var agent = CreateOfflineAgent(10);
         var (handler, _) = CreateUpdateLocationHandler(agent);
 
-        var result = await handler.Handle(new UpdateLocationCommand(Latitude: 30.0m, Longitude: 31.0m));
+        var result = await handler.Handle(new UpdateLocationCommand(agent.Id, Latitude: 30.0m, Longitude: 31.0m));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new GeoLocation(30.0m, 31.0m), agent.CurrentLocation);
     }
 
     [Fact]
-    public async Task Handle_UpdateLocation_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateUpdateLocationHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new UpdateLocationCommand(Latitude: 30.0m, Longitude: 31.0m));
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
-    }
-
-    [Fact]
     public async Task Handle_UpdateLocation_AgentNotFound_ShouldReturnNotFound()
     {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = 999,
-            HasDeliveryAgentCapability = true,
-            AgentId = 999
-        };
-        var handler = CreateUpdateLocationHandlerWithCurrentUser(currentUser);
+        var handler = new UpdateLocationHandler(
+            new FakeUserRepository(),
+            new FakeUnitOfWork(),
+            new FakeClock());
 
-        var result = await handler.Handle(new UpdateLocationCommand(Latitude: 30.0m, Longitude: 31.0m));
+        var result = await handler.Handle(new UpdateLocationCommand(999, Latitude: 30.0m, Longitude: 31.0m));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.UserNotFound, result.Error?.Code);
@@ -259,24 +199,8 @@ public sealed class StatusHandlerTests
         var userRepository = new FakeUserRepository();
         userRepository.Users.Add(agent);
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
-        var handler = new GoOnlineHandler(userRepository, new FakeUnitOfWork(), clock, currentUser);
+        var handler = new GoOnlineHandler(userRepository, new FakeUnitOfWork(), clock);
         return (handler, clock);
-    }
-
-    private static GoOnlineHandler CreateGoOnlineHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new GoOnlineHandler(
-            new FakeUserRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 
     private static (GoOfflineHandler Handler, FakeClock Clock) CreateGoOfflineHandler(User agent)
@@ -284,24 +208,8 @@ public sealed class StatusHandlerTests
         var userRepository = new FakeUserRepository();
         userRepository.Users.Add(agent);
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
-        var handler = new GoOfflineHandler(userRepository, new FakeUnitOfWork(), clock, currentUser);
+        var handler = new GoOfflineHandler(userRepository, new FakeUnitOfWork(), clock);
         return (handler, clock);
-    }
-
-    private static GoOfflineHandler CreateGoOfflineHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new GoOfflineHandler(
-            new FakeUserRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 
     private static (UpdateLocationHandler Handler, FakeClock Clock) CreateUpdateLocationHandler(User agent)
@@ -309,24 +217,8 @@ public sealed class StatusHandlerTests
         var userRepository = new FakeUserRepository();
         userRepository.Users.Add(agent);
         var clock = new FakeClock { UtcNow = Now };
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
-        var handler = new UpdateLocationHandler(userRepository, new FakeUnitOfWork(), clock, currentUser);
+        var handler = new UpdateLocationHandler(userRepository, new FakeUnitOfWork(), clock);
         return (handler, clock);
-    }
-
-    private static UpdateLocationHandler CreateUpdateLocationHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new UpdateLocationHandler(
-            new FakeUserRepository(),
-            new FakeUnitOfWork(),
-            new FakeClock(),
-            currentUser);
     }
 
     #endregion

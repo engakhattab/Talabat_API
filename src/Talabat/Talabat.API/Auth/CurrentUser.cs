@@ -1,22 +1,19 @@
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 using Talabat.Application.Abstractions;
-using Talabat.Application.Common.Results;
 using Talabat.Domain.Aggregates.Users;
-using Talabat.Infrastructure.Persistence;
 
 namespace Talabat.Customer.API.Auth;
 
 public sealed class CurrentUser : ICurrentUser
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly TalabatDbContext _dbContext;
+    private readonly ICurrentUserCapabilityResolver _resolver;
     private bool _resolved;
 
-    public CurrentUser(IHttpContextAccessor httpContextAccessor, TalabatDbContext dbContext)
+    public CurrentUser(IHttpContextAccessor httpContextAccessor, ICurrentUserCapabilityResolver resolver)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
     }
 
     public bool IsAuthenticated
@@ -110,11 +107,7 @@ public sealed class CurrentUser : ICurrentUser
         _isAuthenticated = true;
         _userId = parsedId;
 
-        var userType = _dbContext.Users
-            .AsNoTracking()
-            .Where(u => u.Id == parsedId)
-            .Select(u => u.UserType)
-            .FirstOrDefault();
+        var userType = _resolver.GetUserTypeAsync(parsedId).GetAwaiter().GetResult();
 
         if (userType.HasFlag(UserType.Customer))
         {

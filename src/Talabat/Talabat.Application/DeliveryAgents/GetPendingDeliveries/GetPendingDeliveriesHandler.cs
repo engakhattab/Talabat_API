@@ -21,12 +21,12 @@ public sealed class GetPendingDeliveriesHandler
         GetPendingDeliveriesQuery query,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUser.IsAuthenticated)
+        if (!_currentUser.IsAuthenticated || !_currentUser.HasDeliveryAgentCapability || _currentUser.AgentId is null)
         {
             return UseCaseResult<IReadOnlyCollection<PendingDeliveryDto>>.Failure(
                 DomainExceptionMapper.OwnershipMismatch(
                     ApplicationErrorCodes.AgentRequired,
-                    "Authentication required."));
+                    "Authenticated delivery agent required."));
         }
 
         var deliveries = await _deliveryRepository.GetPendingAssignmentAsync(cancellationToken);
@@ -35,13 +35,9 @@ public sealed class GetPendingDeliveriesHandler
             .Select(d => new PendingDeliveryDto(
                 d.Id,
                 d.OrderId,
-                d.CustomerId,
                 d.RestaurantId,
                 d.Status,
-                d.DeliveryAddress.Street,
                 d.DeliveryAddress.City,
-                d.DeliveryAddress.BuildingNumber,
-                d.DeliveryAddress.Floor,
                 d.CreatedAt))
             .ToList()
             .AsReadOnly();

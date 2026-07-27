@@ -59,21 +59,16 @@ public sealed class DeliveriesController : ControllerBase
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
-    private bool TryGetAgentId(out int agentId)
-    {
-        agentId = 0;
-        if (!_currentUser.HasDeliveryAgentCapability || _currentUser.AgentId is null) return false;
-        agentId = _currentUser.AgentId.Value;
-        return true;
-    }
-
     // ── Query endpoints ────────────────────────────────────────────
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActiveDelivery(CancellationToken cancellationToken)
     {
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
+            return Forbid();
+
         var result = await _getActiveDeliveryHandler.Handle(
-            new GetActiveDeliveryQuery(),
+            new GetActiveDeliveryQuery(agentId),
             cancellationToken);
 
         return result.ToActionResult(dto => Ok(dto));
@@ -92,8 +87,11 @@ public sealed class DeliveriesController : ControllerBase
     [HttpGet("history")]
     public async Task<IActionResult> GetDeliveryHistory(CancellationToken cancellationToken)
     {
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
+            return Forbid();
+
         var result = await _getDeliveryHistoryHandler.Handle(
-            new GetDeliveryHistoryQuery(),
+            new GetDeliveryHistoryQuery(agentId),
             cancellationToken);
 
         return result.ToActionResult(dtos => Ok(dtos));
@@ -106,7 +104,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _assignDeliveryAgentHandler.Handle(
@@ -123,7 +121,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _outForDeliveryHandler.Handle(
@@ -138,7 +136,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _arrivedAtRestaurantHandler.Handle(
@@ -153,7 +151,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _pickUpOrderHandler.Handle(
@@ -168,7 +166,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _deliverOrderHandler.Handle(
@@ -183,7 +181,7 @@ public sealed class DeliveriesController : ControllerBase
         int deliveryId,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _cancelDeliveryHandler.Handle(
@@ -199,7 +197,7 @@ public sealed class DeliveriesController : ControllerBase
         [FromBody] FailDeliveryBody body,
         CancellationToken cancellationToken)
     {
-        if (!TryGetAgentId(out var agentId))
+        if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
         var result = await _failDeliveryHandler.Handle(

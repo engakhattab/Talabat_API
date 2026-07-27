@@ -8,12 +8,14 @@ using Talabat.Application.Ordering.GetOrderHistory;
 using Talabat.Customer.API.Contracts.Common;
 using Talabat.Customer.API.Contracts.Orders;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/orders")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
 public sealed class OrderController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

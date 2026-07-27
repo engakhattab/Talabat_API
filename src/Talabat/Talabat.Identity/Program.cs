@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.OpenApi;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Identity;
 using Talabat.Infrastructure;
@@ -63,7 +64,28 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Components ??= new();
+        document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "JWT token from IdentityServer"
+        };
+        return Task.CompletedTask;
+    });
+});
+
+if (!builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "A production signing credential must be configured. " +
+        "AddDeveloperSigningCredential is only permitted in the Development environment.");
+}
 
 builder.Services.AddIdentityServer(options =>
 {

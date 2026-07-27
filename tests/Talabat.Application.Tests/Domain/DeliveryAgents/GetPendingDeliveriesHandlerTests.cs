@@ -55,6 +55,48 @@ public sealed class GetPendingDeliveriesHandlerTests
         Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
+    [Fact]
+    public async Task Handle_GetPendingDeliveries_AuthenticatedNoAgentCapability_ShouldReturnAgentRequired()
+    {
+        var currentUser = new FakeCurrentUser
+        {
+            IsAuthenticated = true,
+            UserId = 1,
+            HasDeliveryAgentCapability = false,
+            AgentId = null
+        };
+        var handler = CreateHandlerWithCurrentUser(currentUser);
+
+        var result = await handler.Handle(new GetPendingDeliveriesQuery());
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
+    }
+
+    [Fact]
+    public async Task Handle_GetPendingDeliveries_DtoExposesNoPiiFields()
+    {
+        var delivery = CreatePendingDelivery(1);
+        var handler = CreateHandler(delivery);
+
+        var result = await handler.Handle(new GetPendingDeliveriesQuery());
+
+        Assert.True(result.IsSuccess);
+        var dto = result.Value!.Single();
+        Assert.Equal(1, dto.Id);
+        Assert.Equal(1, dto.OrderId);
+        Assert.Equal(1, dto.RestaurantId);
+        Assert.Equal(DeliveryStatus.PendingAssignment, dto.Status);
+        Assert.Equal("City", dto.City);
+        Assert.Equal(Now, dto.CreatedAt);
+
+        var dtoType = typeof(PendingDeliveryDto);
+        Assert.Null(dtoType.GetProperty("CustomerId"));
+        Assert.Null(dtoType.GetProperty("Street"));
+        Assert.Null(dtoType.GetProperty("BuildingNumber"));
+        Assert.Null(dtoType.GetProperty("Floor"));
+    }
+
     private static Delivery CreatePendingDelivery(int id)
     {
         var delivery = new Delivery(1, 1, 1, Address, Now);

@@ -48,7 +48,7 @@ public sealed class TalabatProfileService : IProfileService
             claims.Add(new Claim("delivery_agent_id", user.Id.ToString()));
         }
 
-        context.IssuedClaims.AddRange(claims);
+        context.AddRequestedClaims(claims);
     }
 
     public async Task IsActiveAsync(IsActiveContext context, CancellationToken cancellationToken = default)

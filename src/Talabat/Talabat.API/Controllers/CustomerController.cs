@@ -8,11 +8,13 @@ using Talabat.Application.Customers.GetProfile;
 using Talabat.Application.Customers.UpdateProfile;
 using Talabat.Customer.API.Contracts.Customer;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/profile")]
+[RequireCustomerProfile]
 public sealed class CustomerController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

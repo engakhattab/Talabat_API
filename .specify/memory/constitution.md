@@ -151,7 +151,7 @@ Prohibited in this phase:
 ## Quality Gates
 
 - The whole solution (`src/Talabat/Talabat.slnx`) MUST build at the end of every plan phase; at final
-  acceptance all four test projects MUST pass.
+  acceptance all test projects in the solution MUST pass.
 - `Talabat.Domain` MUST contain no package reference other than
   `Microsoft.Extensions.Identity.Stores`; `Talabat.Application` MUST contain no web, EF, or Identity
   packages; controllers MUST contain no business logic and no EF Core types.

@@ -14,15 +14,18 @@ public class AccountController : ControllerBase
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
     private readonly IUserCapabilityService _capabilityService;
+    private readonly IHostEnvironment _environment;
 
     public AccountController(
         UserManager<User> userManager,
         SignInManager<User> signInManager,
-        IUserCapabilityService capabilityService)
+        IUserCapabilityService capabilityService,
+        IHostEnvironment environment)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _capabilityService = capabilityService;
+        _environment = environment;
     }
 
     [HttpPost("register/customer")]
@@ -83,6 +86,44 @@ public class AccountController : ControllerBase
         return user is null
             ? Unauthorized()
             : Ok(new { user.Id, user.Email });
+    }
+
+    // TODO(Phase 9): replace with AdminAccess policy
+    [HttpPost("delivery-agents/{userId:int}/approve")]
+    public async Task<IActionResult> ApproveDeliveryAgent(int userId, CancellationToken ct = default)
+    {
+        if (!_environment.IsDevelopment())
+        {
+            return NotFound();
+        }
+
+        var result = await _capabilityService.ApproveDeliveryAgentAsync(userId, ct);
+
+        if (result.IsFailure)
+        {
+            return MapError(result.Error!);
+        }
+
+        return Ok(new { message = "approved", userId });
+    }
+
+    // TODO(Phase 9): replace with AdminAccess policy
+    [HttpPost("delivery-agents/{userId:int}/reject")]
+    public async Task<IActionResult> RejectDeliveryAgent(int userId, CancellationToken ct = default)
+    {
+        if (!_environment.IsDevelopment())
+        {
+            return NotFound();
+        }
+
+        var result = await _capabilityService.RejectDeliveryAgentAsync(userId, ct);
+
+        if (result.IsFailure)
+        {
+            return MapError(result.Error!);
+        }
+
+        return Ok(new { message = "rejected", userId });
     }
 
     private IActionResult MapError(ApplicationError error)

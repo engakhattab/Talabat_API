@@ -37,6 +37,8 @@ public sealed class Delivery : AuditableEntity
 
     public string? FailureReason { get; private set; }
 
+    public byte[] RowVersion { get; private set; } = [];
+
     private Delivery()
     {
         DeliveryAddress = new DeliveryAddressSnapshot(

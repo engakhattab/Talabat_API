@@ -1,3 +1,3 @@
 namespace Talabat.Application.DeliveryAgents.GetActiveDelivery;
 
-public sealed record GetActiveDeliveryQuery;
+public sealed record GetActiveDeliveryQuery(int AgentId);

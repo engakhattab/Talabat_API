@@ -103,7 +103,7 @@ public sealed class CheckoutHandler
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return UseCaseResult<CheckoutOutcome>.Success(
-                CheckoutResultMapper.ToOutcome(order.Id, checkoutSucceeded));
+                CheckoutResultMapper.ToOutcome(order.Id, checkoutSucceeded, cart.RestaurantId, deliveryAddress));
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {

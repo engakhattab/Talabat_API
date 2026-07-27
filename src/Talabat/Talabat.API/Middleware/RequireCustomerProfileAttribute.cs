@@ -4,27 +4,23 @@ using Talabat.Application.Abstractions;
 
 namespace Talabat.Customer.API.Middleware;
 
-public sealed class ProfileEnforcementFilter : IAsyncActionFilter
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public sealed class RequireCustomerProfileAttribute : Attribute, IAsyncActionFilter
 {
-    private readonly ICurrentUser _currentUser;
-
-    public ProfileEnforcementFilter(ICurrentUser currentUser)
-    {
-        _currentUser = currentUser;
-    }
-
     public async Task OnActionExecutionAsync(
         ActionExecutingContext context,
         ActionExecutionDelegate next)
     {
-        var method = context.HttpContext.Request.Method;
-        var path = context.HttpContext.Request.Path.Value ?? string.Empty;
+        var currentUser = context.HttpContext.RequestServices.GetRequiredService<ICurrentUser>();
 
-        if (_currentUser.IsAuthenticated && !_currentUser.UserId.HasValue)
+        if (!currentUser.IsAuthenticated)
         {
-            context.Result = new UnauthorizedResult();
+            await next();
             return;
         }
+
+        var method = context.HttpContext.Request.Method;
+        var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
         if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) &&
             path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase))
@@ -35,8 +31,7 @@ public sealed class ProfileEnforcementFilter : IAsyncActionFilter
 
         if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
             path.Equals("/api/me/profile", StringComparison.OrdinalIgnoreCase) &&
-            _currentUser.IsAuthenticated &&
-            !_currentUser.HasCustomerCapability)
+            !currentUser.HasCustomerCapability)
         {
             context.Result = new NotFoundObjectResult(new
             {
@@ -50,8 +45,7 @@ public sealed class ProfileEnforcementFilter : IAsyncActionFilter
         }
 
         if (path.StartsWith("/api/me/", StringComparison.OrdinalIgnoreCase) &&
-            _currentUser.IsAuthenticated &&
-            !_currentUser.HasCustomerCapability)
+            !currentUser.HasCustomerCapability)
         {
             context.Result = new ConflictObjectResult(new
             {

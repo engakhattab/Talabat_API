@@ -81,7 +81,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             var services = scope.ServiceProvider;
             var db = services.GetRequiredService<TalabatDbContext>();
-            db.Database.EnsureCreated();
+            db.Database.Migrate();
 
             IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
 

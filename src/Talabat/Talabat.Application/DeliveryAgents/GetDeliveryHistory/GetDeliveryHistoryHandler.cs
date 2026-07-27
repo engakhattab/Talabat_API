@@ -7,29 +7,18 @@ namespace Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 public sealed class GetDeliveryHistoryHandler
 {
     private readonly IDeliveryRepository _deliveryRepository;
-    private readonly ICurrentUser _currentUser;
 
     public GetDeliveryHistoryHandler(
-        IDeliveryRepository deliveryRepository,
-        ICurrentUser currentUser)
+        IDeliveryRepository deliveryRepository)
     {
         _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
-        _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
     public async Task<UseCaseResult<IReadOnlyCollection<DeliveryHistoryDto>>> Handle(
         GetDeliveryHistoryQuery query,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUser.IsAuthenticated || !_currentUser.HasDeliveryAgentCapability || _currentUser.AgentId is null)
-        {
-            return UseCaseResult<IReadOnlyCollection<DeliveryHistoryDto>>.Failure(
-                DomainExceptionMapper.OwnershipMismatch(
-                    ApplicationErrorCodes.AgentRequired,
-                    "Authenticated delivery agent required."));
-        }
-
-        var agentId = _currentUser.AgentId.Value;
+        var agentId = query.AgentId;
 
         var deliveries = await _deliveryRepository.GetAssignedToAgentAsync(agentId, cancellationToken);
 

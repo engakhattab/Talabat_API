@@ -5,6 +5,14 @@
 **Status**: Draft
 **Input**: User description: "Phase 10 — Authorization Strategy And Quality Gates: enforce scope and role policies on all protected endpoints, harden ownership so no endpoint derives caller identity from request fields, and establish quality gates (domain tests, delivery API tests, architecture tests, authorization integration tests, CI pipeline)."
 
+## Clarifications
+
+### Session 2026-07-27
+
+- Q: When delivery creation fails after a successful checkout (order already committed), how should the system respond? → A: Fire-and-forget — log the failure, return 200 checkout success to the client. Delivery creation failure must not roll back or fail the order.
+- Q: Should the Delivery aggregate gain an explicit concurrency protection mechanism to prevent double-claiming under concurrent load? → A: Add a `byte[] RowVersion` property to `Delivery` (mirroring `User.RowVersion`). EF maps it as an optimistic concurrency token. Double-claim yields 409 Conflict via `ConcurrencyConflictException`.
+- Q: How should the agent approval endpoints (approve/reject) be protected before an Admin policy exists? → A: Gate behind `IHostEnvironment.IsDevelopment()`. Returns 404 in non-Development. Add TODO comment for Phase 9 AdminAccess policy. No Admin role/policy created.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### Primary User Story
@@ -41,6 +49,9 @@ As a **platform operator**, I want automated quality gates (architecture tests, 
 - Delivery agent lifecycle commands (`OutForDelivery`, `ArrivedAtRestaurant`, `PickUpOrder`, `DeliverOrder`, `CancelDelivery`, `FailDelivery`) carry only `DeliveryId` in the request; agent identity is resolved from the token by the controller and injected into the command. Handlers load the delivery scoped to that agent and return not-found when it does not match.
 - The `UpdateLocation`, `GoOnline`, and `GoOffline` commands act on the caller's own agent record — agent identity is resolved from `ICurrentUser` in the controller or handler, never from request fields.
 - Architecture tests encode the `Microsoft.Extensions.Identity.Stores` reference in `Talabat.Domain` as an explicit allow — any new framework leak still fails the test.
+- Delivery creation after checkout is fire-and-forget: if delivery creation fails after the order is committed, the failure is logged and the checkout returns success. The order is never rolled back. Delivery creation is idempotent per order (unique index on `OrderId`).
+- Two agents concurrently claiming the same `PendingAssignment` delivery: the second `SaveChanges` throws a `ConcurrencyConflictException` (mapped from EF `DbUpdateConcurrencyException`) and returns `409 Conflict`. Exactly one agent succeeds.
+- Agent approval endpoints (`POST /account/delivery-agents/{userId}/approve` and `/reject`) are gated behind `IHostEnvironment.IsDevelopment()` and return `404` in non-Development environments until an `Admin` policy is introduced in a later phase.
 
 ## Requirements *(mandatory)*
 

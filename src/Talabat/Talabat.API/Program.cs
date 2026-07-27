@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Talabat.Application;
 using Talabat.Application.Abstractions;
 using Talabat.Customer.API.Auth;
@@ -13,12 +14,23 @@ using Talabat.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<ProfileEnforcementFilter>();
-});
+builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Components ??= new();
+        document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "JWT token from IdentityServer"
+        };
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -47,6 +59,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;   // keep "sub", "role", "scope" verbatim from the token
     var identityAuthority = builder.Configuration["Identity:Authority"]
         ?? "https://localhost:7237";
 
@@ -90,12 +103,13 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/openapi/v1.json", "Talabat Customer API v1");
         options.RoutePrefix = "swagger";
     });
-    app.UseCors("SpaCorsPolicy");
 }
 
 app.UseExceptionHandler(_ => {});
 
 app.UseHttpsRedirection();
+
+app.UseCors("SpaCorsPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();

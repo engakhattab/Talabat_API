@@ -16,6 +16,7 @@ using Talabat.Application.DeliveryAgents.AssignDelivery;
 using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
+using Talabat.Application.Deliveries.CreateForOrder;
 using Talabat.Application.DeliveryAgents.GoOffline;
 using Talabat.Application.DeliveryAgents.GoOnline;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
@@ -85,6 +86,9 @@ public static class DependencyInjection
         services.AddScoped<GetActiveDeliveryHandler>();
         services.AddScoped<GetPendingDeliveriesHandler>();
         services.AddScoped<GetDeliveryHistoryHandler>();
+
+        // Deliveries
+        services.AddScoped<CreateDeliveryForOrderHandler>();
 
         // Domain Services
         services.AddScoped<CheckoutDomainService>();

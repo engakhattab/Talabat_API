@@ -9,7 +9,7 @@ public sealed class TalabatDbContextFactory : IDesignTimeDbContextFactory<Talaba
     {
         var optionsBuilder = new DbContextOptionsBuilder<TalabatDbContext>();
         optionsBuilder.UseSqlServer(
-            "Server=DESKTOP-5IHGJ9F\\SQLEXPRESS;Database=Talabat;Trusted_Connection=True;TrustServerCertificate=True");
+            "Server=localhost;Database=Talabat;Trusted_Connection=True;TrustServerCertificate=True");
 
         return new TalabatDbContext(optionsBuilder.Options);
     }

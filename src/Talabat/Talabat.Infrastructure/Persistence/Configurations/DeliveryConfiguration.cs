@@ -35,6 +35,9 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.Property(delivery => delivery.RowVersion)
+            .IsRowVersion();
+
         builder.Property(delivery => delivery.AssignedAt)
             .HasColumnType("datetime2");
 

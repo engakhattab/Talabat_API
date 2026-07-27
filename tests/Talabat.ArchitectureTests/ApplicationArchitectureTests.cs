@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Talabat.ArchitectureTests;
@@ -6,6 +7,9 @@ namespace Talabat.ArchitectureTests;
 public sealed class ApplicationArchitectureTests
 {
     private static readonly Assembly ApplicationAssembly = typeof(Talabat.Application.Abstractions.ICurrentUser).Assembly;
+    private static readonly string ApplicationCsprojPath = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "src", "Talabat", "Talabat.Application", "Talabat.Application.csproj"));
 
     [Fact]
     public void Application_ShouldNotReference_EntityFrameworkCore()
@@ -68,6 +72,24 @@ public sealed class ApplicationArchitectureTests
 
         Assert.True(claimsTypes.Count == 0,
             $"Application contains Claims types: {string.Join(", ", claimsTypes)}");
+    }
+
+    [Fact]
+    public void Application_Csproj_ShouldNotHaveForbiddenPackageReferences()
+    {
+        var bannedPrefixes = new[] { "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "Duende" };
+
+        var doc = XDocument.Load(ApplicationCsprojPath);
+        var references = doc.Descendants("PackageReference")
+            .Select(r => (string?)r.Attribute("Include") ?? string.Empty)
+            .ToList();
+
+        var forbidden = references
+            .Where(r => bannedPrefixes.Any(b => r.StartsWith(b, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        Assert.True(forbidden.Count == 0,
+            $"Application csproj has forbidden PackageReferences: {string.Join(", ", forbidden)}");
     }
 
     private static IEnumerable<AssemblyName> GetReferencedAssemblyNames()

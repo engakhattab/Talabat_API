@@ -11,12 +11,14 @@ using Talabat.Application.Common.Results;
 using Talabat.Customer.API.Contracts.Cart;
 using Talabat.Customer.API.Contracts.Common;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/cart")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
 public sealed class CartController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;

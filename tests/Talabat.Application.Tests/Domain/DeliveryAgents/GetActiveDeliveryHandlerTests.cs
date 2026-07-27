@@ -1,4 +1,3 @@
-using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.Tests.TestDoubles;
@@ -18,9 +17,9 @@ public sealed class GetActiveDeliveryHandlerTests
     {
         var agent = CreateAvailableAgent(10);
         var delivery = CreateAssignedDelivery(1, 10);
-        var handler = CreateHandler(agent, delivery);
+        var handler = CreateHandler(delivery);
 
-        var result = await handler.Handle(new GetActiveDeliveryQuery());
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
@@ -33,29 +32,12 @@ public sealed class GetActiveDeliveryHandlerTests
     public async Task Handle_GetActiveDelivery_WhenNoActiveDelivery_ShouldReturnNotFound()
     {
         var agent = CreateAvailableAgent(10);
-        var handler = CreateHandler(agent);
+        var handler = CreateHandler();
 
-        var result = await handler.Handle(new GetActiveDeliveryQuery());
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
-    }
-
-    [Fact]
-    public async Task Handle_GetActiveDelivery_Unauthenticated_ShouldReturnOwnershipMismatch()
-    {
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = false,
-            HasDeliveryAgentCapability = false,
-            AgentId = null
-        };
-        var handler = CreateHandlerWithCurrentUser(currentUser);
-
-        var result = await handler.Handle(new GetActiveDeliveryQuery());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(ApplicationErrorCodes.AgentRequired, result.Error?.Code);
     }
 
     [Fact]
@@ -63,9 +45,9 @@ public sealed class GetActiveDeliveryHandlerTests
     {
         var agent = CreateAvailableAgent(10);
         var delivery = CreateAssignedDelivery(1, 99);
-        var handler = CreateHandler(agent, delivery);
+        var handler = CreateHandler(delivery);
 
-        var result = await handler.Handle(new GetActiveDeliveryQuery());
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
@@ -96,7 +78,7 @@ public sealed class GetActiveDeliveryHandlerTests
         return delivery;
     }
 
-    private static GetActiveDeliveryHandler CreateHandler(User agent, params Delivery[] deliveries)
+    private static GetActiveDeliveryHandler CreateHandler(params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
         foreach (var delivery in deliveries)
@@ -104,21 +86,6 @@ public sealed class GetActiveDeliveryHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
-        var currentUser = new FakeCurrentUser
-        {
-            IsAuthenticated = true,
-            UserId = agent.Id,
-            HasDeliveryAgentCapability = true,
-            AgentId = agent.Id
-        };
-
-        return new GetActiveDeliveryHandler(deliveryRepository, currentUser);
-    }
-
-    private static GetActiveDeliveryHandler CreateHandlerWithCurrentUser(ICurrentUser currentUser)
-    {
-        return new GetActiveDeliveryHandler(
-            new FakeDeliveryRepository(),
-            currentUser);
+        return new GetActiveDeliveryHandler(deliveryRepository);
     }
 }

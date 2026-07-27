@@ -107,7 +107,7 @@ public sealed class UserCapabilityService : IUserCapabilityService
             var transaction = await EnsureTransactionAsync(ct);
 
             var user = User.Register(email, email, fullName);
-            user.PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
+            user.SetPhoneNumber(phoneNumber);
             user.SubmitDeliveryAgentApplication(vehicleType);
 
             var createResult = await _userManager.CreateAsync(user, password);

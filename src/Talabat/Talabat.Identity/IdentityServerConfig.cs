@@ -27,12 +27,12 @@ public static class IdentityServerConfig
         new ApiResource("talabat.customer.api", "Talabat Customer Business API")
         {
             Scopes = { "customer.api" },
-            UserClaims = { JwtClaimTypes.Role, "role", "customer_id" }
+            UserClaims = { "role", "customer_id" }
         },
         new ApiResource("talabat.delivery.api", "Talabat Delivery Agent Business API")
         {
             Scopes = { "delivery.api" },
-            UserClaims = { JwtClaimTypes.Role, "role", "delivery_agent_id" }
+            UserClaims = { "role", "delivery_agent_id" }
         }
     };
 
@@ -46,7 +46,7 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4200/signin-callback", "https://oauth.pstmn.io/v1/callback" }, // dev only — remove before production
+            RedirectUris = { "http://localhost:4200/signin-callback", "https://oauth.pstmn.io/v1/browser-callback" },
             PostLogoutRedirectUris = { "http://localhost:4200/signout-callback" },
             AllowedCorsOrigins = { "http://localhost:4200" },
             AllowedScopes =
@@ -58,7 +58,9 @@ public static class IdentityServerConfig
                 IdentityServerConstants.StandardScopes.OfflineAccess
             },
             AllowOfflineAccess = true,
-            AccessTokenLifetime = 3600,
+            AccessTokenLifetime = 900,
+            UpdateAccessTokenClaimsOnRefresh = true,
+            RefreshTokenExpiration = TokenExpiration.Sliding,
             SlidingRefreshTokenLifetime = 1296000
         },
         new Client
@@ -68,7 +70,7 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4300/signin-callback", "https://oauth.pstmn.io/v1/callback" }, // dev only — remove before production
+            RedirectUris = { "http://localhost:4300/signin-callback", "https://oauth.pstmn.io/v1/browser-callback" },
             PostLogoutRedirectUris = { "http://localhost:4300/signout-callback" },
             AllowedCorsOrigins = { "http://localhost:4300" },
             AllowedScopes =
@@ -80,7 +82,9 @@ public static class IdentityServerConfig
                 IdentityServerConstants.StandardScopes.OfflineAccess
             },
             AllowOfflineAccess = true,
-            AccessTokenLifetime = 3600,
+            AccessTokenLifetime = 900,
+            UpdateAccessTokenClaimsOnRefresh = true,
+            RefreshTokenExpiration = TokenExpiration.Sliding,
             SlidingRefreshTokenLifetime = 1296000
         }
     };
