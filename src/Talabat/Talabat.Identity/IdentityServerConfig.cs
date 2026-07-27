@@ -46,9 +46,16 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4200/signin-callback", "https://oauth.pstmn.io/v1/callback", "https://oauth.pstmn.io/v1/browser-callback" }, // dev only — remove before production
+            RedirectUris =
+            {
+                "http://localhost:4200/signin-callback",
+                "https://oauth.pstmn.io/v1/callback",                    // dev only — remove before production
+                "https://oauth.pstmn.io/v1/browser-callback",            // dev only — remove before production
+                "https://localhost:7056/swagger/oauth2-redirect.html",   // dev only — remove before production
+                "http://localhost:5213/swagger/oauth2-redirect.html"    // dev only — remove before production
+            },
             PostLogoutRedirectUris = { "http://localhost:4200/signout-callback" },
-            AllowedCorsOrigins = { "http://localhost:4200" },
+            AllowedCorsOrigins = { "http://localhost:4200", "https://localhost:7056", "http://localhost:5213" },
             AllowedScopes =
             {
                 IdentityServerConstants.StandardScopes.OpenId,
@@ -70,9 +77,16 @@ public static class IdentityServerConfig
             AllowedGrantTypes = GrantTypes.Code,
             RequirePkce = true,
             RequireClientSecret = false,
-            RedirectUris = { "http://localhost:4300/signin-callback", "https://oauth.pstmn.io/v1/callback", "https://oauth.pstmn.io/v1/browser-callback" }, // dev only — remove before production
+            RedirectUris =
+            {
+                "http://localhost:4300/signin-callback",
+                "https://oauth.pstmn.io/v1/callback",                    // dev only — remove before production
+                "https://oauth.pstmn.io/v1/browser-callback",            // dev only — remove before production
+                "https://localhost:7225/swagger/oauth2-redirect.html",   // dev only — remove before production
+                "http://localhost:5092/swagger/oauth2-redirect.html"    // dev only — remove before production
+            },
             PostLogoutRedirectUris = { "http://localhost:4300/signout-callback" },
-            AllowedCorsOrigins = { "http://localhost:4300" },
+            AllowedCorsOrigins = { "http://localhost:4300", "https://localhost:7225", "http://localhost:5092" },
             AllowedScopes =
             {
                 IdentityServerConstants.StandardScopes.OpenId,

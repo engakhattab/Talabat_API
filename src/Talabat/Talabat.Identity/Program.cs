@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.OpenApi;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Identity;
 using Talabat.Infrastructure;
@@ -55,7 +54,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("SpaCorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://localhost:4300")
+        policy.WithOrigins(
+                "http://localhost:4200",
+                "http://localhost:4300",
+                "https://localhost:7056",
+                "http://localhost:5213",
+                "https://localhost:7225",
+                "http://localhost:5092")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -64,21 +69,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
-builder.Services.AddOpenApi(options =>
-{
-    options.AddDocumentTransformer((document, _, _) =>
-    {
-        document.Components ??= new();
-        document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
-        {
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            Description = "JWT token from IdentityServer"
-        };
-        return Task.CompletedTask;
-    });
-});
+builder.Services.AddOpenApi();
 
 var identityServerBuilder = builder.Services.AddIdentityServer(options =>
 {

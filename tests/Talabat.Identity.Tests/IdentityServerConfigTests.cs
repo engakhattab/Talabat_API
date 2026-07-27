@@ -96,4 +96,72 @@ public sealed class IdentityServerConfigTests : IAsyncLifetime
             Assert.Single(roleClaims);
         }
     }
+
+    [Fact]
+    public void Customer_client_has_swagger_oauth2_redirect_uri()
+    {
+        var client = IdentityServerConfig.Clients
+            .Single(c => c.ClientId == "talabat-customer-spa");
+
+        Assert.Contains(
+            "https://localhost:7056/swagger/oauth2-redirect.html",
+            client.RedirectUris);
+    }
+
+    [Fact]
+    public void Delivery_client_has_swagger_oauth2_redirect_uri()
+    {
+        var client = IdentityServerConfig.Clients
+            .Single(c => c.ClientId == "talabat-delivery-spa");
+
+        Assert.Contains(
+            "https://localhost:7225/swagger/oauth2-redirect.html",
+            client.RedirectUris);
+    }
+
+    [Fact]
+    public void Customer_client_allows_swagger_cors_origin()
+    {
+        var client = IdentityServerConfig.Clients
+            .Single(c => c.ClientId == "talabat-customer-spa");
+
+        Assert.Contains("https://localhost:7056", client.AllowedCorsOrigins);
+    }
+
+    [Fact]
+    public void Delivery_client_allows_swagger_cors_origin()
+    {
+        var client = IdentityServerConfig.Clients
+            .Single(c => c.ClientId == "talabat-delivery-spa");
+
+        Assert.Contains("https://localhost:7225", client.AllowedCorsOrigins);
+    }
+
+    [Fact]
+    public void Both_clients_require_pkce_and_no_client_secret()
+    {
+        foreach (var client in IdentityServerConfig.Clients)
+        {
+            Assert.True(client.RequirePkce);
+            Assert.False(client.RequireClientSecret);
+        }
+    }
+
+    [Fact]
+    public void Both_clients_still_have_postman_v1_callback_redirect_uri()
+    {
+        foreach (var client in IdentityServerConfig.Clients)
+        {
+            Assert.Contains("https://oauth.pstmn.io/v1/callback", client.RedirectUris);
+        }
+    }
+
+    [Fact]
+    public void Both_clients_still_have_postman_v1_browser_callback_redirect_uri()
+    {
+        foreach (var client in IdentityServerConfig.Clients)
+        {
+            Assert.Contains("https://oauth.pstmn.io/v1/browser-callback", client.RedirectUris);
+        }
+    }
 }

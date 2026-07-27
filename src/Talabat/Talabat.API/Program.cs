@@ -20,14 +20,52 @@ builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, _, _) =>
     {
-        document.Components ??= new();
-        document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+        document.Components.SecuritySchemes["oauth2"] = new OpenApiSecurityScheme
         {
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            Description = "JWT token from IdentityServer"
+            Type = SecuritySchemeType.OAuth2,
+            Description = "OIDC authorization code flow with PKCE against Talabat.Identity.",
+            Flows = new OpenApiOAuthFlows
+            {
+                AuthorizationCode = new OpenApiOAuthFlow
+                {
+                    AuthorizationUrl = new Uri("https://localhost:7237/connect/authorize"),
+                    TokenUrl         = new Uri("https://localhost:7237/connect/token"),
+                    Scopes = new Dictionary<string, string>
+                    {
+                        ["openid"]       = "Subject identifier",
+                        ["profile"]      = "Profile claims",
+                        ["roles"]        = "Role claims",
+                        ["customer.api"] = "Customer API access"
+                    }
+                }
+            }
         };
+
+        return Task.CompletedTask;
+    });
+
+    options.AddOperationTransformer((operation, context, _) =>
+    {
+        var metadata = context.Description.ActionDescriptor.EndpointMetadata;
+
+        var requiresAuth = metadata.OfType<IAuthorizeData>().Any()
+                        && !metadata.OfType<IAllowAnonymous>().Any();
+
+        if (requiresAuth)
+        {
+            operation.Security =
+            [
+                new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference("oauth2", context.Document)] =
+                        new List<string> { "customer.api" }
+                }
+            ];
+        }
+
         return Task.CompletedTask;
     });
 });
@@ -102,6 +140,11 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Talabat Customer API v1");
         options.RoutePrefix = "swagger";
+
+        options.OAuthClientId("talabat-customer-spa");
+        options.OAuthUsePkce();
+        options.OAuthScopes("openid", "profile", "roles", "customer.api");
+        options.OAuthAppName("Talabat Customer API — Swagger");
     });
 }
 
