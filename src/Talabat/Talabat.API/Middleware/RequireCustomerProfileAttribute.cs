@@ -25,13 +25,13 @@ public sealed class RequireCustomerProfileAttribute(bool notFoundOnMissing = fal
 
         var rfcSection = notFoundOnMissing ? "15.5.5" : "15.5.10";
 
-        context.Result = new ObjectResult(new
+        context.Result = new ObjectResult(new ProblemDetails
         {
-            type = $"https://tools.ietf.org/html/rfc9110#section-{rfcSection}",
-            title = notFoundOnMissing ? "Not Found" : "Conflict",
-            status,
-            detail = "A customer profile has not been created yet. Use POST /api/me/profile to create one.",
-            extensions = new { errorCode = "ProfileNotCreated" }
+            Type = $"https://tools.ietf.org/html/rfc9110#section-{rfcSection}",
+            Title = notFoundOnMissing ? "Not Found" : "Conflict",
+            Status = status,
+            Detail = "A customer profile has not been created yet. Use POST /api/me/profile to create one.",
+            Extensions = { ["errorCode"] = "ProfileNotCreated" }
         }) { StatusCode = status };
     }
 }

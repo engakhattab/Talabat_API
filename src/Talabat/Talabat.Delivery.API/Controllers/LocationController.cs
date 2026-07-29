@@ -28,7 +28,7 @@ public sealed class LocationController : ControllerBase
 
     [HttpPut(Name = "UpdateLocation")]
     [Consumes("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -45,6 +45,6 @@ public sealed class LocationController : ControllerBase
             new UpdateLocationCommand(agentId, request.Latitude, request.Longitude),
             cancellationToken);
 
-        return result.ToActionResult(_ => Ok());
+        return result.ToActionResult(_ => NoContent());
     }
 }

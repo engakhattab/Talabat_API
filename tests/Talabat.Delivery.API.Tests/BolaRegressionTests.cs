@@ -33,6 +33,6 @@ public sealed class BolaRegressionTests : IClassFixture<CustomWebApplicationFact
             AgentId = _factory.AgentBUserId
         });
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 }

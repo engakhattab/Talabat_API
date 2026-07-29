@@ -30,7 +30,7 @@ public sealed class StatusController : ControllerBase
     }
 
     [HttpPut("online", Name = "GoOnline")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -44,11 +44,11 @@ public sealed class StatusController : ControllerBase
             new GoOnlineCommand(agentId),
             cancellationToken);
 
-        return result.ToActionResult(_ => Ok());
+        return result.ToActionResult(_ => NoContent());
     }
 
     [HttpPut("offline", Name = "GoOffline")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -62,6 +62,6 @@ public sealed class StatusController : ControllerBase
             new GoOfflineCommand(agentId),
             cancellationToken);
 
-        return result.ToActionResult(_ => Ok());
+        return result.ToActionResult(_ => NoContent());
     }
 }

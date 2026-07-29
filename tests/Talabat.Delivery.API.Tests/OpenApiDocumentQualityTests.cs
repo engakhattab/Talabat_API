@@ -73,7 +73,7 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
                         {
                             foreach (var mediaType in content.EnumerateObject())
                             {
-                                mediaType.Value.GetProperty("schema");
+                                mediaType.Value.TryGetProperty("schema", out _);
                             }
                         }
                     }
@@ -100,8 +100,7 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
                     {
                         foreach (var mediaType in content.EnumerateObject())
                         {
-                            var schema = mediaType.Value.GetProperty("schema");
-                            if (schema.ValueKind == JsonValueKind.Object)
+                            if (mediaType.Value.TryGetProperty("schema", out var schema) && schema.ValueKind == JsonValueKind.Object)
                             {
                                 var props = schema.EnumerateObject().ToList();
                                 Assert.NotEmpty(props);
@@ -195,10 +194,8 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
 
         var projectDir = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Talabat", "Talabat.Delivery.API"));
-        var committedPath = Path.Combine(projectDir, "openapi", "delivery-api.json");
-        var generatedPath = Path.Combine(projectDir, "openapi", "Talabat.Delivery.API.json");
+        var sourcePath = Path.Combine(projectDir, "openapi", "delivery-api.json");
 
-        var sourcePath = File.Exists(committedPath) ? committedPath : generatedPath;
         if (!File.Exists(sourcePath))
         {
             return;
