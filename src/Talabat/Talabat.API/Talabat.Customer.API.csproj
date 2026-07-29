@@ -8,7 +8,7 @@
     <RootNamespace>Talabat.Customer.API</RootNamespace>
     <AssemblyTitle>Talabat.Customer.API</AssemblyTitle>
     <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>
-    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,11 @@
     "title": "Talabat.Delivery.API | v1",
     "version": "1.0.0"
   },
+  "servers": [
+    {
+      "url": "http://localhost/"
+    }
+  ],
   "paths": {
     "/api/agent/deliveries/active": {
       "get": {
@@ -762,8 +767,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "204": {
+            "description": "No Content",
             "content": {
               "application/json": { }
             }
@@ -835,8 +840,8 @@
         ],
         "operationId": "GoOnline",
         "responses": {
-          "200": {
-            "description": "OK",
+          "204": {
+            "description": "No Content",
             "content": {
               "application/json": { }
             }
@@ -898,8 +903,8 @@
         ],
         "operationId": "GoOffline",
         "responses": {
-          "200": {
-            "description": "OK",
+          "204": {
+            "description": "No Content",
             "content": {
               "application/json": { }
             }
