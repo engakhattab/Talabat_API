@@ -10,7 +10,9 @@ namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/status")]
+[Tags("AgentStatus")]
 [Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
+[Produces("application/json")]
 public sealed class StatusController : ControllerBase
 {
     private readonly GoOnlineHandler _goOnlineHandler;
@@ -27,7 +29,12 @@ public sealed class StatusController : ControllerBase
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
-    [HttpPut("online")]
+    [HttpPut("online", Name = "GoOnline")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GoOnline(CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
@@ -40,7 +47,12 @@ public sealed class StatusController : ControllerBase
         return result.ToActionResult(_ => Ok());
     }
 
-    [HttpPut("offline")]
+    [HttpPut("offline", Name = "GoOffline")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GoOffline(CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))

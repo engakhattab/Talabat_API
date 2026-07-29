@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Talabat.Domain.Aggregates.DeliveryManagement;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DeliveryStatus
 {
     PendingAssignment = 1,

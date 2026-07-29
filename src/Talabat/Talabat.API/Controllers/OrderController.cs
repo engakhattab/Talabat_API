@@ -14,8 +14,10 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/orders")]
+[Tags("Orders")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 [RequireCustomerProfile]
+[Produces("application/json")]
 public sealed class OrderController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -32,7 +34,11 @@ public sealed class OrderController : ControllerBase
         _getOrderDetailsHandler = getOrderDetailsHandler;
     }
 
-    [HttpGet]
+    [HttpGet(Name = "GetOrders")]
+    [ProducesResponseType<OrderListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetOrders(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -55,7 +61,12 @@ public sealed class OrderController : ControllerBase
         });
     }
 
-    [HttpGet("{orderId:int}")]
+    [HttpGet("{orderId:int}", Name = "GetOrderDetails")]
+    [ProducesResponseType<OrderDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetOrderDetails(
         int orderId,
         CancellationToken cancellationToken)

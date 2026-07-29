@@ -12,7 +12,9 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/checkout")]
+[Tags("Checkout")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[Produces("application/json")]
 public sealed class CheckoutController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -32,7 +34,15 @@ public sealed class CheckoutController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost]
+    [HttpPost(Name = "Checkout")]
+    [Consumes("application/json")]
+    [ProducesResponseType<CheckoutSuccessResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<CheckoutUnavailableResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Checkout(
         [FromBody] CheckoutRequest request,
         CancellationToken cancellationToken)

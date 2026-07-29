@@ -9,6 +9,8 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/catalog")]
+[Tags("Catalog")]
+[Produces("application/json")]
 public sealed class CatalogController : ControllerBase
 {
     private readonly BrowseRestaurantsHandler _browseRestaurantsHandler;
@@ -22,7 +24,8 @@ public sealed class CatalogController : ControllerBase
         _getRestaurantMenuHandler = getRestaurantMenuHandler;
     }
 
-    [HttpGet("restaurants")]
+    [HttpGet("restaurants", Name = "GetRestaurants")]
+    [ProducesResponseType<RestaurantListResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRestaurants(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -41,7 +44,9 @@ public sealed class CatalogController : ControllerBase
         });
     }
 
-    [HttpGet("restaurants/{restaurantId:int}/menu")]
+    [HttpGet("restaurants/{restaurantId:int}/menu", Name = "GetRestaurantMenu")]
+    [ProducesResponseType<MenuResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMenu(
         int restaurantId,
         CancellationToken cancellationToken)

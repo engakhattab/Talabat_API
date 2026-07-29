@@ -12,13 +12,16 @@ using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
+using Talabat.Delivery.API.Contracts.Deliveries;
 using Talabat.Delivery.API.Extensions;
 
 namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/deliveries")]
+[Tags("Deliveries")]
 [Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
+[Produces("application/json")]
 public sealed class DeliveriesController : ControllerBase
 {
     private readonly OutForDeliveryHandler _outForDeliveryHandler;
@@ -61,7 +64,12 @@ public sealed class DeliveriesController : ControllerBase
 
     // ── Query endpoints ────────────────────────────────────────────
 
-    [HttpGet("active")]
+    [HttpGet("active", Name = "GetActiveDelivery")]
+    [ProducesResponseType<ActiveDeliveryResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetActiveDelivery(CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
@@ -71,10 +79,13 @@ public sealed class DeliveriesController : ControllerBase
             new GetActiveDeliveryQuery(agentId),
             cancellationToken);
 
-        return result.ToActionResult(dto => Ok(dto));
+        return result.ToActionResult(dto => Ok(MapToActiveDelivery(dto)));
     }
 
-    [HttpGet("pending")]
+    [HttpGet("pending", Name = "GetPendingDeliveries")]
+    [ProducesResponseType<IReadOnlyCollection<PendingDeliveryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetPendingDeliveries(CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
@@ -84,10 +95,14 @@ public sealed class DeliveriesController : ControllerBase
             new GetPendingDeliveriesQuery(agentId),
             cancellationToken);
 
-        return result.ToActionResult(dtos => Ok(dtos));
+        return result.ToActionResult(dtos =>
+            Ok(dtos.Select(MapToPendingDelivery).ToList()));
     }
 
-    [HttpGet("history")]
+    [HttpGet("history", Name = "GetDeliveryHistory")]
+    [ProducesResponseType<IReadOnlyCollection<DeliveryHistoryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetDeliveryHistory(CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
@@ -97,12 +112,18 @@ public sealed class DeliveriesController : ControllerBase
             new GetDeliveryHistoryQuery(agentId),
             cancellationToken);
 
-        return result.ToActionResult(dtos => Ok(dtos));
+        return result.ToActionResult(dtos =>
+            Ok(dtos.Select(MapToDeliveryHistory).ToList()));
     }
 
     // ── Assignment endpoint ─────────────────────────────────────────
 
-    [HttpPost("{deliveryId:int}/assign")]
+    [HttpPost("{deliveryId:int}/assign", Name = "AssignDelivery")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AssignDelivery(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -114,12 +135,17 @@ public sealed class DeliveriesController : ControllerBase
             new AssignDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
     // ── Lifecycle endpoints ─────────────────────────────────────────
 
-    [HttpPost("{deliveryId:int}/out-for-delivery")]
+    [HttpPost("{deliveryId:int}/out-for-delivery", Name = "OutForDelivery")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> OutForDelivery(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -131,10 +157,15 @@ public sealed class DeliveriesController : ControllerBase
             new OutForDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/arrived-at-restaurant")]
+    [HttpPost("{deliveryId:int}/arrived-at-restaurant", Name = "ArrivedAtRestaurant")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ArrivedAtRestaurant(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -146,10 +177,15 @@ public sealed class DeliveriesController : ControllerBase
             new ArrivedAtRestaurantCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/picked-up")]
+    [HttpPost("{deliveryId:int}/picked-up", Name = "PickUpOrder")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> PickUpOrder(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -161,10 +197,15 @@ public sealed class DeliveriesController : ControllerBase
             new PickUpOrderCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/delivered")]
+    [HttpPost("{deliveryId:int}/delivered", Name = "DeliverOrder")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeliverOrder(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -176,10 +217,15 @@ public sealed class DeliveriesController : ControllerBase
             new DeliverOrderCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/cancel")]
+    [HttpPost("{deliveryId:int}/cancel", Name = "CancelDelivery")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CancelDelivery(
         int deliveryId,
         CancellationToken cancellationToken)
@@ -191,10 +237,16 @@ public sealed class DeliveriesController : ControllerBase
             new CancelDeliveryCommand(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/fail")]
+    [HttpPost("{deliveryId:int}/fail", Name = "FailDelivery")]
+    [Consumes("application/json")]
+    [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> FailDelivery(
         int deliveryId,
         [FromBody] FailDeliveryBody body,
@@ -207,8 +259,22 @@ public sealed class DeliveriesController : ControllerBase
             new FailDeliveryCommand(deliveryId, agentId, body.Reason),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(id));
+        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
+
+    // ── Mapping ────────────────────────────────────────────────────
+
+    private static ActiveDeliveryResponse MapToActiveDelivery(ActiveDeliveryDto dto) =>
+        new(dto.Id, dto.OrderId, dto.CustomerId, dto.RestaurantId,
+            dto.Status, dto.Street, dto.City, dto.BuildingNumber, dto.Floor, dto.AssignedAt);
+
+    private static PendingDeliveryResponse MapToPendingDelivery(PendingDeliveryDto dto) =>
+        new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.City, dto.CreatedAt);
+
+    private static DeliveryHistoryResponse MapToDeliveryHistory(DeliveryHistoryDto dto) =>
+        new(dto.Id, dto.OrderId, dto.CustomerId, dto.RestaurantId,
+            dto.Status, dto.Street, dto.City, dto.BuildingNumber, dto.Floor,
+            dto.AssignedAt, dto.DeliveredAt);
 
     // ── Request bodies ─────────────────────────────────────────────
 

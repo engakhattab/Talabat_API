@@ -7,6 +7,7 @@ using Talabat.Application.Customers.AddAddress;
 using Talabat.Application.Customers.RemoveAddress;
 using Talabat.Application.Customers.SetDefaultAddress;
 using Talabat.Customer.API.Contracts.Address;
+using Talabat.Customer.API.Contracts.Customer;
 using Talabat.Customer.API.Extensions;
 using Talabat.Customer.API.Middleware;
 
@@ -14,8 +15,10 @@ namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/addresses")]
+[Tags("Addresses")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
 [RequireCustomerProfile]
+[Produces("application/json")]
 public sealed class AddressController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -35,7 +38,13 @@ public sealed class AddressController : ControllerBase
         _setDefaultAddressHandler = setDefaultAddressHandler;
     }
 
-    [HttpPost]
+    [HttpPost(Name = "AddAddress")]
+    [Consumes("application/json")]
+    [ProducesResponseType<AddressResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddAddress(
         [FromBody] AddAddressRequest request,
         CancellationToken cancellationToken)
@@ -67,7 +76,12 @@ public sealed class AddressController : ControllerBase
         });
     }
 
-    [HttpDelete("{addressId:int}")]
+    [HttpDelete("{addressId:int}", Name = "RemoveAddress")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RemoveAddress(
         int addressId,
         CancellationToken cancellationToken)
@@ -81,7 +95,12 @@ public sealed class AddressController : ControllerBase
         return result.ToActionResult(_ => NoContent());
     }
 
-    [HttpPut("{addressId:int}/default")]
+    [HttpPut("{addressId:int}/default", Name = "SetDefaultAddress")]
+    [ProducesResponseType<ProfileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SetDefaultAddress(
         int addressId,
         CancellationToken cancellationToken)
@@ -94,10 +113,10 @@ public sealed class AddressController : ControllerBase
 
         return result.ToActionResult(profile =>
         {
-            var addresses = profile.Addresses.Select(a => new Contracts.Customer.AddressDto(
+            var addresses = profile.Addresses.Select(a => new AddressDto(
                 a.Id, a.Street, a.City, a.BuildingNumber, a.Floor, a.IsDefault)).ToList();
 
-            return Ok(new Contracts.Customer.ProfileResponse(
+            return Ok(new ProfileResponse(
                 profile.Id,
                 profile.FullName,
                 profile.Age,

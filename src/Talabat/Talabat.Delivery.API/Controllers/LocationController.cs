@@ -10,7 +10,9 @@ namespace Talabat.Delivery.API.Controllers;
 
 [ApiController]
 [Route("api/agent/location")]
+[Tags("AgentLocation")]
 [Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
+[Produces("application/json")]
 public sealed class LocationController : ControllerBase
 {
     private readonly UpdateLocationHandler _updateLocationHandler;
@@ -24,7 +26,14 @@ public sealed class LocationController : ControllerBase
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
     }
 
-    [HttpPut]
+    [HttpPut(Name = "UpdateLocation")]
+    [Consumes("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateLocation(
         [FromBody] UpdateLocationRequest request,
         CancellationToken cancellationToken)
