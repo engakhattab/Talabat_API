@@ -1,14 +1,9 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.0.4",
   "info": {
     "title": "Talabat.Customer.API | v1",
     "version": "1.0.0"
   },
-  "servers": [
-    {
-      "url": "http://localhost/"
-    }
-  ],
   "paths": {
     "/api/me/addresses": {
       "post": {
@@ -649,10 +644,6 @@
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
               "format": "int32",
               "default": 1
             }
@@ -662,10 +653,6 @@
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
               "format": "int32",
               "default": 20
             }
@@ -1058,10 +1045,6 @@
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
               "format": "int32",
               "default": 1
             }
@@ -1071,10 +1054,6 @@
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
               "format": "int32",
               "default": 20
             }
@@ -1233,10 +1212,8 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "makeDefault": {
             "type": "boolean"
@@ -1253,26 +1230,14 @@
         "properties": {
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "productId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "quantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1290,10 +1255,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "street": {
@@ -1306,10 +1267,8 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "isDefault": {
             "type": "boolean"
@@ -1329,10 +1288,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "street": {
@@ -1345,10 +1300,8 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "isDefault": {
             "type": "boolean"
@@ -1367,10 +1320,6 @@
         "properties": {
           "productId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "productName": {
@@ -1381,10 +1330,6 @@
           },
           "quantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "lineTotal": {
@@ -1405,29 +1350,17 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "status": {
             "type": "string"
@@ -1451,10 +1384,6 @@
         "properties": {
           "deliveryAddressId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1467,10 +1396,6 @@
         "properties": {
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "status": {
@@ -1487,13 +1412,11 @@
             "default": "unavailable"
           },
           "unavailableItems": {
-            "type": [
-              "null",
-              "array"
-            ],
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/UnavailableItemDto"
-            }
+            },
+            "nullable": true
           }
         }
       },
@@ -1510,17 +1433,11 @@
           },
           "age": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "phoneNumber": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1536,10 +1453,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "name": {
@@ -1566,10 +1479,6 @@
         "properties": {
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantName": {
@@ -1591,10 +1500,6 @@
         "properties": {
           "amount": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
             "format": "double"
           },
           "currency": {
@@ -1622,10 +1527,8 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1643,26 +1546,14 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "deliveryAddress": {
@@ -1700,10 +1591,6 @@
           },
           "quantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "lineTotal": {
@@ -1728,26 +1615,14 @@
           },
           "page": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "pageSize": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "totalCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1764,18 +1639,10 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "total": {
@@ -1787,10 +1654,6 @@
           },
           "itemCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1799,37 +1662,25 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "title": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "status": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "detail": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "instance": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1845,10 +1696,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "fullName": {
@@ -1856,17 +1703,11 @@
           },
           "age": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "phoneNumber": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "addresses": {
             "type": "array",
@@ -1893,26 +1734,14 @@
           },
           "page": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "pageSize": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "totalCount": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1929,10 +1758,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "name": {
@@ -1942,10 +1767,8 @@
             "type": "string"
           },
           "imageUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "isActive": {
             "type": "boolean"
@@ -1962,10 +1785,6 @@
         "properties": {
           "productId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "productName": {
@@ -1984,10 +1803,6 @@
         "properties": {
           "quantity": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -2005,17 +1820,11 @@
           },
           "age": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "phoneNumber": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           }
         }
       }

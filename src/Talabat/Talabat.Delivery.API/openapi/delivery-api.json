@@ -1,14 +1,9 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.0.4",
   "info": {
     "title": "Talabat.Delivery.API | v1",
     "version": "1.0.0"
   },
-  "servers": [
-    {
-      "url": "http://localhost/"
-    }
-  ],
   "paths": {
     "/api/agent/deliveries/active": {
       "get": {
@@ -979,34 +974,18 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "status": {
@@ -1022,17 +1001,13 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "assignedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -1054,34 +1029,18 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "status": {
@@ -1097,24 +1056,18 @@
             "type": "string"
           },
           "floor": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "assignedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "deliveredAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -1126,10 +1079,6 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           }
         }
@@ -1170,26 +1119,14 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
             "format": "int32"
           },
           "status": {
@@ -1208,37 +1145,25 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "title": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "status": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "detail": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           },
           "instance": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1251,18 +1176,10 @@
         "properties": {
           "latitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
             "format": "double"
           },
           "longitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
             "format": "double"
           }
         }

@@ -21,6 +21,8 @@ builder.Services.AddControllers()
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi(options =>
 {
+    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+
     options.AddDocumentTransformer((document, _, _) =>
     {
         document.Components ??= new OpenApiComponents();
