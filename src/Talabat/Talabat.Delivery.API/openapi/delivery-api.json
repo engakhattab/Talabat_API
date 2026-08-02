@@ -974,18 +974,22 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "status": {
@@ -1029,18 +1033,22 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "status": {
@@ -1079,6 +1087,7 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -1119,14 +1128,17 @@
         "properties": {
           "id": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "orderId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32"
           },
           "status": {
@@ -1154,8 +1166,10 @@
           },
           "status": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
             "format": "int32",
-            "nullable": true
+            "nullable": true,
+            "x-nullable": true
           },
           "detail": {
             "type": "string",
@@ -1176,10 +1190,12 @@
         "properties": {
           "latitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": "number",
             "format": "double"
           },
           "longitude": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": "number",
             "format": "double"
           }
         }

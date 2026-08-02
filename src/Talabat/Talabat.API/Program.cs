@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,6 +28,8 @@ builder.Services.AddOpenApi(options =>
 
     options.AddDocumentTransformer((document, _, _) =>
     {
+        new OpenApiWalker(new NumericSchemaTypeOpenApiVisitor()).Walk(document);
+
         document.Components ??= new OpenApiComponents();
         document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
 
@@ -170,3 +173,39 @@ app.MapHealthChecks("/health");
 app.Run();
 
 public partial class Program { }
+
+internal sealed class NumericSchemaTypeOpenApiVisitor : OpenApiVisitorBase
+{
+    public override void Visit(IOpenApiSchema schema)
+    {
+        if (schema is OpenApiSchema mutableSchema)
+        {
+            switch (mutableSchema.Format)
+            {
+                case "int32":
+                case "int64":
+                    ApplyNumericType(mutableSchema, JsonSchemaType.Integer);
+                    break;
+                case "float":
+                case "double":
+                case "decimal":
+                    ApplyNumericType(mutableSchema, JsonSchemaType.Number);
+                    break;
+            }
+        }
+
+        base.Visit(schema);
+    }
+
+    private static void ApplyNumericType(OpenApiSchema schema, JsonSchemaType type)
+    {
+        var isNullable = schema.Type?.HasFlag(JsonSchemaType.Null) == true;
+        schema.Type = type;
+
+        if (isNullable)
+        {
+            schema.Extensions ??= new Dictionary<string, IOpenApiExtension>();
+            schema.Extensions[OpenApiConstants.NullableExtension] = new JsonNodeExtension(JsonValue.Create(true)!);
+        }
+    }
+}

@@ -188,6 +188,13 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
     }
 
     [Fact]
+    public async Task NumericSchemas_DeclareOpenApiTypes()
+    {
+        var doc = await FetchDocument();
+        AssertNumericSchemasDeclareTypes(doc.RootElement, "$");
+    }
+
+    [Fact]
     public async Task CommittedOpenApi_MatchesRuntimeDocument()
     {
         var runtimeJson = await _client.GetStringAsync("/openapi/v1.json");
@@ -215,5 +222,31 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
     {
         var json = await _client.GetStringAsync("/openapi/v1.json");
         return JsonDocument.Parse(json);
+    }
+
+    private static void AssertNumericSchemasDeclareTypes(JsonElement element, string path)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("format", out var format) &&
+                format.GetString() is "int32" or "int64" or "float" or "double" or "decimal")
+            {
+                var expectedType = format.GetString() is "int32" or "int64" ? "integer" : "number";
+                Assert.True(element.TryGetProperty("type", out var type), $"Numeric schema at {path} lacks a type.");
+                Assert.Equal(expectedType, type.GetString());
+            }
+
+            foreach (var property in element.EnumerateObject())
+            {
+                AssertNumericSchemasDeclareTypes(property.Value, $"{path}.{property.Name}");
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                AssertNumericSchemasDeclareTypes(item, $"{path}[]");
+            }
+        }
     }
 }
