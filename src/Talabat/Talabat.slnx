@@ -1,5 +1,4 @@
 <Solution>
-  <Folder Name="/Talabat.API/" />
   <Project Path="../../tests/Talabat.Application.Tests/Talabat.Application.Tests.csproj" />
   <Project Path="../../tests/Talabat.ArchitectureTests/Talabat.ArchitectureTests.csproj" />
   <Project Path="../../tests/Talabat.Customer.API.Tests/Talabat.Customer.API.Tests.csproj" />
