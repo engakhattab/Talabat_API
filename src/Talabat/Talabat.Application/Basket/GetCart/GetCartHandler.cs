@@ -31,15 +31,9 @@ public sealed class GetCartHandler
             query.CustomerId,
             cancellationToken);
 
-        if (cart is null)
+        if (cart is null || cart.IsExpired(_clock.UtcNow))
         {
             return UseCaseResult<CartDetails>.Success(CartDetails.Empty(query.CustomerId));
-        }
-
-        if (cart.IsExpired(_clock.UtcNow))
-        {
-            return UseCaseResult<CartDetails>.Failure(
-                DomainExceptionMapper.Map(new CartExpiredException()));
         }
 
         var restaurant = await _restaurantRepository.GetByIdWithProductsAsync(

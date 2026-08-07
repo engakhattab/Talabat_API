@@ -1,6 +1,7 @@
 using Talabat.Application.Basket.AddItem;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Tests.TestDoubles;
+using Talabat.Domain.Aggregates.Basket;
 
 namespace Talabat.Application.Tests.Basket.AddItem;
 
@@ -50,6 +51,52 @@ public sealed class AddCartItemHandlerTests
 
         Assert.True(result.IsFailure);
         Assert.Equal(ApplicationErrorCodes.InvalidQuantity, result.Error?.Code);
+    }
+
+    [Fact]
+    public async Task Handle_AddsItemToExistingActiveCart()
+    {
+        var restaurant = TestData.CreateRestaurant();
+        var cart = TestData.CreateCart(restaurant: restaurant);
+        var carts = new FakeCartRepository { CartToReturn = cart };
+        carts.Carts.Add(cart);
+        var restaurants = new FakeRestaurantRepository();
+        restaurants.Restaurants.Add(restaurant);
+        var unitOfWork = new FakeUnitOfWork(carts);
+        var handler = CreateHandler(carts, restaurants, unitOfWork);
+
+        var result = await handler.Handle(new AddCartItemCommand(1, 1, 11, 1));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, carts.AddCount);
+        Assert.Equal(1, carts.UpdateCount);
+        Assert.Equal(1, unitOfWork.SaveChangesCount);
+        Assert.Equal(3, Assert.Single(cart.Items).Quantity);
+    }
+
+    [Fact]
+    public async Task Handle_StartsNewActiveCartWhenExistingCartExpired()
+    {
+        var restaurant = TestData.CreateRestaurant();
+        var expiredCart = TestData.CreateCart(
+            restaurant: restaurant,
+            createdAt: TestData.UtcNow.AddHours(-2));
+        var carts = new FakeCartRepository { CartToReturn = expiredCart };
+        carts.Carts.Add(expiredCart);
+        var restaurants = new FakeRestaurantRepository();
+        restaurants.Restaurants.Add(restaurant);
+        var unitOfWork = new FakeUnitOfWork(carts);
+        var handler = CreateHandler(carts, restaurants, unitOfWork);
+
+        var result = await handler.Handle(new AddCartItemCommand(1, 1, 11, 2));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(CartStatus.Expired, expiredCart.Status);
+        Assert.Equal(1, carts.AddCount);
+        Assert.Equal(1, carts.UpdateCount);
+        Assert.Equal(2, carts.Carts.Count);
+        Assert.NotEqual(expiredCart.Id, result.Value.Id);
+        Assert.Single(carts.Carts.Single(cart => cart.Status == CartStatus.Active).Items);
     }
 
     [Fact]

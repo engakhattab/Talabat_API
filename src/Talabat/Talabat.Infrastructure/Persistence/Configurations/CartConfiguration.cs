@@ -12,7 +12,7 @@ internal sealed class CartConfiguration : IEntityTypeConfiguration<Cart>
     {
         builder.ToTable(
             "Carts",
-            table => table.HasCheckConstraint("CK_Carts_Status", "[Status] IN (1, 2, 3)"));
+            table => table.HasCheckConstraint("CK_Carts_Status", "[Status] IN (1, 2, 3, 4)"));
 
         builder.ConfigureIdentityKey();
         builder.ConfigureAuditableEntity();

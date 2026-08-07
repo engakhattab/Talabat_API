@@ -1,0 +1,55 @@
+Proceed only with final migration and manual regression verification for the expired-cart fix.
+
+Do NOT fix the unrelated pre-existing test failures you identified.
+They are outside the scope of this task.
+
+Required next steps:
+
+1. Confirm the new `AddCartExpiredStatus` EF Core migration is valid and is the only migration introduced by this fix.
+
+2. Apply the migration to the local development database used by the running Customer API.
+
+3. Confirm the CK_Carts_Status constraint now accepts the intended CartStatus values including Expired.
+
+4. Start the required backend hosts.
+
+5. Perform the original manual reproduction using an OLD customer account that previously failed:
+   - Sign in with the affected old account.
+   - Open a restaurant menu.
+   - Add an available product.
+   - Confirm POST `/api/me/cart/items` no longer returns the previous 409 expired-cart conflict.
+   - Confirm a fresh active cart is created/selected.
+   - Confirm the product appears in the cart.
+   - Refresh the page and confirm the cart remains valid.
+   - Sign out and sign in again and confirm the active cart still works.
+
+6. Inspect the database after the operation and confirm:
+   - the previous cart remains Expired;
+   - historical data was not destroyed;
+   - exactly one Active cart exists for the customer;
+   - the newly added item belongs to that Active cart.
+
+7. Verify the normal regression cases:
+   - add another product from the same restaurant;
+   - CrossRestaurantCart behavior still works;
+   - a newly created account still works normally.
+
+8. Do not modify the Angular frontend unless this verification proves a frontend defect still exists.
+
+9. Do not attempt to repair these unrelated known baseline failures:
+   - One_migration_history_row_exists
+   - Concurrent_agent_assignment_rejected_by_RowVersion
+   - the broader Customer.API.Tests failures already confirmed against baseline
+
+10. After manual verification, give me the final report containing:
+   - exact original root cause;
+   - old execution path;
+   - corrected execution path;
+   - migration applied;
+   - database state before/after for the affected customer;
+   - manual verification results;
+   - complete changed-file list;
+   - targeted test results;
+   - whether any frontend changes are required.
+
+Stop after this verification. Do not begin unrelated remediation.

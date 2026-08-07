@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Talabat.Domain.Exceptions;
 using Talabat.Domain.Interfaces;
@@ -23,5 +24,14 @@ public sealed class UnitOfWork : IUnitOfWork
         {
             throw new ConcurrencyConflictException();
         }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            throw new ConcurrencyConflictException();
+        }
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException { Number: 2601 or 2627 };
     }
 }

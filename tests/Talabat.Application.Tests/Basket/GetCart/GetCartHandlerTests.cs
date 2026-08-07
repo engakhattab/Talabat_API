@@ -22,6 +22,28 @@ public sealed class GetCartHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsEmptyCartWhenActiveCartExpired()
+    {
+        var restaurant = TestData.CreateRestaurant();
+        var expiredCart = TestData.CreateCart(
+            restaurant: restaurant,
+            createdAt: TestData.UtcNow.AddHours(-2));
+        var carts = new FakeCartRepository();
+        carts.Carts.Add(expiredCart);
+        var restaurants = new FakeRestaurantRepository();
+        restaurants.Restaurants.Add(restaurant);
+
+        var handler = new GetCartHandler(carts, restaurants, new FakeClock());
+
+        var result = await handler.Handle(new GetCartQuery(1));
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.Id);
+        Assert.Empty(result.Value.Items);
+        Assert.Equal(0m, result.Value.CalculatedCurrentTotal.Amount);
+    }
+
+    [Fact]
     public async Task Handle_CalculatesTotalFromCurrentCatalogPrices()
     {
         var restaurant = TestData.CreateRestaurant();
