@@ -50,8 +50,17 @@ public sealed class CheckoutController : ControllerBase
                         .Select(i => new UnavailableItemDto(i.ProductId, i.ProductName, i.Reason))
                         .ToList();
 
-                    return StatusCode(422, new CheckoutUnavailableResponse(
-                        "unavailable", items));
+                    var details = new ProblemDetails
+                    {
+                        Type = "https://tools.ietf.org/html/rfc9110#section-15.5.21",
+                        Title = "Checkout unavailable",
+                        Status = StatusCodes.Status422UnprocessableEntity,
+                        Detail = "One or more items are unavailable for checkout."
+                    };
+                    details.Extensions["errorCode"] = "unavailable";
+                    details.Extensions["unavailableItems"] = items;
+
+                    return UnprocessableEntity(details);
                 }
 
                 return StatusCode(500);
