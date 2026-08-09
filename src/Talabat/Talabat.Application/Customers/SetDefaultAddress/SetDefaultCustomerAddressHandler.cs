@@ -37,8 +37,10 @@ public sealed class SetDefaultCustomerAddressHandler
 
         try
         {
+            user.ClearDefaultAddress();
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             user.SetDefaultAddress(command.AddressId);
-            _userRepository.Update(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(user));

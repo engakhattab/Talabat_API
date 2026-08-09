@@ -118,6 +118,12 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
         _addresses.Remove(GetRequiredAddress(addressId));
     }
 
+    public void ClearDefaultAddress()
+    {
+        RequireCustomer();
+        MarkAllAddressesAsNonDefault();
+    }
+
     public void SetDefaultAddress(int addressId)
     {
         RequireCustomer();

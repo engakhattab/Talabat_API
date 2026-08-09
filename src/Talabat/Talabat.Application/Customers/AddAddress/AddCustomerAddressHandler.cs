@@ -39,6 +39,12 @@ public sealed class AddCustomerAddressHandler
 
         try
         {
+            if (command.MakeDefault)
+            {
+                user.ClearDefaultAddress();
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
             var address = new Address(
                 command.Street,
                 command.City,
@@ -49,7 +55,6 @@ public sealed class AddCustomerAddressHandler
                 address,
                 command.MakeDefault);
 
-            _userRepository.Update(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(user));
