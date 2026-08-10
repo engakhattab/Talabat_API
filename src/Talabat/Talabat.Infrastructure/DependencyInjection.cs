@@ -9,6 +9,7 @@ using Talabat.Domain.Aggregates.Users;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence.Repositories;
 using Talabat.Infrastructure.Time;
+using Talabat.Infrastructure.Development.E2E;
 
 namespace Talabat.Infrastructure;
 
@@ -44,6 +45,10 @@ public static class DependencyInjection
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IRestaurantLocalTimeProvider, RestaurantLocalTimeProvider>();
+
+        services.Configure<E2EProvisioningOptions>(
+            configuration.GetSection(E2EProvisioningOptions.SectionName));
+        services.AddScoped<IE2EProvisioner, E2EProvisioner>();
 
         return services;
     }

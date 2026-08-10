@@ -1,0 +1,36 @@
+Read `docs/delivery-backend-readiness-plan.md`.
+
+Implement **Phase 1 — Delivery Applicant Contract only**.
+
+Before changing code, inspect the existing User aggregate, Delivery applicant registration flow, current-user resolution, Delivery API authorization policies, ProblemDetails conventions, and related tests.
+
+Follow the plan and existing repository architecture. Reuse existing code instead of creating parallel abstractions.
+
+Important:
+
+* Pending, Approved, and Rejected applicants must be able to read their own application/profile where defined by the plan.
+* Applicant self-service requires authentication + `delivery.api` scope, but must not require the `DeliveryAgent` role.
+* Operational Delivery endpoints must remain restricted to approved Delivery Agents.
+* All `me` operations derive identity from authenticated claims; never accept a user ID.
+* Profile updates must never modify approval state, roles, runtime availability, or location.
+* Treat `vehicleType` as read-only unless the existing domain explicitly supports safe self-service changes; if it already does, explain the rule before using it.
+* Preserve ProblemDetails/errorCode and OpenAPI conventions.
+* Do not implement reapplication behavior.
+* Do not start Phase 2.
+* Do not modify frontend code.
+
+Run only focused tests/build verification relevant to Phase 1. Do not run broad unrelated suites unless a focused failure requires it.
+
+When finished, report:
+
+1. What changed.
+2. Endpoints/contracts added.
+3. Authorization behavior.
+4. Domain/Application changes.
+5. Tests/builds run and results.
+6. OpenAPI changes.
+7. Any migration created.
+8. Remaining blockers.
+9. Recommended commit message.
+
+Stop after Phase 1.

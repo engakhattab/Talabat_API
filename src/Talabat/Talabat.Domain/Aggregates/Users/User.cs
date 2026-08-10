@@ -92,6 +92,17 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
         PhoneNumber = normalizedPhoneNumber;
     }
 
+    public void UpdateDeliveryApplicantProfile(string fullName, string? phoneNumber)
+    {
+        if (AgentApprovalStatus is null)
+        {
+            throw new DeliveryAgentApplicationNotFoundException();
+        }
+
+        FullName = Guard.RequiredText(fullName, nameof(fullName));
+        PhoneNumber = Guard.OptionalText(phoneNumber);
+    }
+
     public void AddAddress(Address address, bool makeDefault = false)
     {
         RequireCustomer();

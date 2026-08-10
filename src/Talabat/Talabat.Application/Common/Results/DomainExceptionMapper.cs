@@ -20,6 +20,7 @@ public static class DomainExceptionMapper
             CurrentProductPriceMissingException ex => Conflict(ApplicationErrorCodes.CurrentProductPriceMissing, ex.Message),
             CustomerProfileNotInitializedException ex => Conflict(ex.GetType().Name, ex.Message),
             DeliveryAgentMismatchException ex => OwnershipMismatch(ex.GetType().Name, ex.Message),
+            DeliveryAgentApplicationNotFoundException ex => NotFound(ApplicationErrorCodes.DeliveryAgentApplicationNotFound, ex.Message),
             DeliveryAgentNotInitializedException ex => Conflict(ex.GetType().Name, ex.Message),
             DeliveryAlreadyAssignedException ex => Conflict(ex.GetType().Name, ex.Message),
             DeliveryAgentCoordinationRequiredException ex => Conflict(ex.GetType().Name, ex.Message),

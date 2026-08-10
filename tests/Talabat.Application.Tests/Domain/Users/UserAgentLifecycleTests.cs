@@ -173,6 +173,32 @@ public class UserAgentLifecycleTests
     }
 
     [Fact]
+    public void UpdateDeliveryApplicantProfile_PreservesApplicationAndRuntimeState()
+    {
+        var user = CreateApprovedAgent();
+        user.GoOnline();
+        user.UpdateLocation(new GeoLocation(30.0m, 31.0m));
+
+        user.UpdateDeliveryApplicantProfile("Updated Agent", "+201000000000");
+
+        Assert.Equal("Updated Agent", user.FullName);
+        Assert.Equal("+201000000000", user.PhoneNumber);
+        Assert.Equal(AgentApprovalStatus.Approved, user.AgentApprovalStatus);
+        Assert.Equal(VehicleType.Bike, user.VehicleType);
+        Assert.Equal(DeliveryAgentStatus.Available, user.DeliveryAgentStatus);
+        Assert.Equal(new GeoLocation(30.0m, 31.0m), user.CurrentLocation);
+    }
+
+    [Fact]
+    public void UpdateDeliveryApplicantProfile_WithoutApplication_ShouldThrow()
+    {
+        var user = CreateRegisteredUser();
+
+        Assert.Throws<DeliveryAgentApplicationNotFoundException>(
+            () => user.UpdateDeliveryApplicantProfile("Updated Agent", null));
+    }
+
+    [Fact]
     public void GoOnline_FromOffline_ShouldSetAvailable()
     {
         var user = CreateApprovedAgent();

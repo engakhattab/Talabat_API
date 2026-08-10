@@ -13,6 +13,7 @@ public static class ApplicationErrorCodes
     public const string CurrentProductPriceMissing = nameof(CurrentProductPriceMissing);
     public const string CustomerNotFound = nameof(CustomerNotFound);
     public const string DeliveryAlreadyExists = nameof(DeliveryAlreadyExists);
+    public const string DeliveryAgentApplicationNotFound = nameof(DeliveryAgentApplicationNotFound);
     public const string DeliveryNotFound = nameof(DeliveryNotFound);
     public const string DuplicateAddress = nameof(DuplicateAddress);
     public const string EmptyCart = nameof(EmptyCart);

@@ -5,6 +5,200 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/agent/me/application": {
+      "get": {
+        "tags": [
+          "ApplicantProfile"
+        ],
+        "operationId": "GetDeliveryApplicantApplication",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryApplicantApplicationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "delivery.api"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/agent/me/profile": {
+      "get": {
+        "tags": [
+          "ApplicantProfile"
+        ],
+        "operationId": "GetDeliveryApplicantProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryApplicantProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "delivery.api"
+            ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "ApplicantProfile"
+        ],
+        "operationId": "UpdateDeliveryApplicantProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryApplicantProfileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeliveryApplicantProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryApplicantProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "delivery.api"
+            ]
+          }
+        ]
+      }
+    },
     "/api/agent/deliveries/active": {
       "get": {
         "tags": [
@@ -1015,6 +1209,63 @@
           }
         }
       },
+      "AgentApprovalStatus": {
+        "type": "integer"
+      },
+      "DeliveryAgentStatus": {
+        "type": "integer"
+      },
+      "DeliveryApplicantApplicationResponse": {
+        "required": [
+          "applicationStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationStatus": {
+            "$ref": "#/components/schemas/AgentApprovalStatus"
+          }
+        }
+      },
+      "DeliveryApplicantProfileResponse": {
+        "required": [
+          "fullName",
+          "phoneNumber",
+          "vehicleType",
+          "applicationStatus",
+          "deliveryAgentStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleType": {
+            "type": "integer",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VehicleType"
+              }
+            ],
+            "nullable": true
+          },
+          "applicationStatus": {
+            "$ref": "#/components/schemas/AgentApprovalStatus"
+          },
+          "deliveryAgentStatus": {
+            "type": "integer",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryAgentStatus"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
       "DeliveryHistoryResponse": {
         "required": [
           "id",
@@ -1181,6 +1432,22 @@
           }
         }
       },
+      "UpdateDeliveryApplicantProfileRequest": {
+        "required": [
+          "fullName",
+          "phoneNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "UpdateLocationRequest": {
         "required": [
           "latitude",
@@ -1199,6 +1466,9 @@
             "format": "double"
           }
         }
+      },
+      "VehicleType": {
+        "type": "integer"
       }
     },
     "securitySchemes": {
@@ -1221,6 +1491,9 @@
     }
   },
   "tags": [
+    {
+      "name": "ApplicantProfile"
+    },
     {
       "name": "Deliveries"
     },

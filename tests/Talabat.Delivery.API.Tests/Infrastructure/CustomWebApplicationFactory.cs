@@ -25,6 +25,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public int AgentBUserId { get; private set; }
     public int DeliveryId { get; private set; }
     public int RoleOnlyAgentUserId { get; private set; }
+    public int PendingApplicantUserId { get; private set; }
+    public int RejectedApplicantUserId { get; private set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -118,6 +120,24 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // so UserType remains Customer-only despite having the DeliveryAgent role
 
             RoleOnlyAgentUserId = roleOnlyAgent.Id;
+
+            var pendingApplicant = User.Register(
+                "pendingapplicant",
+                "pendingapplicant@test.com",
+                "Pending Applicant");
+            pendingApplicant.SetPhoneNumber("+201000000001");
+            pendingApplicant.SubmitDeliveryAgentApplication(VehicleType.Bike);
+            userManager.CreateAsync(pendingApplicant, "Password1!").GetAwaiter().GetResult();
+            PendingApplicantUserId = pendingApplicant.Id;
+
+            var rejectedApplicant = User.Register(
+                "rejectedapplicant",
+                "rejectedapplicant@test.com",
+                "Rejected Applicant");
+            rejectedApplicant.SubmitDeliveryAgentApplication(VehicleType.Car);
+            rejectedApplicant.RejectDeliveryAgentApplication();
+            userManager.CreateAsync(rejectedApplicant, "Password1!").GetAwaiter().GetResult();
+            RejectedApplicantUserId = rejectedApplicant.Id;
 
             // Create a customer for the order
             var customer = User.Register("testcustomer", "customer@test.com", "Test Customer");

@@ -86,6 +86,11 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddSingleton<IAuthorizationHandler, ScopeHandler>();
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.DeliveryApplicantAccess, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("delivery.api"));
+    })
     .AddPolicy(AuthorizationPolicies.DeliveryAgentAccess, policy =>
     {
         policy.RequireAuthenticatedUser();

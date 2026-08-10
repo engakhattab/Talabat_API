@@ -4,8 +4,22 @@ using Talabat.Identity;
 using Talabat.Infrastructure;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
+using Talabat.Infrastructure.Development.E2E;
+
+var e2eCommand = E2EProvisioningCommand.Parse(args);
+if (e2eCommand.IsRequested && e2eCommand.Error is not null)
+{
+    Console.Error.WriteLine($"E2E provisioning failed [invalid_command]: {e2eCommand.Error}");
+    Environment.ExitCode = 2;
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (e2eCommand.IsRequested)
+{
+    builder.Logging.ClearProviders();
+}
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -96,6 +110,14 @@ else
 }
 
 var app = builder.Build();
+
+if (e2eCommand.Operation is not null)
+{
+    Environment.ExitCode = await E2EProvisioningCommand.RunAsync(
+        app.Services,
+        e2eCommand.Operation.Value);
+    return;
+}
 
 using (var scope = app.Services.CreateScope())
 {
