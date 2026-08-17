@@ -14,9 +14,11 @@ using Talabat.Application.Customers.SetDefaultAddress;
 using Talabat.Application.Customers.UpdateProfile;
 using Talabat.Application.DeliveryAgents.AssignDelivery;
 using Talabat.Application.DeliveryAgents.ApplicantProfile;
+using Talabat.Application.DeliveryAgents.ApplicationReview;
 using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
+using Talabat.Application.DeliveryAgents.GetCurrentStatus;
 using Talabat.Application.Deliveries.CreateForOrder;
 using Talabat.Application.DeliveryAgents.GoOffline;
 using Talabat.Application.DeliveryAgents.GoOnline;
@@ -68,8 +70,11 @@ public static class DependencyInjection
         // Delivery Agents — Status (US1)
         services.AddScoped<GetDeliveryApplicantProfileHandler>();
         services.AddScoped<UpdateDeliveryApplicantProfileHandler>();
+        services.AddScoped<ListDeliveryAgentApplicationsHandler>();
+        services.AddScoped<GetDeliveryAgentApplicationHandler>();
         services.AddScoped<GoOnlineHandler>();
         services.AddScoped<GoOfflineHandler>();
+        services.AddScoped<GetCurrentDeliveryAgentStatusHandler>();
 
         // Delivery Agents — Location (US2)
         services.AddScoped<UpdateLocationHandler>();

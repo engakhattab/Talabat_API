@@ -20,7 +20,7 @@ namespace Talabat.Delivery.API.Controllers;
 [ApiController]
 [Route("api/agent/deliveries")]
 [Tags("Deliveries")]
-[Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
+[Authorize(Policy = AuthorizationPolicies.OperationalDeliveryAgentAccess)]
 [Produces("application/json")]
 public sealed class DeliveriesController : ControllerBase
 {

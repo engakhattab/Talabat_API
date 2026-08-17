@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Talabat.Application.Abstractions;
 using Microsoft.IdentityModel.Tokens;
 using Talabat.Domain.Aggregates.Users;
 using Xunit;
@@ -17,16 +18,20 @@ namespace Talabat.Delivery.API.Tests;
 
 public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTests.Factory>
 {
+    private readonly Factory _factory;
     private readonly HttpClient _client;
     private readonly int _agentId;
+    private readonly int _pendingApplicantId;
 
     private static readonly SymmetricSecurityKey TestSigningKey = new(
         Encoding.UTF8.GetBytes("Talabat-Test-Secret-Key-For-Real-Pipeline-Tests-2024!"));
 
     public RealTokenPipelineTests(Factory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
         _agentId = factory.SeededAgentId;
+        _pendingApplicantId = factory.PendingApplicantId;
     }
 
     [Fact]
@@ -92,6 +97,24 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Newly_approved_agent_with_a_fresh_delivery_token_receives_operational_authorization()
+    {
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var capabilityService = scope.ServiceProvider.GetRequiredService<IUserCapabilityService>();
+            var approval = await capabilityService.ApproveDeliveryAgentAsync(_pendingApplicantId);
+            Assert.True(approval.IsSuccess, approval.Error?.Message);
+        }
+
+        var freshToken = MintToken(_pendingApplicantId, "DeliveryAgent", "delivery.api", "talabat.delivery.api");
+        _client.DefaultRequestHeaders.Authorization = new("Bearer", freshToken);
+
+        var response = await _client.GetAsync("/api/agent/deliveries/pending");
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
     private static string MintToken(
         int subjectId,
         string role,
@@ -130,6 +153,7 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
         private string? _connectionString;
 
         public int SeededAgentId { get; private set; }
+        public int PendingApplicantId { get; private set; }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -202,6 +226,11 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
                 agent.ApproveDeliveryAgentApplication();
                 userManager.UpdateAsync(agent).GetAwaiter().GetResult();
                 SeededAgentId = agent.Id;
+
+                var pendingApplicant = User.Register("jwtpending", "jwtpending@test.com", "JWT Pending Applicant");
+                pendingApplicant.SubmitDeliveryAgentApplication(VehicleType.Bike);
+                userManager.CreateAsync(pendingApplicant, "Password1!").GetAwaiter().GetResult();
+                PendingApplicantId = pendingApplicant.Id;
             }
 
             return host;

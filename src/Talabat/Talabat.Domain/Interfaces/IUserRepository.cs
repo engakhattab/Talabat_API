@@ -19,5 +19,9 @@ public interface IUserRepository
     Task<IReadOnlyCollection<User>> GetAvailableAgentsAsync(
         CancellationToken ct = default);
 
+    Task<IReadOnlyCollection<User>> GetDeliveryAgentApplicationsReadOnlyAsync(
+        AgentApprovalStatus status,
+        CancellationToken ct = default);
+
     void Update(User user);
 }

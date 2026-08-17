@@ -84,6 +84,22 @@ public sealed class StatusLocation204Tests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
+    public async Task OpenApiDocument_DeclaresCurrentStatusContract()
+    {
+        var json = await _client.GetStringAsync("/openapi/v1.json");
+        var doc = JsonDocument.Parse(json);
+        var getNode = doc.RootElement
+            .GetProperty("paths")
+            .GetProperty("/api/agent/status")
+            .GetProperty("get");
+
+        Assert.Equal("GetCurrentDeliveryAgentStatus", getNode.GetProperty("operationId").GetString());
+        Assert.True(getNode.GetProperty("responses").TryGetProperty("200", out var success));
+        Assert.Contains("DeliveryAgentStatusResponse", success.GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    [Fact]
     public async Task OpenApiDocument_Declares204_ForLocationOperation()
     {
         var json = await _client.GetStringAsync("/openapi/v1.json");

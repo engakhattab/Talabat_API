@@ -11,7 +11,7 @@ namespace Talabat.Delivery.API.Controllers;
 [ApiController]
 [Route("api/agent/location")]
 [Tags("AgentLocation")]
-[Authorize(Policy = AuthorizationPolicies.DeliveryAgentAccess)]
+[Authorize(Policy = AuthorizationPolicies.OperationalDeliveryAgentAccess)]
 [Produces("application/json")]
 public sealed class LocationController : ControllerBase
 {

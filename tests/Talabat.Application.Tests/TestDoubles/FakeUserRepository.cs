@@ -33,6 +33,17 @@ public sealed class FakeUserRepository : IUserRepository
         return Task.FromResult(available);
     }
 
+    public Task<IReadOnlyCollection<User>> GetDeliveryAgentApplicationsReadOnlyAsync(
+        AgentApprovalStatus status,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<User> applications = Users
+            .Where(user => user.AgentApprovalStatus == status)
+            .OrderBy(user => user.CreatedAt)
+            .ToList();
+        return Task.FromResult(applications);
+    }
+
     public void Update(User user)
     {
         UpdateCount++;

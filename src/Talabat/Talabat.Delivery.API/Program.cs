@@ -85,6 +85,7 @@ builder.Services.AddUnifiedUserIdentityCore();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddSingleton<IAuthorizationHandler, ScopeHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, OperationalDeliveryAgentHandler>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthorizationPolicies.DeliveryApplicantAccess, policy =>
     {
@@ -96,6 +97,13 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireAuthenticatedUser();
         policy.AddRequirements(new ScopeRequirement("delivery.api"));
         policy.RequireRole("DeliveryAgent");
+    })
+    .AddPolicy(AuthorizationPolicies.OperationalDeliveryAgentAccess, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("delivery.api"));
+        policy.RequireRole("DeliveryAgent");
+        policy.AddRequirements(new OperationalDeliveryAgentRequirement());
     });
 
 builder.Services.AddAuthentication(options =>

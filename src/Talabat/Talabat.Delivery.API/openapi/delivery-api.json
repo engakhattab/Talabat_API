@@ -1022,6 +1022,73 @@
         ]
       }
     },
+    "/api/agent/status": {
+      "get": {
+        "tags": [
+          "AgentStatus"
+        ],
+        "operationId": "GetCurrentDeliveryAgentStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAgentStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "delivery.api"
+            ]
+          }
+        ]
+      }
+    },
     "/api/agent/status/online": {
       "put": {
         "tags": [
@@ -1214,6 +1281,17 @@
       },
       "DeliveryAgentStatus": {
         "type": "integer"
+      },
+      "DeliveryAgentStatusResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/DeliveryAgentStatus"
+          }
+        }
       },
       "DeliveryApplicantApplicationResponse": {
         "required": [

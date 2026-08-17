@@ -18,7 +18,8 @@ public static class IdentityServerConfig
     new ApiScope[]
     {
         new ApiScope("customer.api", "Customer API Access"),
-        new ApiScope("delivery.api", "Delivery Agent API Access")
+        new ApiScope("delivery.api", "Delivery Agent API Access"),
+        new ApiScope("admin.api", "Admin API Access")
     };
 
     public static IEnumerable<ApiResource> ApiResources =>
@@ -33,6 +34,11 @@ public static class IdentityServerConfig
         {
             Scopes = { "delivery.api" },
             UserClaims = { "role", "delivery_agent_id" }
+        },
+        new ApiResource("talabat.admin.api", "Talabat Admin Business API")
+        {
+            Scopes = { "admin.api" },
+            UserClaims = { "role" }
         }
     };
 
@@ -93,6 +99,30 @@ public static class IdentityServerConfig
                 IdentityServerConstants.StandardScopes.Profile,
                 "roles",
                 "delivery.api",
+                IdentityServerConstants.StandardScopes.OfflineAccess
+            },
+            AllowOfflineAccess = true,
+            AccessTokenLifetime = 900,
+            UpdateAccessTokenClaimsOnRefresh = true,
+            RefreshTokenExpiration = TokenExpiration.Sliding,
+            SlidingRefreshTokenLifetime = 1296000
+        },
+        new Client
+        {
+            ClientId = "talabat-admin-spa",
+            ClientName = "Talabat Admin Single Page Application",
+            AllowedGrantTypes = GrantTypes.Code,
+            RequirePkce = true,
+            RequireClientSecret = false,
+            RedirectUris = { "http://localhost:4400/signin-callback" },
+            PostLogoutRedirectUris = { "http://localhost:4400/signout-callback" },
+            AllowedCorsOrigins = { "http://localhost:4400" },
+            AllowedScopes =
+            {
+                IdentityServerConstants.StandardScopes.OpenId,
+                IdentityServerConstants.StandardScopes.Profile,
+                "roles",
+                "admin.api",
                 IdentityServerConstants.StandardScopes.OfflineAccess
             },
             AllowOfflineAccess = true,

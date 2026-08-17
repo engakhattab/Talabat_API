@@ -39,6 +39,17 @@ public sealed class UserRepository : IUserRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<User>> GetDeliveryAgentApplicationsReadOnlyAsync(
+        AgentApprovalStatus status,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.AgentApprovalStatus == status)
+            .OrderBy(user => user.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public void Update(User user)
     {
         ArgumentNullException.ThrowIfNull(user);
