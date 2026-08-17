@@ -38,6 +38,21 @@ public sealed class DeliveryAgentApplicationsTests : IClassFixture<AdminWebAppli
     }
 
     [Fact]
+    public async Task Suspend_and_reactivate_require_admin_access()
+    {
+        using var anonymous = _factory.CreateClient();
+        using var nonAdmin = CreateClient(_factory.NonAdminUserId, null, "admin.api");
+        using var noScope = CreateClient(_factory.AdminUserId, "Admin", "delivery.api");
+
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await anonymous.PostAsync($"/api/delivery-agent-applications/{_factory.ApprovedDeliveryAgentUserId}/suspend", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await nonAdmin.PostAsync($"/api/delivery-agent-applications/{_factory.ApprovedDeliveryAgentUserId}/suspend", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await noScope.PostAsync($"/api/delivery-agent-applications/{_factory.ApprovedDeliveryAgentUserId}/suspend", null)).StatusCode);
+    }
+
+    [Fact]
     public async Task Admin_can_list_and_read_only_review_fields()
     {
         using var client = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
@@ -84,6 +99,84 @@ public sealed class DeliveryAgentApplicationsTests : IClassFixture<AdminWebAppli
 
         var invalid = await client.PostAsync($"/api/delivery-agent-applications/{_factory.RejectedApplicantUserId}/approve", null);
         Assert.Equal(HttpStatusCode.Conflict, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_can_suspend_and_reactivate_an_approved_agent_without_changing_capability_or_role()
+    {
+        using var client = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
+        var agentId = _factory.ApprovedDeliveryAgentUserId;
+
+        var approvedList = await client.GetFromJsonAsync<JsonElement>("/api/delivery-agent-applications?status=Approved");
+        Assert.Contains(approvedList.EnumerateArray(), item => item.GetProperty("userId").GetInt32() == agentId);
+
+        var suspend = await client.PostAsync($"/api/delivery-agent-applications/{agentId}/suspend", null);
+        Assert.Equal(HttpStatusCode.OK, suspend.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var agent = await users.FindByIdAsync(agentId.ToString());
+            Assert.Equal(AgentApprovalStatus.Approved, agent!.AgentApprovalStatus);
+            Assert.Equal(DeliveryAgentStatus.Suspended, agent.DeliveryAgentStatus);
+            Assert.True(agent.UserType.HasFlag(UserType.DeliveryAgent));
+            Assert.True(await users.IsInRoleAsync(agent, "DeliveryAgent"));
+        }
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await client.PostAsync($"/api/delivery-agent-applications/{agentId}/suspend", null)).StatusCode);
+
+        var reactivate = await client.PostAsync($"/api/delivery-agent-applications/{agentId}/reactivate", null);
+        Assert.Equal(HttpStatusCode.OK, reactivate.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var agent = await users.FindByIdAsync(agentId.ToString());
+            Assert.Equal(DeliveryAgentStatus.Offline, agent!.DeliveryAgentStatus);
+            Assert.True(agent.UserType.HasFlag(UserType.DeliveryAgent));
+            Assert.True(await users.IsInRoleAsync(agent, "DeliveryAgent"));
+        }
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await client.PostAsync($"/api/delivery-agent-applications/{agentId}/reactivate", null)).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("PendingApplicantUserId")]
+    [InlineData("RejectedApplicantUserId")]
+    public async Task Suspend_rejects_non_approved_applicants(string applicantKind)
+    {
+        var userId = applicantKind == "PendingApplicantUserId"
+            ? _factory.PendingApplicantUserId
+            : _factory.RejectedApplicantUserId;
+        using var client = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await client.PostAsync($"/api/delivery-agent-applications/{userId}/suspend", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Suspend_rejects_missing_target_safely()
+    {
+        using var client = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
+        var response = await client.PostAsync("/api/delivery-agent-applications/999999/suspend", null);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Suspend_rejects_busy_agent_and_preserves_busy_status()
+    {
+        using var client = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
+        var response = await client.PostAsync(
+            $"/api/delivery-agent-applications/{_factory.BusyDeliveryAgentUserId}/suspend", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+        var agent = await db.Users.SingleAsync(user => user.Id == _factory.BusyDeliveryAgentUserId);
+        Assert.Equal(DeliveryAgentStatus.Busy, agent.DeliveryAgentStatus);
     }
 
     [Fact]

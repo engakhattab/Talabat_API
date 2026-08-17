@@ -244,7 +244,26 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
                 "A busy delivery agent cannot be suspended.");
         }
 
+        if (DeliveryAgentStatus == Users.DeliveryAgentStatus.Suspended)
+        {
+            throw new InvalidDeliveryAgentStatusTransitionException(
+                "A suspended delivery agent cannot be suspended again.");
+        }
+
         DeliveryAgentStatus = Users.DeliveryAgentStatus.Suspended;
+    }
+
+    public void Reactivate()
+    {
+        RequireAgent();
+
+        if (DeliveryAgentStatus != Users.DeliveryAgentStatus.Suspended)
+        {
+            throw new InvalidDeliveryAgentStatusTransitionException(
+                "Only a suspended delivery agent can be reactivated.");
+        }
+
+        DeliveryAgentStatus = Users.DeliveryAgentStatus.Offline;
     }
 
     internal void MarkBusy()
@@ -364,7 +383,9 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
 
     private void RequireAgent()
     {
-        if (DeliveryAgentStatus is null || !UserType.HasFlag(UserType.DeliveryAgent))
+        if (DeliveryAgentStatus is null ||
+            AgentApprovalStatus != AgentApproval.Approved ||
+            !UserType.HasFlag(UserType.DeliveryAgent))
         {
             throw new DeliveryAgentNotInitializedException();
         }

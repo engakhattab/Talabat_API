@@ -312,14 +312,43 @@ public class UserAgentLifecycleTests
     }
 
     [Fact]
-    public void Suspend_FromSuspended_ShouldStaySuspended()
+    public void Suspend_FromSuspended_ShouldThrow()
     {
         var user = CreateApprovedAgent();
         user.Suspend();
 
+        var act = () => user.Suspend();
+
+        Assert.Throws<InvalidDeliveryAgentStatusTransitionException>(act);
+        Assert.Equal(DeliveryAgentStatus.Suspended, user.DeliveryAgentStatus);
+    }
+
+    [Fact]
+    public void Reactivate_FromSuspended_ShouldSetOffline()
+    {
+        var user = CreateApprovedAgent();
         user.Suspend();
 
-        Assert.Equal(DeliveryAgentStatus.Suspended, user.DeliveryAgentStatus);
+        user.Reactivate();
+
+        Assert.Equal(DeliveryAgentStatus.Offline, user.DeliveryAgentStatus);
+    }
+
+    [Theory]
+    [InlineData(DeliveryAgentStatus.Offline)]
+    [InlineData(DeliveryAgentStatus.Available)]
+    [InlineData(DeliveryAgentStatus.Busy)]
+    public void Reactivate_FromNonSuspendedStatus_ShouldThrow(DeliveryAgentStatus status)
+    {
+        var user = CreateApprovedAgent();
+        if (status == DeliveryAgentStatus.Available) user.GoOnline();
+        if (status == DeliveryAgentStatus.Busy)
+        {
+            user.GoOnline();
+            user.MarkBusy();
+        }
+
+        Assert.Throws<InvalidDeliveryAgentStatusTransitionException>(() => user.Reactivate());
     }
 
     [Fact]

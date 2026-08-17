@@ -64,6 +64,42 @@ public sealed class FakeUserCapabilityService : IUserCapabilityService
         return Task.FromResult(UseCaseResult<int>.Success(userId));
     }
 
+    public Task<UseCaseResult<int>> SuspendDeliveryAgentAsync(int userId, CancellationToken ct = default)
+    {
+        var user = RegisteredUsers.FirstOrDefault(u => u.Id == userId);
+        if (user is null)
+            return Task.FromResult(UseCaseResult<int>.Failure(
+                DomainExceptionMapper.NotFound(ApplicationErrorCodes.UserNotFound, "User not found.")));
+
+        try
+        {
+            user.Suspend();
+            return Task.FromResult(UseCaseResult<int>.Success(userId));
+        }
+        catch (Exception exception)
+        {
+            return Task.FromResult(UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception)));
+        }
+    }
+
+    public Task<UseCaseResult<int>> ReactivateDeliveryAgentAsync(int userId, CancellationToken ct = default)
+    {
+        var user = RegisteredUsers.FirstOrDefault(u => u.Id == userId);
+        if (user is null)
+            return Task.FromResult(UseCaseResult<int>.Failure(
+                DomainExceptionMapper.NotFound(ApplicationErrorCodes.UserNotFound, "User not found.")));
+
+        try
+        {
+            user.Reactivate();
+            return Task.FromResult(UseCaseResult<int>.Success(userId));
+        }
+        catch (Exception exception)
+        {
+            return Task.FromResult(UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception)));
+        }
+    }
+
     public Task<UseCaseResult<int>> DeactivateUserAsync(int userId, CancellationToken ct = default)
     {
         var user = RegisteredUsers.FirstOrDefault(u => u.Id == userId);

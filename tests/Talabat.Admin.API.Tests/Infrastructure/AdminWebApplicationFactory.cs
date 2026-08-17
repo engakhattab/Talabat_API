@@ -22,6 +22,8 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
     public int PendingApplicantForRejectionUserId { get; private set; }
     public int PendingApplicantForListUserId { get; private set; }
     public int RejectedApplicantUserId { get; private set; }
+    public int ApprovedDeliveryAgentUserId { get; private set; }
+    public int BusyDeliveryAgentUserId { get; private set; }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -94,6 +96,22 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
         rejected.RejectDeliveryAgentApplication();
         users.CreateAsync(rejected, "Password1!").GetAwaiter().GetResult();
         RejectedApplicantUserId = rejected.Id;
+
+        var approvedAgent = User.Register("approved-agent@test.com", "approved-agent@test.com", "Approved Delivery Agent");
+        approvedAgent.SubmitDeliveryAgentApplication(VehicleType.Motorcycle);
+        approvedAgent.ApproveDeliveryAgentApplication();
+        users.CreateAsync(approvedAgent, "Password1!").GetAwaiter().GetResult();
+        users.AddToRoleAsync(approvedAgent, "DeliveryAgent").GetAwaiter().GetResult();
+        ApprovedDeliveryAgentUserId = approvedAgent.Id;
+
+        var busyAgent = User.Register("busy-agent@test.com", "busy-agent@test.com", "Busy Delivery Agent");
+        busyAgent.SubmitDeliveryAgentApplication(VehicleType.Car);
+        busyAgent.ApproveDeliveryAgentApplication();
+        users.CreateAsync(busyAgent, "Password1!").GetAwaiter().GetResult();
+        users.AddToRoleAsync(busyAgent, "DeliveryAgent").GetAwaiter().GetResult();
+        db.Entry(busyAgent).Property(nameof(User.DeliveryAgentStatus)).CurrentValue = DeliveryAgentStatus.Busy;
+        db.SaveChanges();
+        BusyDeliveryAgentUserId = busyAgent.Id;
         return host;
     }
 

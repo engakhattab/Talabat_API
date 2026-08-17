@@ -36,6 +36,14 @@ public interface IUserCapabilityService
         int userId,
         CancellationToken ct = default);
 
+    Task<UseCaseResult<int>> SuspendDeliveryAgentAsync(
+        int userId,
+        CancellationToken ct = default);
+
+    Task<UseCaseResult<int>> ReactivateDeliveryAgentAsync(
+        int userId,
+        CancellationToken ct = default);
+
     Task<UseCaseResult<int>> DeactivateUserAsync(
         int userId,
         CancellationToken ct = default);

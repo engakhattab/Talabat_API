@@ -353,6 +353,20 @@ public sealed class UserCapabilityService : IUserCapabilityService
         }
     }
 
+    public async Task<UseCaseResult<int>> SuspendDeliveryAgentAsync(
+        int userId,
+        CancellationToken ct = default)
+    {
+        return await ChangeDeliveryAgentStatusAsync(userId, user => user.Suspend(), ct);
+    }
+
+    public async Task<UseCaseResult<int>> ReactivateDeliveryAgentAsync(
+        int userId,
+        CancellationToken ct = default)
+    {
+        return await ChangeDeliveryAgentStatusAsync(userId, user => user.Reactivate(), ct);
+    }
+
     public async Task<UseCaseResult<int>> DeactivateUserAsync(
         int userId,
         CancellationToken ct = default)
@@ -485,6 +499,44 @@ public sealed class UserCapabilityService : IUserCapabilityService
         var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
         _transactionContext = new TransactionContext(transaction, true, null);
         return transaction;
+    }
+
+    private async Task<UseCaseResult<int>> ChangeDeliveryAgentStatusAsync(
+        int userId,
+        Action<User> change,
+        CancellationToken ct)
+    {
+        try
+        {
+            var transaction = await EnsureTransactionAsync(ct);
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+            if (user is null || !user.IsActive || user.IsDeleted)
+            {
+                await RollbackAsync(transaction);
+                return UseCaseResult<int>.Failure(
+                    new ApplicationError(ApplicationErrorCodes.UserNotFound, ApplicationErrorCategory.NotFound, "User not found."));
+            }
+
+            change(user);
+            await _dbContext.SaveChangesAsync(ct);
+            await CommitOrReleaseAsync(transaction);
+            return UseCaseResult<int>.Success(user.Id);
+        }
+        catch (DomainException ex)
+        {
+            return await FailAsync(ex);
+        }
+        catch (OperationCanceledException)
+        {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
+        catch
+        {
+            await RollbackAfterExceptionAsync();
+            throw;
+        }
     }
 
     private async Task CommitOrReleaseAsync(IDbContextTransaction transaction)

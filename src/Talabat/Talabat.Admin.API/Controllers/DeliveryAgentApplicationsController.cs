@@ -86,6 +86,30 @@ public sealed class DeliveryAgentApplicationsController : ControllerBase
         return result.ToActionResult(id => Ok(new ApplicationActionResponse(id, AgentApprovalStatus.Rejected.ToString())));
     }
 
+    [HttpPost("{userId:int}/suspend", Name = "SuspendDeliveryAgent")]
+    [ProducesResponseType<DeliveryAgentStatusActionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Suspend(int userId, CancellationToken cancellationToken)
+    {
+        var result = await _capabilityService.SuspendDeliveryAgentAsync(userId, cancellationToken);
+        return result.ToActionResult(id => Ok(new DeliveryAgentStatusActionResponse(id, DeliveryAgentStatus.Suspended.ToString())));
+    }
+
+    [HttpPost("{userId:int}/reactivate", Name = "ReactivateDeliveryAgent")]
+    [ProducesResponseType<DeliveryAgentStatusActionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reactivate(int userId, CancellationToken cancellationToken)
+    {
+        var result = await _capabilityService.ReactivateDeliveryAgentAsync(userId, cancellationToken);
+        return result.ToActionResult(id => Ok(new DeliveryAgentStatusActionResponse(id, DeliveryAgentStatus.Offline.ToString())));
+    }
+
     private static bool TryParseStatus(string? value, out AgentApprovalStatus status)
     {
         status = AgentApprovalStatus.PendingApproval;
