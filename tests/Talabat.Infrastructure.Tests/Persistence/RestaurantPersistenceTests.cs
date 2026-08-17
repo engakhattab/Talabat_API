@@ -28,6 +28,7 @@ public sealed class RestaurantPersistenceTests
 
         Assert.Contains(restaurants, item => item.Id == 1 && item.Name == "Cairo Grill");
         Assert.NotNull(restaurant);
+        Assert.Equal(new Address("1 Demo Grill Street", "Cairo", "1", "Ground Floor"), restaurant.PickupAddress);
         Assert.Contains(restaurant.Products, product => product.Id == 101 && product.CurrentPrice.Amount == 185m);
         Assert.Equal(new TimeOnly(10, 0), restaurant.OpeningHours.Start);
     }
@@ -42,7 +43,8 @@ public sealed class RestaurantPersistenceTests
             "Identity Kitchen",
             "Identity test restaurant.",
             imageUrl: null,
-            new TimeRange(new TimeOnly(8, 0), new TimeOnly(20, 0)));
+            new TimeRange(new TimeOnly(8, 0), new TimeOnly(20, 0)),
+            new Address("10 Identity Street", "Cairo", "10"));
 
         await dbContext.Restaurants.AddAsync(restaurant);
         await dbContext.SaveChangesAsync();
@@ -62,6 +64,7 @@ public sealed class RestaurantPersistenceTests
 
         Assert.True(restaurant.Id > 0);
         Assert.True(product.Id > 0);
+        Assert.Equal(new Address("10 Identity Street", "Cairo", "10"), saved.PickupAddress);
         Assert.Contains(saved.Products, item => item.Name == "Identity Meal");
     }
 

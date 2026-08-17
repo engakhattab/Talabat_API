@@ -25,7 +25,9 @@ public sealed class GetPendingDeliveriesHandler
                 d.OrderId,
                 d.RestaurantId,
                 d.Status,
-                d.DeliveryAddress.City,
+                d.RestaurantName,
+                d.RestaurantPickupAddress.Street,
+                d.RestaurantPickupAddress.City,
                 d.CreatedAt))
             .ToList()
             .AsReadOnly();

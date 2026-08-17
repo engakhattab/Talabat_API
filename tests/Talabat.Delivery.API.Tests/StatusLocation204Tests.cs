@@ -45,6 +45,8 @@ public sealed class StatusLocation204Tests : IClassFixture<CustomWebApplicationF
     [Fact]
     public async Task UpdateLocation_Returns204()
     {
+        await _client.PutAsync("/api/agent/status/online", null);
+
         var response = await _client.PutAsJsonAsync("/api/agent/location", new
         {
             Latitude = 30.0m,

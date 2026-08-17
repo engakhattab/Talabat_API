@@ -25,7 +25,11 @@ public sealed class GetActiveDeliveryHandlerTests
         Assert.NotNull(result.Value);
         Assert.Equal(1, result.Value.Id);
         Assert.Equal(DeliveryStatus.Assigned, result.Value.Status);
-        Assert.Equal("Street", result.Value.Street);
+        Assert.Equal("Test Restaurant", result.Value.RestaurantName);
+        Assert.Equal("Street", result.Value.PickupStreet);
+        Assert.Equal("Street", result.Value.DropOffStreet);
+        Assert.Equal("+201000000099", result.Value.CustomerPhoneNumber);
+        Assert.Null(typeof(ActiveDeliveryDto).GetProperty("CustomerId"));
     }
 
     [Fact]
@@ -66,7 +70,7 @@ public sealed class GetActiveDeliveryHandlerTests
 
     private static Delivery CreatePendingDelivery(int id)
     {
-        var delivery = new Delivery(1, 1, 1, Address, Now);
+        var delivery = new Delivery(1, 1, 1, "Test Restaurant", Address, Address, Now);
         TestIds.SetId(delivery, id);
         return delivery;
     }
@@ -86,6 +90,12 @@ public sealed class GetActiveDeliveryHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
-        return new GetActiveDeliveryHandler(deliveryRepository);
+        var customer = User.Register("customer@test.com", "customer@test.com", "Customer");
+        customer.SetPhoneNumber("+201000000099");
+        TestIds.SetId(customer, 1);
+        var userRepository = new FakeUserRepository();
+        userRepository.Users.Add(customer);
+
+        return new GetActiveDeliveryHandler(deliveryRepository, userRepository);
     }
 }

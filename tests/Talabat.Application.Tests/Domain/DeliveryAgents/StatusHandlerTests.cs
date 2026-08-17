@@ -134,15 +134,59 @@ public sealed class StatusHandlerTests
     }
 
     [Fact]
-    public async Task Handle_UpdateLocation_WhenOffline_ShouldSucceed()
+    public async Task Handle_UpdateLocation_WhenBusy_ShouldSucceed()
+    {
+        var agent = CreateBusyAgent(10);
+        var (handler, _) = CreateUpdateLocationHandler(agent);
+
+        var result = await handler.Handle(new UpdateLocationCommand(agent.Id, Latitude: 30.1m, Longitude: 31.1m));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new GeoLocation(30.1m, 31.1m), agent.CurrentLocation);
+    }
+
+    [Fact]
+    public async Task Handle_UpdateLocation_WhenOffline_ShouldReturnConflict()
     {
         var agent = CreateOfflineAgent(10);
         var (handler, _) = CreateUpdateLocationHandler(agent);
 
         var result = await handler.Handle(new UpdateLocationCommand(agent.Id, Latitude: 30.0m, Longitude: 31.0m));
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(new GeoLocation(30.0m, 31.0m), agent.CurrentLocation);
+        Assert.True(result.IsFailure);
+        Assert.Equal(nameof(InvalidDeliveryAgentStatusTransitionException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCategory.Conflict, result.Error?.Category);
+        Assert.Null(agent.CurrentLocation);
+    }
+
+    [Fact]
+    public async Task Handle_UpdateLocation_WhenSuspended_ShouldReturnConflict()
+    {
+        var agent = CreateSuspendedAgent(10);
+        var (handler, _) = CreateUpdateLocationHandler(agent);
+
+        var result = await handler.Handle(new UpdateLocationCommand(agent.Id, Latitude: 30.0m, Longitude: 31.0m));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(nameof(InvalidDeliveryAgentStatusTransitionException), result.Error?.Code);
+        Assert.Equal(ApplicationErrorCategory.Conflict, result.Error?.Category);
+        Assert.Null(agent.CurrentLocation);
+    }
+
+    [Theory]
+    [InlineData(91, 31)]
+    [InlineData(30, 181)]
+    public async Task Handle_UpdateLocation_InvalidCoordinates_ShouldReturnValidation(
+        decimal latitude,
+        decimal longitude)
+    {
+        var agent = CreateAvailableAgent(10);
+        var (handler, _) = CreateUpdateLocationHandler(agent);
+
+        var result = await handler.Handle(new UpdateLocationCommand(agent.Id, latitude, longitude));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCategory.Validation, result.Error?.Category);
     }
 
     [Fact]

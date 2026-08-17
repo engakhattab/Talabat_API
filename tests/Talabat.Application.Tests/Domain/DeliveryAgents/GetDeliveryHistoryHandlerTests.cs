@@ -25,6 +25,8 @@ public sealed class GetDeliveryHistoryHandlerTests
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         Assert.Equal(2, result.Value.Count);
+        Assert.Null(typeof(DeliveryHistoryDto).GetProperty("CustomerId"));
+        Assert.Null(typeof(DeliveryHistoryDto).GetProperty("CustomerPhoneNumber"));
     }
 
     [Fact]
@@ -53,7 +55,7 @@ public sealed class GetDeliveryHistoryHandlerTests
 
     private static Delivery CreatePendingDelivery(int id)
     {
-        var delivery = new Delivery(1, 1, 1, Address, Now);
+        var delivery = new Delivery(1, 1, 1, "Test Restaurant", Address, Address, Now);
         TestIds.SetId(delivery, id);
         return delivery;
     }

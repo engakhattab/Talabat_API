@@ -29,6 +29,10 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         builder.Property(delivery => delivery.RestaurantId)
             .IsRequired();
 
+        builder.Property(delivery => delivery.RestaurantName)
+            .HasMaxLength(200)
+            .IsRequired();
+
         builder.Property(delivery => delivery.AssignedAgentId);
 
         builder.Property(delivery => delivery.Status)
@@ -85,6 +89,10 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         builder.OwnsOne(
             delivery => delivery.DeliveryAddress,
             deliveryAddress => deliveryAddress.ConfigureDeliveryAddressSnapshot());
+
+        builder.OwnsOne(
+            delivery => delivery.RestaurantPickupAddress,
+            pickupAddress => pickupAddress.ConfigurePickupAddressSnapshot());
 
         builder.HasIndex(delivery => delivery.OrderId)
             .IsUnique()

@@ -1222,13 +1222,18 @@
         "required": [
           "id",
           "orderId",
-          "customerId",
           "restaurantId",
           "status",
-          "street",
-          "city",
-          "buildingNumber",
-          "floor",
+          "restaurantName",
+          "pickupStreet",
+          "pickupCity",
+          "pickupBuildingNumber",
+          "pickupFloor",
+          "dropOffStreet",
+          "dropOffCity",
+          "dropOffBuildingNumber",
+          "dropOffFloor",
+          "customerPhoneNumber",
           "assignedAt"
         ],
         "type": "object",
@@ -1243,11 +1248,6 @@
             "type": "integer",
             "format": "int32"
           },
-          "customerId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": "integer",
-            "format": "int32"
-          },
           "restaurantId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
@@ -1256,16 +1256,36 @@
           "status": {
             "$ref": "#/components/schemas/DeliveryStatus"
           },
-          "street": {
+          "restaurantName": {
             "type": "string"
           },
-          "city": {
+          "pickupStreet": {
             "type": "string"
           },
-          "buildingNumber": {
+          "pickupCity": {
             "type": "string"
           },
-          "floor": {
+          "pickupBuildingNumber": {
+            "type": "string"
+          },
+          "pickupFloor": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropOffStreet": {
+            "type": "string"
+          },
+          "dropOffCity": {
+            "type": "string"
+          },
+          "dropOffBuildingNumber": {
+            "type": "string"
+          },
+          "dropOffFloor": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerPhoneNumber": {
             "type": "string",
             "nullable": true
           },
@@ -1348,7 +1368,6 @@
         "required": [
           "id",
           "orderId",
-          "customerId",
           "restaurantId",
           "status",
           "street",
@@ -1366,11 +1385,6 @@
             "format": "int32"
           },
           "orderId": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": "integer",
-            "format": "int32"
-          },
-          "customerId": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
             "format": "int32"
@@ -1450,7 +1464,9 @@
           "orderId",
           "restaurantId",
           "status",
-          "city",
+          "restaurantName",
+          "pickupStreet",
+          "pickupCity",
           "createdAt"
         ],
         "type": "object",
@@ -1473,7 +1489,13 @@
           "status": {
             "$ref": "#/components/schemas/DeliveryStatus"
           },
-          "city": {
+          "restaurantName": {
+            "type": "string"
+          },
+          "pickupStreet": {
+            "type": "string"
+          },
+          "pickupCity": {
             "type": "string"
           },
           "createdAt": {

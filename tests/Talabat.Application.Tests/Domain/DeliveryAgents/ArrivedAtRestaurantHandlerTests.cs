@@ -89,7 +89,7 @@ public sealed class ArrivedAtRestaurantHandlerTests
 
     private static Delivery CreatePendingDelivery(int id)
     {
-        var delivery = new Delivery(1, 1, 1, Address, Now);
+        var delivery = new Delivery(1, 1, 1, "Test Restaurant", Address, Address, Now);
         TestIds.SetId(delivery, id);
         return delivery;
     }

@@ -26,7 +26,6 @@ public sealed class GetDeliveryHistoryHandler
             .Select(d => new DeliveryHistoryDto(
                 d.Id,
                 d.OrderId,
-                d.CustomerId,
                 d.RestaurantId,
                 d.Status,
                 d.DeliveryAddress.Street,

@@ -265,14 +265,17 @@ public sealed class DeliveriesController : ControllerBase
     // ── Mapping ────────────────────────────────────────────────────
 
     private static ActiveDeliveryResponse MapToActiveDelivery(ActiveDeliveryDto dto) =>
-        new(dto.Id, dto.OrderId, dto.CustomerId, dto.RestaurantId,
-            dto.Status, dto.Street, dto.City, dto.BuildingNumber, dto.Floor, dto.AssignedAt);
+        new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.RestaurantName,
+            dto.PickupStreet, dto.PickupCity, dto.PickupBuildingNumber, dto.PickupFloor,
+            dto.DropOffStreet, dto.DropOffCity, dto.DropOffBuildingNumber, dto.DropOffFloor,
+            dto.CustomerPhoneNumber, dto.AssignedAt);
 
     private static PendingDeliveryResponse MapToPendingDelivery(PendingDeliveryDto dto) =>
-        new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.City, dto.CreatedAt);
+        new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.RestaurantName,
+            dto.PickupStreet, dto.PickupCity, dto.CreatedAt);
 
     private static DeliveryHistoryResponse MapToDeliveryHistory(DeliveryHistoryDto dto) =>
-        new(dto.Id, dto.OrderId, dto.CustomerId, dto.RestaurantId,
+        new(dto.Id, dto.OrderId, dto.RestaurantId,
             dto.Status, dto.Street, dto.City, dto.BuildingNumber, dto.Floor,
             dto.AssignedAt, dto.DeliveredAt);
 

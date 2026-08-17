@@ -30,6 +30,8 @@ public sealed class DeliveryPersistenceTests
             order.Id,
             customer.Id,
             restaurantId: 1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now);
 
@@ -42,6 +44,9 @@ public sealed class DeliveryPersistenceTests
 
         Assert.True(delivery.Id > 0);
         Assert.NotNull(byId);
+        Assert.Equal("Cairo Grill", byId.RestaurantName);
+        Assert.Equal("Tahrir Street", byId.RestaurantPickupAddress.Street);
+        Assert.Equal("Cairo", byId.RestaurantPickupAddress.City);
         Assert.Equal("Tahrir Street", byId.DeliveryAddress.Street);
         Assert.Equal(delivery.Id, byOrder?.Id);
         Assert.Contains(pending, item => item.Id == delivery.Id);
@@ -59,6 +64,8 @@ public sealed class DeliveryPersistenceTests
             order.Id,
             customer.Id,
             1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now));
         await dbContext.SaveChangesAsync();
@@ -67,6 +74,8 @@ public sealed class DeliveryPersistenceTests
             order.Id,
             customer.Id,
             1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now.AddMinutes(1)));
 
@@ -93,6 +102,8 @@ public sealed class DeliveryPersistenceTests
             firstOrder.Id,
             customer.Id,
             1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now);
         firstDelivery.AssignAgent(agent.Id, PersistenceTestData.Now.AddMinutes(1));
@@ -104,6 +115,8 @@ public sealed class DeliveryPersistenceTests
             secondOrder.Id,
             customer.Id,
             1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now);
         secondDelivery.AssignAgent(agent.Id, PersistenceTestData.Now.AddMinutes(1));
@@ -129,6 +142,8 @@ public sealed class DeliveryPersistenceTests
             order.Id,
             customer.Id,
             1,
+            "Cairo Grill",
+            PersistenceTestData.DeliveryAddress,
             PersistenceTestData.DeliveryAddress,
             PersistenceTestData.Now);
         dbContext1.Deliveries.Add(delivery);

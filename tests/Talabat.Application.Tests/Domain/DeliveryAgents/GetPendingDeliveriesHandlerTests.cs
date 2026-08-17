@@ -52,11 +52,15 @@ public sealed class GetPendingDeliveriesHandlerTests
         Assert.Equal(1, dto.OrderId);
         Assert.Equal(1, dto.RestaurantId);
         Assert.Equal(DeliveryStatus.PendingAssignment, dto.Status);
-        Assert.Equal("City", dto.City);
+        Assert.Equal("Test Restaurant", dto.RestaurantName);
+        Assert.Equal("Street", dto.PickupStreet);
+        Assert.Equal("City", dto.PickupCity);
         Assert.Equal(Now, dto.CreatedAt);
 
         var dtoType = typeof(PendingDeliveryDto);
         Assert.Null(dtoType.GetProperty("CustomerId"));
+        Assert.Null(dtoType.GetProperty("CustomerPhoneNumber"));
+        Assert.Null(dtoType.GetProperty("City"));
         Assert.Null(dtoType.GetProperty("Street"));
         Assert.Null(dtoType.GetProperty("BuildingNumber"));
         Assert.Null(dtoType.GetProperty("Floor"));
@@ -64,7 +68,7 @@ public sealed class GetPendingDeliveriesHandlerTests
 
     private static Delivery CreatePendingDelivery(int id)
     {
-        var delivery = new Delivery(1, 1, 1, Address, Now);
+        var delivery = new Delivery(1, 1, 1, "Test Restaurant", Address, Address, Now);
         TestIds.SetId(delivery, id);
         return delivery;
     }

@@ -457,6 +457,43 @@ public class UserAgentLifecycleTests
     public void UpdateLocation_WhenAgentApproved_ShouldUpdate()
     {
         var user = CreateApprovedAgent();
+        user.GoOnline();
+        var location = new GeoLocation(30.0m, 31.0m);
+
+        user.UpdateLocation(location);
+
+        Assert.Equal(location, user.CurrentLocation);
+    }
+
+    [Fact]
+    public void UpdateLocation_WhenOffline_ShouldThrow()
+    {
+        var user = CreateApprovedAgent();
+
+        var act = () => user.UpdateLocation(new GeoLocation(30.0m, 31.0m));
+
+        Assert.Throws<InvalidDeliveryAgentStatusTransitionException>(act);
+        Assert.Null(user.CurrentLocation);
+    }
+
+    [Fact]
+    public void UpdateLocation_WhenSuspended_ShouldThrow()
+    {
+        var user = CreateApprovedAgent();
+        user.Suspend();
+
+        var act = () => user.UpdateLocation(new GeoLocation(30.0m, 31.0m));
+
+        Assert.Throws<InvalidDeliveryAgentStatusTransitionException>(act);
+        Assert.Null(user.CurrentLocation);
+    }
+
+    [Fact]
+    public void UpdateLocation_WhenBusy_ShouldUpdate()
+    {
+        var user = CreateApprovedAgent();
+        user.GoOnline();
+        user.MarkBusy();
         var location = new GeoLocation(30.0m, 31.0m);
 
         user.UpdateLocation(location);

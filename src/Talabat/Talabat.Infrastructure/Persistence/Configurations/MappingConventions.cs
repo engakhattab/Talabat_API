@@ -70,6 +70,30 @@ internal static class MappingConventions
             .HasMaxLength(50);
     }
 
+    public static void ConfigurePickupAddress<TOwner>(
+        this OwnedNavigationBuilder<TOwner, Address> builder)
+        where TOwner : class
+    {
+        builder.Property(address => address.Street)
+            .HasColumnName("PickupStreet")
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(address => address.City)
+            .HasColumnName("PickupCity")
+            .HasMaxLength(120)
+            .IsRequired();
+
+        builder.Property(address => address.BuildingNumber)
+            .HasColumnName("PickupBuildingNumber")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(address => address.Floor)
+            .HasColumnName("PickupFloor")
+            .HasMaxLength(50);
+    }
+
     public static void ConfigureDeliveryAddressSnapshot<TOwner>(
         this OwnedNavigationBuilder<TOwner, DeliveryAddressSnapshot> builder)
         where TOwner : class
@@ -91,6 +115,30 @@ internal static class MappingConventions
 
         builder.Property(address => address.Floor)
             .HasColumnName("DeliveryFloor")
+            .HasMaxLength(50);
+    }
+
+    public static void ConfigurePickupAddressSnapshot<TOwner>(
+        this OwnedNavigationBuilder<TOwner, DeliveryAddressSnapshot> builder)
+        where TOwner : class
+    {
+        builder.Property(address => address.Street)
+            .HasColumnName("RestaurantPickupStreet")
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(address => address.City)
+            .HasColumnName("RestaurantPickupCity")
+            .HasMaxLength(120)
+            .IsRequired();
+
+        builder.Property(address => address.BuildingNumber)
+            .HasColumnName("RestaurantPickupBuildingNumber")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(address => address.Floor)
+            .HasColumnName("RestaurantPickupFloor")
             .HasMaxLength(50);
     }
 

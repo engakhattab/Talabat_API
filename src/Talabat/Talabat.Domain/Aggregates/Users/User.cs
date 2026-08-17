@@ -275,7 +275,16 @@ public sealed class User : IdentityUser<int>, Common.Abstractions.IAuditable, Co
     public void UpdateLocation(GeoLocation location)
     {
         RequireAgent();
-        CurrentLocation = location ?? throw new ArgumentNullException(nameof(location));
+        ArgumentNullException.ThrowIfNull(location);
+
+        if (DeliveryAgentStatus is not Users.DeliveryAgentStatus.Available
+            and not Users.DeliveryAgentStatus.Busy)
+        {
+            throw new InvalidDeliveryAgentStatusTransitionException(
+                "Location can only be updated while the delivery agent is available or busy.");
+        }
+
+        CurrentLocation = location;
     }
 
     public void SetPhoneNumber(string? phoneNumber)

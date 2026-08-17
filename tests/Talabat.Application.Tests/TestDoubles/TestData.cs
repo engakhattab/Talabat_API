@@ -22,6 +22,7 @@ public static class TestData
             openingHours: openAllDay
                 ? new TimeRange(new TimeOnly(0, 0), new TimeOnly(23, 59))
                 : new TimeRange(new TimeOnly(23, 0), new TimeOnly(23, 59)),
+            pickupAddress: new Address($"{id} Test Pickup Street", "Cairo", id.ToString()),
             isActive: active);
 
         TestIds.SetId(restaurant, id);

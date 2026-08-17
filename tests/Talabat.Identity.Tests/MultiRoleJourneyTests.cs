@@ -155,7 +155,8 @@ public sealed class MultiRoleJourneyTests : IAsyncLifetime
                     "Journey Restaurant",
                     "Multi-role journey restaurant",
                     null,
-                    new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue));
+                    new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue),
+                    new Address("10 Journey Pickup Street", "Cairo", "10"));
                 dbContext.Restaurants.Add(restaurant);
                 await dbContext.SaveChangesAsync();
 

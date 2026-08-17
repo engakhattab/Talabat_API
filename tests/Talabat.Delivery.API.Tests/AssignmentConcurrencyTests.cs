@@ -42,6 +42,12 @@ public sealed class AssignmentConcurrencyTests : IAsyncLifetime
             order.Id,
             customer.Id,
             restaurant.Id,
+            restaurant.Name,
+            new DeliveryAddressSnapshot(
+                restaurant.PickupAddress.Street,
+                restaurant.PickupAddress.City,
+                restaurant.PickupAddress.BuildingNumber,
+                restaurant.PickupAddress.Floor),
             new DeliveryAddressSnapshot("1 Test Street", "Cairo", "1"),
             DateTime.UtcNow);
 

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Talabat.Domain.Aggregates.Users;
+using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.Ordering;
 using Talabat.Domain.ValueObjects;
@@ -86,11 +87,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
 
             var userManager = services.GetRequiredService<UserManager<User>>();
+            User testUser;
             if (userManager.Users.All(u => u.Id != TestAuthHandler.TestUserId))
             {
-                var user = User.Register("testuser", "test@test.com", "Test User");
-                userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
-                userManager.AddToRoleAsync(user, "Customer").GetAwaiter().GetResult();
+                testUser = User.Register("testuser", "test@test.com", "Test User");
+                testUser.InitializeCustomerProfile("Test User", 30, "+201000000001");
+                testUser.AddAddress(new Address("1 Checkout Street", "Cairo", "1", "2"), makeDefault: true);
+                userManager.CreateAsync(testUser, "Password1!").GetAwaiter().GetResult();
+                userManager.AddToRoleAsync(testUser, "Customer").GetAwaiter().GetResult();
+            }
+            else
+            {
+                testUser = userManager.Users.Single(u => u.Id == TestAuthHandler.TestUserId);
             }
 
             var ownerUser = User.Register(
@@ -116,7 +124,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 "Ownership Restaurant",
                 "Ownership test fixture",
                 null,
-                new TimeRange(new TimeOnly(8, 0), new TimeOnly(23, 0)));
+                new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue),
+                new Address("5 Pickup Street", "Cairo", "5", "Ground Floor"));
             db.Restaurants.Add(restaurant);
             db.SaveChanges();
 
@@ -125,6 +134,18 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 "Ownership test product",
                 new Money(10m),
                 null);
+            db.SaveChanges();
+
+            var checkoutCart = Cart.Create(
+                testUser.Id,
+                new CatalogProductSnapshot(
+                    product.Id,
+                    restaurant.Id,
+                    product.Name,
+                    product.IsAvailable),
+                quantity: 1,
+                createdAt: DateTime.UtcNow);
+            db.Carts.Add(checkoutCart);
             db.SaveChanges();
 
             var foreignOrder = Order.CreateFromCheckout(

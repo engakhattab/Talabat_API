@@ -1,5 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Talabat.Infrastructure.Persistence;
 using Testcontainers.MsSql;
 using Xunit.Sdk;
@@ -50,6 +52,11 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
 
     public async Task<TestDatabase> CreateDatabaseAsync()
     {
+        return await CreateDatabaseAsync(targetMigration: null);
+    }
+
+    public async Task<TestDatabase> CreateDatabaseAsync(string? targetMigration)
+    {
         if (BaseConnectionString is null)
         {
             throw SkipException.ForSkip(SkipReason ?? "SQL Server test database is unavailable.");
@@ -66,7 +73,7 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
         var database = new TestDatabase(BaseConnectionString, databaseName, connectionString);
 
         await using var dbContext = database.CreateContext();
-        await dbContext.Database.MigrateAsync();
+        await dbContext.GetService<IMigrator>().MigrateAsync(targetMigration);
 
         return database;
     }

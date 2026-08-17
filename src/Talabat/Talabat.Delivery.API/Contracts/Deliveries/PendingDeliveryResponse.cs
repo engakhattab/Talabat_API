@@ -7,5 +7,7 @@ public sealed record PendingDeliveryResponse(
     int OrderId,
     int RestaurantId,
     DeliveryStatus Status,
-    string City,
+    string RestaurantName,
+    string PickupStreet,
+    string PickupCity,
     DateTime CreatedAt);

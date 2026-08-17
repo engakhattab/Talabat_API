@@ -33,6 +33,10 @@ internal sealed class RestaurantConfiguration :
             restaurant => restaurant.OpeningHours,
             openingHours => openingHours.ConfigureTimeRange());
 
+        builder.OwnsOne(
+            restaurant => restaurant.PickupAddress,
+            pickupAddress => pickupAddress.ConfigurePickupAddress());
+
         builder.HasMany<Product>("_products")
             .WithOne()
             .HasForeignKey(product => product.RestaurantId)

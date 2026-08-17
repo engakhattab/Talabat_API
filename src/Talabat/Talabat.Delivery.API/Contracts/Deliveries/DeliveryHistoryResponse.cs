@@ -5,7 +5,6 @@ namespace Talabat.Delivery.API.Contracts.Deliveries;
 public sealed record DeliveryHistoryResponse(
     int Id,
     int OrderId,
-    int CustomerId,
     int RestaurantId,
     DeliveryStatus Status,
     string Street,

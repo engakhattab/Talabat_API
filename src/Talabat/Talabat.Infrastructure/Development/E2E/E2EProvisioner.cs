@@ -435,7 +435,8 @@ public sealed class E2EProvisioner : IE2EProvisioner
                 _options.Catalog.RestaurantName,
                 restaurantOwnership,
                 imageUrl: null,
-                new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue));
+                new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue),
+                new Address("1 E2E Pickup Street", "Cairo", "1"));
             _dbContext.Restaurants.Add(restaurant);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }

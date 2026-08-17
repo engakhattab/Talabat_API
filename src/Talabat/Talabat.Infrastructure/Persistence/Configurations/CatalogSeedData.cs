@@ -46,6 +46,25 @@ internal static class CatalogSeedData
                     Start = new TimeOnly(11, 0),
                     End = new TimeOnly(1, 0)
                 });
+
+        builder.OwnsOne(restaurant => restaurant.PickupAddress)
+            .HasData(
+                new
+                {
+                    RestaurantId = 1,
+                    Street = "1 Demo Grill Street",
+                    City = "Cairo",
+                    BuildingNumber = "1",
+                    Floor = "Ground Floor"
+                },
+                new
+                {
+                    RestaurantId = 2,
+                    Street = "2 Demo Pizza Street",
+                    City = "Cairo",
+                    BuildingNumber = "2",
+                    Floor = (string?)null
+                });
     }
 
     public static void SeedProducts(EntityTypeBuilder<Product> builder)

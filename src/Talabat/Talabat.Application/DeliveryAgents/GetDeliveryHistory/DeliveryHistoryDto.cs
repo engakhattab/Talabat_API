@@ -5,7 +5,6 @@ namespace Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 public sealed record DeliveryHistoryDto(
     int Id,
     int OrderId,
-    int CustomerId,
     int RestaurantId,
     DeliveryStatus Status,
     string Street,

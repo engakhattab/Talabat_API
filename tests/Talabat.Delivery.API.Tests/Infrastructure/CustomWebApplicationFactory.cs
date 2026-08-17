@@ -24,6 +24,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public int DeliveryAgentUserId { get; private set; }
     public int AgentBUserId { get; private set; }
     public int DeliveryId { get; private set; }
+    public int PendingDeliveryId { get; private set; }
     public int RoleOnlyAgentUserId { get; private set; }
     public int PendingApplicantUserId { get; private set; }
     public int RejectedApplicantUserId { get; private set; }
@@ -141,6 +142,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             // Create a customer for the order
             var customer = User.Register("testcustomer", "customer@test.com", "Test Customer");
+            customer.SetPhoneNumber("+201000000099");
             userManager.CreateAsync(customer, "Password1!").GetAwaiter().GetResult();
             userManager.AddToRoleAsync(customer, "Customer").GetAwaiter().GetResult();
 
@@ -149,7 +151,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 "Ownership Restaurant",
                 "Ownership test fixture",
                 null,
-                new TimeRange(new TimeOnly(8, 0), new TimeOnly(23, 0)));
+                new TimeRange(new TimeOnly(8, 0), new TimeOnly(23, 0)),
+                new Address("5 Pickup Street", "Cairo", "5", "Ground Floor"));
             db.Restaurants.Add(restaurant);
             db.SaveChanges();
 
@@ -173,6 +176,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 order.Id,
                 customer.Id,
                 restaurant.Id,
+                restaurant.Name,
+                new DeliveryAddressSnapshot(
+                    restaurant.PickupAddress.Street,
+                    restaurant.PickupAddress.City,
+                    restaurant.PickupAddress.BuildingNumber,
+                    restaurant.PickupAddress.Floor),
                 new DeliveryAddressSnapshot("1 Test Street", "Cairo", "1"),
                 DateTime.UtcNow);
             delivery.AssignAgent(agentUser.Id, DateTime.UtcNow);
@@ -180,6 +189,32 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             db.SaveChanges();
 
             DeliveryId = delivery.Id;
+
+            var pendingOrder = Order.CreateFromCheckout(
+                customer.Id,
+                restaurant.Id,
+                [new CheckoutItemSnapshot(product.Id, product.Name, new Money(product.CurrentPrice.Amount), 1)],
+                new DeliveryAddressSnapshot("99 Private Destination", "Giza", "99", "8"),
+                DateTime.UtcNow);
+            db.Orders.Add(pendingOrder);
+            db.SaveChanges();
+
+            var pendingDelivery = new Talabat.Domain.Aggregates.DeliveryManagement.Delivery(
+                pendingOrder.Id,
+                customer.Id,
+                restaurant.Id,
+                restaurant.Name,
+                new DeliveryAddressSnapshot(
+                    restaurant.PickupAddress.Street,
+                    restaurant.PickupAddress.City,
+                    restaurant.PickupAddress.BuildingNumber,
+                    restaurant.PickupAddress.Floor),
+                pendingOrder.DeliveryAddress,
+                DateTime.UtcNow);
+            db.Deliveries.Add(pendingDelivery);
+            db.SaveChanges();
+
+            PendingDeliveryId = pendingDelivery.Id;
         }
 
         return host;

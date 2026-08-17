@@ -15,6 +15,10 @@ public sealed class Delivery : AuditableEntity
 
     public int RestaurantId { get; private set; }
 
+    public string RestaurantName { get; private set; }
+
+    public DeliveryAddressSnapshot RestaurantPickupAddress { get; }
+
     public int? AssignedAgentId { get; private set; }
 
     public DeliveryStatus Status { get; private set; }
@@ -41,6 +45,11 @@ public sealed class Delivery : AuditableEntity
 
     private Delivery()
     {
+        RestaurantName = string.Empty;
+        RestaurantPickupAddress = new DeliveryAddressSnapshot(
+            "Materialization",
+            "Materialization",
+            "0");
         DeliveryAddress = new DeliveryAddressSnapshot(
             "Materialization",
             "Materialization",
@@ -51,12 +60,17 @@ public sealed class Delivery : AuditableEntity
         int orderId,
         int customerId,
         int restaurantId,
+        string restaurantName,
+        DeliveryAddressSnapshot restaurantPickupAddress,
         DeliveryAddressSnapshot deliveryAddress,
         DateTime createdAt)
     {
         OrderId = Guard.Positive(orderId, nameof(orderId));
         CustomerId = Guard.Positive(customerId, nameof(customerId));
         RestaurantId = Guard.Positive(restaurantId, nameof(restaurantId));
+        RestaurantName = Guard.RequiredText(restaurantName, nameof(restaurantName));
+        RestaurantPickupAddress = restaurantPickupAddress
+            ?? throw new ArgumentNullException(nameof(restaurantPickupAddress));
         DeliveryAddress = deliveryAddress
             ?? throw new ArgumentNullException(nameof(deliveryAddress));
         CreatedAt = Guard.Utc(createdAt, nameof(createdAt));
@@ -244,7 +258,18 @@ public sealed class Delivery : AuditableEntity
     private static void EnsureTimeNotBefore(DateTime currentTime, DateTime previousTime)
     {
         Guard.Utc(currentTime, nameof(currentTime));
-        Guard.Utc(previousTime, nameof(previousTime));
+
+        // SQL Server datetime2 does not retain DateTimeKind. Persisted UTC values
+        // therefore materialize as Unspecified and must be restored to UTC before
+        // applying the lifecycle ordering invariant.
+        if (previousTime.Kind == DateTimeKind.Unspecified)
+        {
+            previousTime = DateTime.SpecifyKind(previousTime, DateTimeKind.Utc);
+        }
+        else
+        {
+            Guard.Utc(previousTime, nameof(previousTime));
+        }
 
         if (currentTime < previousTime)
         {
