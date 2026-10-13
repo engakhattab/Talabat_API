@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Talabat.Application.Common.Results;
 using Talabat.Domain.Exceptions;
+using Talabat.Customer.API.Extensions;
 
 namespace Talabat.Customer.API.Middleware;
 
@@ -18,17 +20,12 @@ public sealed class DomainExceptionHandler : IExceptionHandler
             return false;
         }
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Bad Request",
-            Detail = exception.Message,
-            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
-        };
+        // Map through the same domain-exception contract the handlers use, so an exception that
+        // escapes a handler (e.g. a RowVersion conflict raised by SaveChanges) keeps its category
+        // (409, 404, 422, ...) instead of collapsing to 400.
+        var problemDetails = DomainExceptionMapper.Map(exception).ToProblemDetails();
 
-        problemDetails.Extensions["errorCode"] = exception.GetType().Name;
-
-        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        httpContext.Response.StatusCode = problemDetails.Status!.Value;
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 

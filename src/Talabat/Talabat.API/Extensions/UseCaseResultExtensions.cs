@@ -33,6 +33,12 @@ public static class UseCaseResultExtensions
 
     private static IActionResult MapError(ApplicationError error)
     {
+        var problemDetails = error.ToProblemDetails();
+        return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
+    }
+
+    public static ProblemDetails ToProblemDetails(this ApplicationError error)
+    {
         var statusCode = error.Category switch
         {
             ApplicationErrorCategory.Validation => StatusCodes.Status400BadRequest,
@@ -53,7 +59,7 @@ public static class UseCaseResultExtensions
 
         problemDetails.Extensions["errorCode"] = error.Code;
 
-        return new ObjectResult(problemDetails) { StatusCode = statusCode };
+        return problemDetails;
     }
 
     private static string GetTitle(int statusCode) => statusCode switch
