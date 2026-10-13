@@ -22,7 +22,7 @@ public sealed class TalabatDbContextFactory : IDesignTimeDbContextFactory<Talaba
 
         var configuration = builder.Build();
         var connectionString = configuration.GetConnectionString("TalabatDb")
-            ?? "Server=DESKTOP-5IHGJ9F\\SQLEXPRESS;Database=Talabat;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? "Server=.\\SQLEXPRESS;Database=talabat;Trusted_Connection=True;TrustServerCertificate=True";
 
         var optionsBuilder = new DbContextOptionsBuilder<TalabatDbContext>();
         optionsBuilder.UseSqlServer(connectionString);
