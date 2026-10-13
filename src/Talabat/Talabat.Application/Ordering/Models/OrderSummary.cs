@@ -6,4 +6,5 @@ public sealed record OrderSummary(
     int Id,
     int RestaurantId,
     DateTime CreatedAtUtc,
-    Money TotalAmount);
+    Money TotalAmount,
+    int ItemCount);

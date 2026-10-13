@@ -1,5 +1,6 @@
 using Talabat.Application.Abstractions;
 using Talabat.Application.Catalog.Models;
+using Talabat.Application.Common.Paging;
 using Talabat.Application.Common.Results;
 using Talabat.Domain.Interfaces;
 
@@ -21,17 +22,20 @@ public sealed class BrowseRestaurantsHandler
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
-    public async Task<UseCaseResult<IReadOnlyCollection<RestaurantSummary>>> Handle(
+    public async Task<UseCaseResult<PagedResult<RestaurantSummary>>> Handle(
         BrowseRestaurantsQuery query,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var restaurants = await _restaurantRepository.GetActiveRestaurantsAsync(cancellationToken);
+        var page = new PageRequest(query.Page, query.PageSize);
+        var (restaurants, totalCount) = await _restaurantRepository.GetActiveRestaurantsPageAsync(
+            page.Skip,
+            page.PageSize,
+            cancellationToken);
         var utcNow = _clock.UtcNow;
 
         var summaries = restaurants
-            .OrderBy(restaurant => restaurant.Name, StringComparer.OrdinalIgnoreCase)
             .Select(restaurant =>
             {
                 var localTime = _restaurantLocalTimeProvider.GetLocalTime(restaurant, utcNow);
@@ -46,6 +50,7 @@ public sealed class BrowseRestaurantsHandler
             .ToList()
             .AsReadOnly();
 
-        return UseCaseResult<IReadOnlyCollection<RestaurantSummary>>.Success(summaries);
+        return UseCaseResult<PagedResult<RestaurantSummary>>.Success(
+            new PagedResult<RestaurantSummary>(summaries, page.Page, page.PageSize, totalCount));
     }
 }

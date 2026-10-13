@@ -19,6 +19,21 @@ public sealed class FakeRestaurantRepository : IRestaurantRepository
         return Task.FromResult(restaurants);
     }
 
+    public Task<(IReadOnlyCollection<Restaurant> Items, int TotalCount)> GetActiveRestaurantsPageAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var active = Restaurants
+            .Where(restaurant => restaurant.IsActive)
+            .OrderBy(restaurant => restaurant.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(restaurant => restaurant.Id)
+            .ToList();
+
+        IReadOnlyCollection<Restaurant> page = active.Skip(skip).Take(take).ToList().AsReadOnly();
+        return Task.FromResult((page, active.Count));
+    }
+
     public Task<Restaurant?> GetByIdAsync(
         int restaurantId,
         CancellationToken cancellationToken = default)

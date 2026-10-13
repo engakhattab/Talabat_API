@@ -8,6 +8,11 @@ public interface IRestaurantRepository
     Task<IReadOnlyCollection<Restaurant>> GetActiveRestaurantsAsync(
         CancellationToken cancellationToken = default);
 
+    Task<(IReadOnlyCollection<Restaurant> Items, int TotalCount)> GetActiveRestaurantsPageAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
     Task<Restaurant?> GetByIdAsync(
         int restaurantId,
         CancellationToken cancellationToken = default);

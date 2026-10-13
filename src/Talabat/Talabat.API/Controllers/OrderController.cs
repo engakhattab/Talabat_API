@@ -45,19 +45,20 @@ public sealed class OrderController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _getOrderHistoryHandler.Handle(
-            new GetOrderHistoryQuery(_currentUser.CustomerId!.Value),
+            new GetOrderHistoryQuery(_currentUser.CustomerId!.Value, page, pageSize),
             cancellationToken);
 
         return result.ToActionResult(orders =>
         {
-            var items = orders.Select(o => new OrderSummaryDto(
+            var items = orders.Items.Select(o => new OrderSummaryDto(
                 o.Id,
                 o.RestaurantId,
                 new MoneyDto(o.TotalAmount.Amount),
                 o.CreatedAtUtc,
-                0)).ToList();
+                o.ItemCount)).ToList();
 
-            return Ok(new OrderListResponse(items, page, pageSize, items.Count));
+            return Ok(new OrderListResponse(
+                items, orders.Page, orders.PageSize, orders.TotalCount));
         });
     }
 

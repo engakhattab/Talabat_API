@@ -13,7 +13,8 @@ public static class OrderMapper
             order.Id,
             order.RestaurantId,
             order.CreatedAt,
-            order.TotalAmount);
+            order.TotalAmount,
+            order.Items.Sum(item => item.Quantity));
     }
 
     public static OrderDetails ToDetails(Order order)
