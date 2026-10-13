@@ -6,8 +6,8 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
 - Backend (this repo): `D:\link-dev\talabat` → `github.com/engakhattab/Talabat_API`, default branch `main`.
 - Frontend: `D:\link-dev\talabat-frontend` → `github.com/engakhattab/talabat-frontend`, default branch `master`
   (Angular 22 workspace in `talabat-web/`; only the `customer` app exists).
-- Full audit, per-role status, and prioritized roadmap: `PROJECT_STATUS_REPORT.md` (§17 = roadmap).
-  Treat its "as audited" body as history; its top "Update" note lists what is already fixed.
+- **Master plan: `ROADMAP.md`** — milestones, phases, gates, and the current position. Read it first; it wins over
+  older plans. Audit evidence and history: `PROJECT_STATUS_REPORT.md`.
 
 ## Solution layout (`src/Talabat/Talabat.slnx`, .NET 10, EF Core 10.0.9, Duende IdentityServer 8.0.2)
 
@@ -47,6 +47,11 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
   (`npm run api:copy` in the frontend does exactly that) and regenerate the frontend client.
 - Checkout's 422 returns the typed `CheckoutUnavailableResponse` (the SPA depends on `unavailableItems`); it is the
   one sanctioned non-ProblemDetails error response.
+- **Test-first (mandatory):** name the test cases, write them and see them fail before writing production code for any
+  feature, bug fix, or domain transition; production code only makes those tests pass. Never weaken, skip, or delete
+  tests to pass a gate.
+- **Phase discipline:** work only on the current `ROADMAP.md` phase; do not start the next one until its gate passes.
+  Every progress update states the current milestone/phase, completed phases, and the next phase.
 - Commits: Conventional Commits whose body explains the bug, root cause, and fix.
 - **Git attribution (strict, permanent):** Never add Claude, Anthropic, or AI attribution as git commit author or via
   `Co-authored-by` trailer. All commits must strictly use the local git config user and email with zero AI
@@ -75,7 +80,8 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
   `TalabatTest_*` databases; they never touch `talabat`.
 - The repos were copied from another machine, so git reports "dubious ownership". Prefix git with
   `git -c safe.directory=*` (or the owner can add a global `safe.directory`).
-- Node.js is not installed on this machine, so the frontend cannot be built or tested here yet.
+- Node 24 (`C:\Program Files\nodejs`) and OpenJDK 21 are installed; shells started before the install may need them
+  prepended to PATH. The `customer-web` launch entry serves the Angular app on http://localhost:4200.
 - Bash on Windows: escaping `\` in JSON/connection strings is error-prone; prefer the Edit tool or PowerShell literals.
 
 ## Domain & test gotchas
@@ -88,12 +94,9 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
   "profile not created" scenarios.
 - SQL Server `datetime2` loses `DateTimeKind`; `Delivery` restores UTC before ordering checks.
 
-## Current status and next work (2026-10-13)
+## Current status (2026-10-14)
 
-- `main` @ `5016865` is green (640/640 tests, clean vulnerability scan); `feature/user-aggregate-refactor` was merged
-  and deleted. Work happens on short-lived task branches → PR into `main`.
-- Biggest gaps: `Order` has no lifecycle (no accept/prepare/ready), customers cannot track deliveries, no Restaurant
-  Owner capability, no Delivery/Admin SPAs, Identity not production-ready (signing key TODO, hardcoded localhost URIs,
-  JSON `/account/login` without lockout), sync-over-async in `CurrentUser`.
-- Next candidates (see report §17/§19): design the order lifecycle (Phase B), deterministic Delivery fixtures
-  (`docs/delivery-backend-readiness-plan.md` Phase 5), then the Delivery SPA.
+- Position, completed phases and next phase: see "Current position" in `ROADMAP.md` (kept up to date there only).
+- `main` and frontend `master` are green in CI (backend 640/640 + vulnerability scan; frontend all CI stages).
+- In flight: Phase 1 order-lifecycle design (`specs/011-order-lifecycle/design.md`, ADRs in `docs/adr/`). Until
+  Phase 2 lands, checkout still creates the delivery and `Order` has no lifecycle.

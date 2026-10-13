@@ -1,5 +1,7 @@
 # Project Implementation Roadmap
 
+> **Superseded for sequencing by [`ROADMAP.md`](ROADMAP.md).** Kept as history (2026-07).
+
 ## 0. Status Snapshot (2026-07-15)
 
 | Phase | Status | Record |

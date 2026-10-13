@@ -1,5 +1,7 @@
 # Delivery Backend Readiness Plan
 
+> **Superseded for sequencing by [`ROADMAP.md`](../ROADMAP.md).** Phases 1–4 below are done; Phase 5 is roadmap Phase 4 (revised for the order lifecycle).
+
 ## Scope and current-state decisions
 
 This plan prepares the existing backend for the Delivery Angular application. It preserves the current dependency direction (`API -> Application -> Domain`, with Infrastructure implementing abstractions), uses the unified `User` aggregate and Identity roles, keeps Delivery lifecycle transitions server-authoritative, and adds no frontend code.

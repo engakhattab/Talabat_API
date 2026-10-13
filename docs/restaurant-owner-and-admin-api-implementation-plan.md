@@ -1,5 +1,7 @@
 # Talabat — Restaurant Owner API & Admin API
 
+> **Superseded for sequencing by [`ROADMAP.md`](../ROADMAP.md).** Blueprint for roadmap Phases 6 and 8; its order-lifecycle parts (D3, D4, §6.4) are superseded by `specs/011-order-lifecycle/design.md`.
+
 ## Technical Implementation Plan
 
 **Target branch base:** `feature/user-aggregate-refactor`
