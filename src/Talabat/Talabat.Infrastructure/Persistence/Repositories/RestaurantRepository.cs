@@ -24,6 +24,26 @@ public sealed class RestaurantRepository : IRestaurantRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(IReadOnlyCollection<Restaurant> Items, int TotalCount)> GetActiveRestaurantsPageAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Restaurants
+            .AsNoTracking()
+            .Where(restaurant => restaurant.IsActive);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(restaurant => restaurant.Name)
+            .ThenBy(restaurant => restaurant.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public Task<Restaurant?> GetByIdAsync(
         int restaurantId,
         CancellationToken cancellationToken = default)

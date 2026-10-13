@@ -170,7 +170,7 @@ public sealed class MultiRoleJourneyTests : IAsyncLifetime
                 var browse = await scope.ServiceProvider.GetRequiredService<BrowseRestaurantsHandler>()
                     .Handle(new BrowseRestaurantsQuery());
                 Assert.True(browse.IsSuccess);
-                Assert.Contains(browse.Value, item => item.Id == restaurant.Id);
+                Assert.Contains(browse.Value.Items, item => item.Id == restaurant.Id);
 
                 var addCart = await scope.ServiceProvider.GetRequiredService<AddCartItemHandler>()
                     .Handle(new AddCartItemCommand(userId, restaurant.Id, product.Id, 2));
@@ -190,7 +190,7 @@ public sealed class MultiRoleJourneyTests : IAsyncLifetime
                 var orders = await scope.ServiceProvider.GetRequiredService<GetOrderHistoryHandler>()
                     .Handle(new GetOrderHistoryQuery(userId));
                 Assert.True(orders.IsSuccess, orders.Error?.Message);
-                Assert.Single(orders.Value);
+                Assert.Single(orders.Value.Items);
 
                 var order = await scope.ServiceProvider.GetRequiredService<GetOrderDetailsHandler>()
                     .Handle(new GetOrderDetailsQuery(userId, checkoutSucceeded.OrderId));

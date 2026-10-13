@@ -32,15 +32,16 @@ public sealed class CatalogController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _browseRestaurantsHandler.Handle(
-            new BrowseRestaurantsQuery(),
+            new BrowseRestaurantsQuery(page, pageSize),
             cancellationToken);
 
         return result.ToActionResult(restaurants =>
         {
-            var items = restaurants.Select(r => new RestaurantSummaryDto(
+            var items = restaurants.Items.Select(r => new RestaurantSummaryDto(
                 r.Id, r.Name, r.Description, r.ImageUrl, r.IsOpen)).ToList();
 
-            return Ok(new RestaurantListResponse(items, page, pageSize, items.Count));
+            return Ok(new RestaurantListResponse(
+                items, restaurants.Page, restaurants.PageSize, restaurants.TotalCount));
         });
     }
 

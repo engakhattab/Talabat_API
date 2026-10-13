@@ -20,7 +20,7 @@ public sealed class BrowseRestaurantsHandlerTests
         var result = await handler.Handle(new BrowseRestaurantsQuery());
 
         Assert.True(result.IsSuccess);
-        var restaurant = Assert.Single(result.Value);
+        var restaurant = Assert.Single(result.Value.Items);
         Assert.Equal(1, restaurant.Id);
         Assert.True(restaurant.IsOpen);
     }
