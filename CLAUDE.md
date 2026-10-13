@@ -48,6 +48,9 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
 - Checkout's 422 returns the typed `CheckoutUnavailableResponse` (the SPA depends on `unavailableItems`); it is the
   one sanctioned non-ProblemDetails error response.
 - Commits: Conventional Commits whose body explains the bug, root cause, and fix.
+- **Git attribution (strict, permanent):** Never add Claude, Anthropic, or AI attribution as git commit author or via
+  `Co-authored-by` trailer. All commits must strictly use the local git config user and email with zero AI
+  co-authorship metadata.
 
 ## Commands (run from repo root)
 
@@ -87,7 +90,7 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
 
 ## Current status and next work (2026-10-13)
 
-- `main` @ `0b884d1` is green (640/640 tests, clean vulnerability scan); `feature/user-aggregate-refactor` was merged
+- `main` @ `5016865` is green (640/640 tests, clean vulnerability scan); `feature/user-aggregate-refactor` was merged
   and deleted. Work happens on short-lived task branches → PR into `main`.
 - Biggest gaps: `Order` has no lifecycle (no accept/prepare/ready), customers cannot track deliveries, no Restaurant
   Owner capability, no Delivery/Admin SPAs, Identity not production-ready (signing key TODO, hardcoded localhost URIs,

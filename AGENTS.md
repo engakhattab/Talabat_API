@@ -3,11 +3,16 @@
 Full project context (architecture, conventions, commands, gotchas, current status) lives in `CLAUDE.md`.
 Read it first. The detailed audit and roadmap are in `PROJECT_STATUS_REPORT.md`.
 
+## Git attribution (strict, permanent)
+
+Never add Claude, Anthropic, or AI attribution as git commit author or via `Co-authored-by` trailer. All commits must
+strictly use the local git config user and email with zero AI co-authorship metadata.
+
 <!-- SPECKIT START -->
 Current roadmap increment:
 
 - Phase: **none active**. The Phase 10 remediation (except Identity hardening FR-R006, config-driven CORS T062
-  and `ISystemClock` removal T065) and the 2026-10-13 baseline remediation are merged into `main` (`0b884d1`).
+  and `ISystemClock` removal T065) and the 2026-10-13 baseline remediation are merged into `main` (`5016865`).
 - Branch: create a short-lived task branch from `main` and open a PR back into `main`.
 - Next candidates: order lifecycle design (`PROJECT_STATUS_REPORT.md` §17 Phase B) or Delivery readiness Phase 5
   (`docs/delivery-backend-readiness-plan.md`).
