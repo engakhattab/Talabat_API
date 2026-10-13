@@ -1,23 +1,18 @@
 # Agent Context
 
+Full project context (architecture, conventions, commands, gotchas, current status) lives in `CLAUDE.md`.
+Read it first. The detailed audit and roadmap are in `PROJECT_STATUS_REPORT.md`.
+
 <!-- SPECKIT START -->
 Current roadmap increment:
 
-- Phase: **Phase 10 Remediation** (8 critical blockers from audit)
-- Branch: `feature/user-aggregate-refactor`
-- Technical plan: `specs/010-phase-10-remediation/plan.md`
-- Governing scope: `.specify/memory/constitution.md` v3.0.1 -> "Current Phase Scope: User Aggregate Refactor"
+- Phase: **none active** — Phase 10 remediation and the baseline remediation are merged into `main` (`0b884d1`).
+- Branch: create a short-lived task branch from `main` and open a PR back into `main`.
+- Next candidates: order lifecycle design (`PROJECT_STATUS_REPORT.md` §17 Phase B) or Delivery readiness Phase 5
+  (`docs/delivery-backend-readiness-plan.md`).
+- Governing principles: `.specify/memory/constitution.md` v3.0.1.
 
-Scope guard for the current increment: execute the remediation plan's phases in order (Phase 0 → Phase 8).
-Key deliverables:
-1. FR-R001: `MapInboundClaims = false` fix for real JWT pipeline.
-2. FR-R002: Pending-delivery capability check + PII reduction.
-3. FR-R003: Delivery creation after checkout (BR-DEL-016).
-4. FR-R004: Agent approval endpoints (Development-gated).
-5. FR-R005: Delivery concurrency token (`RowVersion`).
-6. FR-R006: Identity host hardening.
-7. FR-R007: CI quality gates (SQL Server container, vulnerability check).
-8. FR-R008: Ownership convergence (controller-injection, `[RequireCustomerProfile]`, `ICurrentUserCapabilityResolver`, architecture tests).
-
-Keep business names `CustomerId` and `Delivery.AssignedAgentId` (FKs reference `AspNetUsers.Id`). Domain and Application must remain 100% free of Duende, IdentityServer, JWT, or ASP.NET Core Identity dependencies.
+Keep business names `CustomerId` and `Delivery.AssignedAgentId` (FKs reference `AspNetUsers.Id`). Domain and
+Application must stay free of Duende, IdentityServer, JWT, EF Core, and ASP.NET Core types. The single sanctioned
+exception is Domain's `Microsoft.Extensions.Identity.Stores` reference, so that `User` can inherit `IdentityUser<int>`.
 <!-- SPECKIT END -->
