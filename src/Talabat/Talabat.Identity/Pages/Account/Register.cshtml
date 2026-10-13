@@ -1,0 +1,64 @@
+@page "/auth/register"
+@model Talabat.Identity.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = Model.Variant == Talabat.Identity.Pages.Account.RegisterModel.RegistrationVariant.DeliveryAgent
+        ? "Apply as Delivery Agent"
+        : "Create Account";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.Variant == Talabat.Identity.Pages.Account.RegisterModel.RegistrationVariant.DeliveryAgent)
+{
+    <p>Your application will be reviewed before delivery features are unlocked.</p>
+}
+
+<div asp-validation-summary="All" class="validation-summary-errors"></div>
+
+<form method="post">
+    <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+    <label asp-for="Input.FullName">Full Name</label>
+    <input asp-for="Input.FullName" type="text" />
+    <span asp-validation-for="Input.FullName" class="field-validation-error"></span>
+
+    <label asp-for="Input.Email">Email</label>
+    <input asp-for="Input.Email" type="email" autocomplete="username" />
+    <span asp-validation-for="Input.Email" class="field-validation-error"></span>
+
+    <label asp-for="Input.Password">Password</label>
+    <input asp-for="Input.Password" type="password" autocomplete="new-password" />
+    <span asp-validation-for="Input.Password" class="field-validation-error"></span>
+
+    <label asp-for="Input.ConfirmPassword">Confirm Password</label>
+    <input asp-for="Input.ConfirmPassword" type="password" autocomplete="new-password" />
+    <span asp-validation-for="Input.ConfirmPassword" class="field-validation-error"></span>
+
+    <label asp-for="Input.PhoneNumber">Phone Number (optional)</label>
+    <input asp-for="Input.PhoneNumber" type="tel" />
+    <span asp-validation-for="Input.PhoneNumber" class="field-validation-error"></span>
+
+    @if (Model.Variant == Talabat.Identity.Pages.Account.RegisterModel.RegistrationVariant.Customer)
+    {
+        <label asp-for="Input.Age">Age</label>
+        <input asp-for="Input.Age" type="number" min="1" />
+        <span asp-validation-for="Input.Age" class="field-validation-error"></span>
+    }
+
+    @if (Model.Variant == Talabat.Identity.Pages.Account.RegisterModel.RegistrationVariant.DeliveryAgent)
+    {
+        <label asp-for="Input.VehicleType">Vehicle Type</label>
+        <select asp-for="Input.VehicleType"
+                asp-items="Html.GetEnumSelectList<Talabat.Domain.Aggregates.Users.VehicleType>()">
+            <option value="">-- Select Vehicle --</option>
+        </select>
+        <span asp-validation-for="Input.VehicleType" class="field-validation-error"></span>
+    }
+
+    <button type="submit">@(Model.Variant == Talabat.Identity.Pages.Account.RegisterModel.RegistrationVariant.DeliveryAgent ? "Submit Application" : "Create Account")</button>
+</form>
+
+<p>
+    Already have an account?
+    <a href="/auth/login?ReturnUrl=@(Uri.EscapeDataString(Model.ReturnUrl ?? ""))">Sign in</a>
+</p>

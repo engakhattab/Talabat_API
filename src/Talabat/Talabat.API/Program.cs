@@ -1,27 +1,107 @@
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Talabat.Application;
 using Talabat.Application.Abstractions;
 using Talabat.Customer.API.Auth;
 using Talabat.Customer.API.Middleware;
 using Talabat.Infrastructure;
+using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<ProfileEnforcementFilter>();
-});
+    {
+        options.Filters.Add<Talabat.Customer.API.Middleware.RequireValidSubjectFilter>();
+    })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        new OpenApiWalker(new NumericSchemaTypeOpenApiVisitor()).Walk(document);
+
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+        document.Components.SecuritySchemes["oauth2"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.OAuth2,
+            Description = "OIDC authorization code flow with PKCE against Talabat.Identity.",
+            Flows = new OpenApiOAuthFlows
+            {
+                AuthorizationCode = new OpenApiOAuthFlow
+                {
+                    AuthorizationUrl = new Uri("https://localhost:7237/connect/authorize"),
+                    TokenUrl         = new Uri("https://localhost:7237/connect/token"),
+                    Scopes = new Dictionary<string, string>
+                    {
+                        ["openid"]       = "Subject identifier",
+                        ["profile"]      = "Profile claims",
+                        ["roles"]        = "Role claims",
+                        ["customer.api"] = "Customer API access"
+                    }
+                }
+            }
+        };
+
+        return Task.CompletedTask;
+    });
+
+    options.AddOperationTransformer((operation, context, _) =>
+    {
+        var metadata = context.Description.ActionDescriptor.EndpointMetadata;
+
+        var requiresAuth = metadata.OfType<IAuthorizeData>().Any()
+                        && !metadata.OfType<IAllowAnonymous>().Any();
+
+        if (requiresAuth)
+        {
+            operation.Security =
+            [
+                new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference("oauth2", context.Document)] =
+                        new List<string> { "customer.api" }
+                }
+            ];
+        }
+
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddUnifiedUserIdentityCore();
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+builder.Services.AddSingleton<IAuthorizationHandler, ScopeHandler>();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthorizationPolicies.CustomerAccess, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("customer.api"));
+        policy.RequireRole("Customer");
+    })
+    .AddPolicy(AuthorizationPolicies.CustomerScopeOnly, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new ScopeRequirement("customer.api"));
+    });
 
 builder.Services.AddAuthentication(options =>
 {
@@ -30,38 +110,33 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;   // keep "sub", "role", "scope" verbatim from the token
     var identityAuthority = builder.Configuration["Identity:Authority"]
         ?? "https://localhost:7237";
 
     options.Authority = identityAuthority;
-    options.Audience = "talabat.customer-api";
+    options.Audience = "talabat.customer.api";
     options.RequireHttpsMetadata = builder.Environment.IsDevelopment() is false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidIssuer = identityAuthority,
-        ValidateAudience = false,
+        ValidateAudience = true,
+        ValidAudience = "talabat.customer.api",
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true
+        ValidateIssuerSigningKey = true,
+        RoleClaimType = "role",
+        NameClaimType = "sub"
     };
 });
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Development", policy =>
-        policy.SetIsOriginAllowed(origin =>
-        {
-            try
-            {
-                return new Uri(origin).Host == "localhost";
-            }
-            catch
-            {
-                return false;
-            }
-        })
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+    options.AddPolicy("SpaCorsPolicy", policy =>
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 builder.Services.AddHealthChecks()
@@ -78,13 +153,19 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/openapi/v1.json", "Talabat Customer API v1");
         options.RoutePrefix = "swagger";
+
+        options.OAuthClientId("talabat-customer-spa");
+        options.OAuthUsePkce();
+        options.OAuthScopes("openid", "profile", "roles", "customer.api");
+        options.OAuthAppName("Talabat Customer API — Swagger");
     });
-    app.UseCors("Development");
 }
 
 app.UseExceptionHandler(_ => {});
 
 app.UseHttpsRedirection();
+
+app.UseCors("SpaCorsPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -93,3 +174,41 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program { }
+
+internal sealed class NumericSchemaTypeOpenApiVisitor : OpenApiVisitorBase
+{
+    public override void Visit(IOpenApiSchema schema)
+    {
+        if (schema is OpenApiSchema mutableSchema)
+        {
+            switch (mutableSchema.Format)
+            {
+                case "int32":
+                case "int64":
+                    ApplyNumericType(mutableSchema, JsonSchemaType.Integer);
+                    break;
+                case "float":
+                case "double":
+                case "decimal":
+                    ApplyNumericType(mutableSchema, JsonSchemaType.Number);
+                    break;
+            }
+        }
+
+        base.Visit(schema);
+    }
+
+    private static void ApplyNumericType(OpenApiSchema schema, JsonSchemaType type)
+    {
+        var isNullable = schema.Type?.HasFlag(JsonSchemaType.Null) == true;
+        schema.Type = type;
+
+        if (isNullable)
+        {
+            schema.Extensions ??= new Dictionary<string, IOpenApiExtension>();
+            schema.Extensions[OpenApiConstants.NullableExtension] = new JsonNodeExtension(JsonValue.Create(true)!);
+        }
+    }
+}

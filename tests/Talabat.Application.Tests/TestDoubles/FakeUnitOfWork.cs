@@ -20,6 +20,16 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         return Task.FromResult(SaveChangesCount);
     }
 
+    public int TransactionCount { get; private set; }
+
+    public async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default)
+    {
+        TransactionCount++;
+        await operation(cancellationToken);
+    }
+
     private void AssignIds()
     {
         foreach (var store in _stores)
@@ -29,11 +39,14 @@ public sealed class FakeUnitOfWork : IUnitOfWork
                 case FakeCartRepository carts:
                     AssignCartIds(carts);
                     break;
-                case FakeCustomerRepository customers:
-                    AssignCustomerIds(customers);
+                case FakeUserRepository users:
+                    AssignUserIds(users);
                     break;
                 case FakeOrderRepository orders:
                     AssignOrderIds(orders);
+                    break;
+                case FakeDeliveryRepository deliveries:
+                    AssignDeliveryIds(deliveries);
                     break;
             }
         }
@@ -49,24 +62,13 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         }
     }
 
-    private static void AssignCustomerIds(FakeCustomerRepository customers)
+    private static void AssignUserIds(FakeUserRepository users)
     {
-        foreach (var customer in customers.Customers.Where(customer => customer.Id == 0))
+        foreach (var user in users.Users.Where(user => user.Id == 0))
         {
             TestIds.SetId(
-                customer,
-                NextId(customers.Customers.Select(existingCustomer => existingCustomer.Id), seed: 1));
-        }
-
-        var addresses = customers.Customers
-            .SelectMany(customer => customer.Addresses)
-            .ToList();
-
-        foreach (var address in addresses.Where(address => address.Id == 0))
-        {
-            TestIds.SetId(
-                address,
-                NextId(addresses.Select(existingAddress => existingAddress.Id), seed: 200));
+                user,
+                NextId(users.Users.Select(existingUser => existingUser.Id), seed: 1));
         }
     }
 
@@ -77,6 +79,16 @@ public sealed class FakeUnitOfWork : IUnitOfWork
             TestIds.SetId(
                 order,
                 NextId(orders.Orders.Select(existingOrder => existingOrder.Id), seed: 300));
+        }
+    }
+
+    private static void AssignDeliveryIds(FakeDeliveryRepository deliveries)
+    {
+        foreach (var delivery in deliveries.Deliveries.Where(delivery => delivery.Id == 0))
+        {
+            TestIds.SetId(
+                delivery,
+                NextId(deliveries.Deliveries.Select(existing => existing.Id), seed: 500));
         }
     }
 

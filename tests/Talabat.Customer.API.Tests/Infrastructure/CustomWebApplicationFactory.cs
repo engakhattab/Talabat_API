@@ -1,11 +1,18 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Talabat.Domain.Aggregates.Users;
+using Talabat.Domain.Aggregates.Basket;
+using Talabat.Domain.Aggregates.Catalog;
+using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.ValueObjects;
+using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
 
 namespace Talabat.Customer.API.Tests.Infrastructure;
@@ -13,6 +20,33 @@ namespace Talabat.Customer.API.Tests.Infrastructure;
 public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private string? _connectionString;
+
+    public int ForeignCustomerId { get; private set; }
+    public int OwnerCustomerId { get; private set; }
+    public int ForeignAddressId { get; private set; }
+    public int ForeignOrderId { get; private set; }
+
+    /// <summary>
+    /// Creates a fresh persisted user with no customer profile. The default test user
+    /// (<see cref="TestAuthHandler.TestUserId"/>) is seeded with a profile, so tests that
+    /// exercise the "profile not created" paths must authenticate as one of these instead.
+    /// </summary>
+    public int CreateUserWithoutProfile()
+    {
+        using var scope = Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var user = User.Register($"noprofile-{suffix}", $"noprofile-{suffix}@test.com", "No Profile User");
+
+        var result = userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create profile-less test user: {string.Join(", ", result.Errors.Select(e => e.Code))}");
+        }
+
+        return user.Id;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -46,6 +80,10 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 }
             });
 
+            services.AddIdentityCore<User>()
+                .AddRoles<IdentityRole<int>>()
+                .AddEntityFrameworkStores<TalabatDbContext>();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
@@ -64,8 +102,87 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
         using (var scope = host.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
-            db.Database.EnsureCreated();
+            var services = scope.ServiceProvider;
+            var db = services.GetRequiredService<TalabatDbContext>();
+            db.Database.Migrate();
+
+            IdentityDataSeeder.SeedRolesAsync(services).GetAwaiter().GetResult();
+
+            var userManager = services.GetRequiredService<UserManager<User>>();
+            User testUser;
+            if (userManager.Users.All(u => u.Id != TestAuthHandler.TestUserId))
+            {
+                testUser = User.Register("testuser", "test@test.com", "Test User");
+                testUser.InitializeCustomerProfile("Test User", 30, "+201000000001");
+                testUser.AddAddress(new Address("1 Checkout Street", "Cairo", "1", "2"), makeDefault: true);
+                userManager.CreateAsync(testUser, "Password1!").GetAwaiter().GetResult();
+                userManager.AddToRoleAsync(testUser, "Customer").GetAwaiter().GetResult();
+            }
+            else
+            {
+                testUser = userManager.Users.Single(u => u.Id == TestAuthHandler.TestUserId);
+            }
+
+            var ownerUser = User.Register(
+                $"owner-{Guid.NewGuid():N}",
+                $"owner-{Guid.NewGuid():N}@test.com",
+                "Owner Customer");
+            ownerUser.InitializeCustomerProfile("Owner Customer", 30, null);
+            ownerUser.AddAddress(new Address("1 Owner Street", "Cairo", "1"), makeDefault: true);
+            userManager.CreateAsync(ownerUser, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(ownerUser, "Customer").GetAwaiter().GetResult();
+
+
+            var foreignUser = User.Register(
+                $"foreign-{Guid.NewGuid():N}",
+                $"foreign-{Guid.NewGuid():N}@test.com",
+                "Foreign Customer");
+            foreignUser.InitializeCustomerProfile("Foreign Customer", 31, null);
+            foreignUser.AddAddress(new Address("2 Foreign Street", "Giza", "2"), makeDefault: true);
+            userManager.CreateAsync(foreignUser, "Password1!").GetAwaiter().GetResult();
+            userManager.AddToRoleAsync(foreignUser, "Customer").GetAwaiter().GetResult();
+
+            var restaurant = new Restaurant(
+                "Ownership Restaurant",
+                "Ownership test fixture",
+                null,
+                new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue),
+                new Address("5 Pickup Street", "Cairo", "5", "Ground Floor"));
+            db.Restaurants.Add(restaurant);
+            db.SaveChanges();
+
+            var product = restaurant.AddProduct(
+                "Ownership Item",
+                "Ownership test product",
+                new Money(10m),
+                null);
+            db.SaveChanges();
+
+            var checkoutCart = Cart.Create(
+                testUser.Id,
+                new CatalogProductSnapshot(
+                    product.Id,
+                    restaurant.Id,
+                    product.Name,
+                    product.IsAvailable),
+                quantity: 1,
+                createdAt: DateTime.UtcNow);
+            db.Carts.Add(checkoutCart);
+            db.SaveChanges();
+
+            var foreignOrder = Order.CreateFromCheckout(
+                foreignUser.Id,
+                restaurant.Id,
+                [new CheckoutItemSnapshot(product.Id, product.Name, product.CurrentPrice, 1)],
+                foreignUser.CreateDeliveryAddressSnapshot(foreignUser.Addresses.Single().Id),
+                DateTime.UtcNow);
+            db.Orders.Add(foreignOrder);
+            db.SaveChanges();
+
+            ForeignCustomerId = foreignUser.Id;
+            OwnerCustomerId = ownerUser.Id;
+            ForeignAddressId = foreignUser.Addresses.Single().Id;
+            ForeignOrderId = foreignOrder.Id;
         }
 
         return host;

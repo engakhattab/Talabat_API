@@ -9,9 +9,9 @@ public sealed class RemoveCustomerAddressHandlerTests
     [Fact]
     public async Task Handle_RemovingDefaultDoesNotSelectNewDefault()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new RemoveCustomerAddressHandler(customers, new FakeUnitOfWork());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new RemoveCustomerAddressHandler(users, new FakeUnitOfWork());
 
         var result = await handler.Handle(new RemoveCustomerAddressCommand(1, 1));
 
@@ -22,9 +22,9 @@ public sealed class RemoveCustomerAddressHandlerTests
     [Fact]
     public async Task Handle_ReturnsNotFoundWhenAddressMissing()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new RemoveCustomerAddressHandler(customers, new FakeUnitOfWork());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new RemoveCustomerAddressHandler(users, new FakeUnitOfWork());
 
         var result = await handler.Handle(new RemoveCustomerAddressCommand(1, 999));
 

@@ -1,18 +1,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Ordering.GetOrderDetails;
 using Talabat.Application.Ordering.GetOrderHistory;
 using Talabat.Customer.API.Contracts.Common;
 using Talabat.Customer.API.Contracts.Orders;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/orders")]
-[Authorize]
+[Tags("Orders")]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
+[Produces("application/json")]
 public sealed class OrderController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -29,30 +34,40 @@ public sealed class OrderController : ControllerBase
         _getOrderDetailsHandler = getOrderDetailsHandler;
     }
 
-    [HttpGet]
+    [HttpGet(Name = "GetOrders")]
+    [ProducesResponseType<OrderListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetOrders(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var result = await _getOrderHistoryHandler.Handle(
-            new GetOrderHistoryQuery(_currentUser.CustomerId!.Value),
+            new GetOrderHistoryQuery(_currentUser.CustomerId!.Value, page, pageSize),
             cancellationToken);
 
         return result.ToActionResult(orders =>
         {
-            var items = orders.Select(o => new OrderSummaryDto(
+            var items = orders.Items.Select(o => new OrderSummaryDto(
                 o.Id,
                 o.RestaurantId,
                 new MoneyDto(o.TotalAmount.Amount),
                 o.CreatedAtUtc,
-                0)).ToList();
+                o.ItemCount)).ToList();
 
-            return Ok(new OrderListResponse(items, page, pageSize, items.Count));
+            return Ok(new OrderListResponse(
+                items, orders.Page, orders.PageSize, orders.TotalCount));
         });
     }
 
-    [HttpGet("{orderId:int}")]
+    [HttpGet("{orderId:int}", Name = "GetOrderDetails")]
+    [ProducesResponseType<OrderDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetOrderDetails(
         int orderId,
         CancellationToken cancellationToken)

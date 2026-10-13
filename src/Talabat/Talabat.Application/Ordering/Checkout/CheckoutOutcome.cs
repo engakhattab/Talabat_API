@@ -15,7 +15,15 @@ public sealed class CheckoutSucceededOutcome : CheckoutOutcome
 
     public Money TotalAmount { get; }
 
-    public CheckoutSucceededOutcome(int orderId, Money totalAmount)
+    public int RestaurantId { get; }
+
+    public DeliveryAddressSnapshot DeliveryAddress { get; }
+
+    public CheckoutSucceededOutcome(
+        int orderId,
+        Money totalAmount,
+        int restaurantId,
+        DeliveryAddressSnapshot deliveryAddress)
     {
         if (orderId <= 0)
         {
@@ -27,6 +35,11 @@ public sealed class CheckoutSucceededOutcome : CheckoutOutcome
 
         OrderId = orderId;
         TotalAmount = totalAmount ?? throw new ArgumentNullException(nameof(totalAmount));
+        RestaurantId = restaurantId > 0
+            ? restaurantId
+            : throw new ArgumentOutOfRangeException(nameof(restaurantId), restaurantId, "Restaurant id must be greater than zero.");
+        DeliveryAddress = deliveryAddress
+            ?? throw new ArgumentNullException(nameof(deliveryAddress));
     }
 }
 

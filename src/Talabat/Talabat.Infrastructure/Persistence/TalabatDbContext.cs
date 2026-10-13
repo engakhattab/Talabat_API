@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
-using Talabat.Domain.Aggregates.Customer;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
-using Talabat.Infrastructure.Identity;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence;
 
-public sealed class TalabatDbContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
+public sealed class TalabatDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
     public TalabatDbContext(DbContextOptions<TalabatDbContext> options)
         : base(options)
@@ -23,13 +22,9 @@ public sealed class TalabatDbContext : IdentityDbContext<ApplicationUser, Identi
 
     public DbSet<Cart> Carts => Set<Cart>();
 
-    public DbSet<Customer> Customers => Set<Customer>();
-
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<Delivery> Deliveries => Set<Delivery>();
-
-    public DbSet<DeliveryAgent> DeliveryAgents => Set<DeliveryAgent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

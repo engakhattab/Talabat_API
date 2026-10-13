@@ -58,6 +58,19 @@ public sealed class AddCartItemHandler
 
                 await _cartRepository.AddAsync(cart, cancellationToken);
             }
+            else if (cart.IsExpired(now))
+            {
+                cart.MarkExpired(now);
+                _cartRepository.Update(cart);
+
+                cart = Cart.Create(
+                    command.CustomerId,
+                    snapshot,
+                    command.Quantity,
+                    now);
+
+                await _cartRepository.AddAsync(cart, cancellationToken);
+            }
             else
             {
                 cart.AddItem(snapshot, command.Quantity, now);

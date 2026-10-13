@@ -19,6 +19,8 @@ public sealed class Restaurant : AuditableEntity
 
     public TimeRange OpeningHours { get; private set; }
 
+    public Address PickupAddress { get; private set; }
+
     public bool IsActive { get; private set; }
 
     public IReadOnlyCollection<Product> Products => _products.AsReadOnly();
@@ -28,6 +30,7 @@ public sealed class Restaurant : AuditableEntity
         Name = string.Empty;
         Description = string.Empty;
         OpeningHours = new TimeRange(TimeOnly.MinValue, TimeOnly.MaxValue);
+        PickupAddress = new Address("Materialization", "Materialization", "0");
     }
 
     public Restaurant(
@@ -35,13 +38,21 @@ public sealed class Restaurant : AuditableEntity
         string description,
         string? imageUrl,
         TimeRange openingHours,
+        Address pickupAddress,
         bool isActive = true)
     {
         Name = Guard.RequiredText(name, nameof(name));
         Description = Guard.RequiredText(description, nameof(description));
         ImageUrl = Guard.OptionalText(imageUrl);
         OpeningHours = openingHours ?? throw new ArgumentNullException(nameof(openingHours));
+        PickupAddress = pickupAddress ?? throw new ArgumentNullException(nameof(pickupAddress));
         IsActive = isActive;
+    }
+
+    public void UpdatePickupDetails(string name, Address pickupAddress)
+    {
+        Name = Guard.RequiredText(name, nameof(name));
+        PickupAddress = pickupAddress ?? throw new ArgumentNullException(nameof(pickupAddress));
     }
 
     public bool IsOpenAt(TimeOnly time)

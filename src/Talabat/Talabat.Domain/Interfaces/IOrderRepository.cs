@@ -17,6 +17,12 @@ public interface IOrderRepository
         int customerId,
         CancellationToken cancellationToken = default);
 
+    Task<(IReadOnlyCollection<Order> Items, int TotalCount)> GetPageByCustomerIdAsync(
+        int customerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         Order order,
         CancellationToken cancellationToken = default);

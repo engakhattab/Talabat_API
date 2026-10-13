@@ -15,34 +15,24 @@ internal static class MappingConventions
         builder.Property<int>("Id").ValueGeneratedOnAdd();
     }
 
+    public static void ConfigureAuditing<TEntity>(this EntityTypeBuilder<TEntity> builder)
+        where TEntity : class, IAuditable, ISoftDeletable
+    {
+        builder.Property(entity => entity.CreatedAt).HasColumnType("datetime2").IsRequired();
+        builder.Property(entity => entity.CreatedBy).HasMaxLength(200);
+        builder.Property(entity => entity.ModifiedAt).HasColumnType("datetime2");
+        builder.Property(entity => entity.ModifiedBy).HasMaxLength(200);
+        builder.Property(entity => entity.IsDeleted).HasDefaultValue(false).IsRequired();
+        builder.Property(entity => entity.DeletedAt).HasColumnType("datetime2");
+        builder.Property(entity => entity.DeletedBy).HasMaxLength(200);
+        builder.HasQueryFilter(entity => !entity.IsDeleted);
+    }
+
     public static void ConfigureAuditableEntity<TEntity>(
         this EntityTypeBuilder<TEntity> builder)
         where TEntity : AuditableEntity
     {
-        builder.Property(entity => entity.CreatedAt)
-            .HasColumnType("datetime2")
-            .IsRequired();
-
-        builder.Property(entity => entity.CreatedBy)
-            .HasMaxLength(200);
-
-        builder.Property(entity => entity.ModifiedAt)
-            .HasColumnType("datetime2");
-
-        builder.Property(entity => entity.ModifiedBy)
-            .HasMaxLength(200);
-
-        builder.Property(entity => entity.IsDeleted)
-            .HasDefaultValue(false)
-            .IsRequired();
-
-        builder.Property(entity => entity.DeletedAt)
-            .HasColumnType("datetime2");
-
-        builder.Property(entity => entity.DeletedBy)
-            .HasMaxLength(200);
-
-        builder.HasQueryFilter(entity => !entity.IsDeleted);
+        builder.ConfigureAuditing<TEntity>();
     }
 
     public static void ConfigureMoney<TOwner>(
@@ -80,6 +70,30 @@ internal static class MappingConventions
             .HasMaxLength(50);
     }
 
+    public static void ConfigurePickupAddress<TOwner>(
+        this OwnedNavigationBuilder<TOwner, Address> builder)
+        where TOwner : class
+    {
+        builder.Property(address => address.Street)
+            .HasColumnName("PickupStreet")
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(address => address.City)
+            .HasColumnName("PickupCity")
+            .HasMaxLength(120)
+            .IsRequired();
+
+        builder.Property(address => address.BuildingNumber)
+            .HasColumnName("PickupBuildingNumber")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(address => address.Floor)
+            .HasColumnName("PickupFloor")
+            .HasMaxLength(50);
+    }
+
     public static void ConfigureDeliveryAddressSnapshot<TOwner>(
         this OwnedNavigationBuilder<TOwner, DeliveryAddressSnapshot> builder)
         where TOwner : class
@@ -101,6 +115,30 @@ internal static class MappingConventions
 
         builder.Property(address => address.Floor)
             .HasColumnName("DeliveryFloor")
+            .HasMaxLength(50);
+    }
+
+    public static void ConfigurePickupAddressSnapshot<TOwner>(
+        this OwnedNavigationBuilder<TOwner, DeliveryAddressSnapshot> builder)
+        where TOwner : class
+    {
+        builder.Property(address => address.Street)
+            .HasColumnName("RestaurantPickupStreet")
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(address => address.City)
+            .HasColumnName("RestaurantPickupCity")
+            .HasMaxLength(120)
+            .IsRequired();
+
+        builder.Property(address => address.BuildingNumber)
+            .HasColumnName("RestaurantPickupBuildingNumber")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(address => address.Floor)
+            .HasColumnName("RestaurantPickupFloor")
             .HasMaxLength(50);
     }
 

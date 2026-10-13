@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Basket.AddItem;
 using Talabat.Application.Basket.ClearCart;
 using Talabat.Application.Basket.GetCart;
@@ -10,12 +11,16 @@ using Talabat.Application.Common.Results;
 using Talabat.Customer.API.Contracts.Cart;
 using Talabat.Customer.API.Contracts.Common;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/cart")]
-[Authorize]
+[Tags("Cart")]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
+[Produces("application/json")]
 public sealed class CartController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -41,7 +46,12 @@ public sealed class CartController : ControllerBase
         _clearCartHandler = clearCartHandler;
     }
 
-    [HttpGet]
+    [HttpGet(Name = "GetCart")]
+    [ProducesResponseType<CartResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GetCart(CancellationToken cancellationToken)
     {
         var result = await _getCartHandler.Handle(
@@ -51,7 +61,14 @@ public sealed class CartController : ControllerBase
         return result.ToActionResult(cart => Ok(MapToResponse(cart)));
     }
 
-    [HttpPost("items")]
+    [HttpPost("items", Name = "AddCartItem")]
+    [Consumes("application/json")]
+    [ProducesResponseType<CartResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> AddItem(
         [FromBody] AddCartItemRequest request,
         CancellationToken cancellationToken)
@@ -67,7 +84,14 @@ public sealed class CartController : ControllerBase
         return result.ToActionResult(cart => Ok(MapToResponse(cart)));
     }
 
-    [HttpPut("items/{productId:int}")]
+    [HttpPut("items/{productId:int}", Name = "UpdateCartItemQuantity")]
+    [Consumes("application/json")]
+    [ProducesResponseType<CartResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateItemQuantity(
         int productId,
         [FromBody] UpdateCartItemRequest request,
@@ -83,7 +107,12 @@ public sealed class CartController : ControllerBase
         return result.ToActionResult(cart => Ok(MapToResponse(cart)));
     }
 
-    [HttpDelete("items/{productId:int}")]
+    [HttpDelete("items/{productId:int}", Name = "RemoveCartItem")]
+    [ProducesResponseType<CartResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RemoveItem(
         int productId,
         CancellationToken cancellationToken)
@@ -97,7 +126,11 @@ public sealed class CartController : ControllerBase
         return result.ToActionResult(cart => Ok(MapToResponse(cart)));
     }
 
-    [HttpDelete]
+    [HttpDelete(Name = "ClearCart")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ClearCart(CancellationToken cancellationToken)
     {
         var command = new ClearCartCommand(_currentUser.CustomerId!.Value);

@@ -1,3 +1,4 @@
+using Talabat.Application.Common.Paging;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Ordering.Mapping;
 using Talabat.Application.Ordering.Models;
@@ -14,20 +15,23 @@ public sealed class GetOrderHistoryHandler
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
     }
 
-    public async Task<UseCaseResult<IReadOnlyCollection<OrderSummary>>> Handle(
+    public async Task<UseCaseResult<PagedResult<OrderSummary>>> Handle(
         GetOrderHistoryQuery query,
         CancellationToken cancellationToken = default)
     {
-        var orders = await _orderRepository.GetByCustomerIdAsync(
+        var page = new PageRequest(query.Page, query.PageSize);
+        var (orders, totalCount) = await _orderRepository.GetPageByCustomerIdAsync(
             query.CustomerId,
+            page.Skip,
+            page.PageSize,
             cancellationToken);
 
         var summaries = orders
-            .OrderByDescending(order => order.CreatedAt)
             .Select(OrderMapper.ToSummary)
             .ToList()
             .AsReadOnly();
 
-        return UseCaseResult<IReadOnlyCollection<OrderSummary>>.Success(summaries);
+        return UseCaseResult<PagedResult<OrderSummary>>.Success(
+            new PagedResult<OrderSummary>(summaries, page.Page, page.PageSize, totalCount));
     }
 }

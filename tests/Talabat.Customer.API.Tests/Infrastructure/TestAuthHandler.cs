@@ -7,12 +7,15 @@ using System.Text.Encodings.Web;
 
 namespace Talabat.Customer.API.Tests.Infrastructure;
 
-#pragma warning disable CS0618 // ISystemClock is obsolete in newer versions but required by AuthenticationHandler base
+#pragma warning disable CS0618
 
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public const string AuthenticationScheme = "Test";
-    public const string TestIdentityUserId = "test-user-123";
+    public const string SubjectHeader = "X-Test-Subject";
+    public const string RolesHeader = "X-Test-Roles";
+    public const string ScopeHeader = "X-Test-Scope";
+    public const int TestUserId = 1;
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -32,13 +35,31 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        var claims = new[]
+        var subjectValue = Request.Headers[SubjectHeader].FirstOrDefault()
+            ?? TestUserId.ToString();
+
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, TestIdentityUserId),
-            new Claim("sub", TestIdentityUserId)
+            new(ClaimTypes.NameIdentifier, subjectValue),
+            new("sub", subjectValue)
         };
 
-        var identity = new ClaimsIdentity(claims, AuthenticationScheme);
+        var rolesValue = Request.Headers[RolesHeader].FirstOrDefault();
+        if (!string.IsNullOrEmpty(rolesValue))
+        {
+            foreach (var role in rolesValue.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                claims.Add(new Claim("role", role));
+            }
+        }
+
+        var scopeValue = Request.Headers[ScopeHeader].FirstOrDefault();
+        if (!string.IsNullOrEmpty(scopeValue))
+        {
+            claims.Add(new Claim("scope", scopeValue));
+        }
+
+        var identity = new ClaimsIdentity(claims, AuthenticationScheme, nameType: null, roleType: "role");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, AuthenticationScheme);
 

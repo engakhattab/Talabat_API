@@ -1,0 +1,101 @@
+using Talabat.Application.Common.Results;
+using Talabat.Application.DeliveryAgents.GetActiveDelivery;
+using Talabat.Application.Tests.TestDoubles;
+using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.Users;
+using Talabat.Domain.ValueObjects;
+
+namespace Talabat.Application.Tests.Domain.DeliveryAgents;
+
+public sealed class GetActiveDeliveryHandlerTests
+{
+    private static readonly DeliveryAddressSnapshot Address = new("Street", "City", "1", null);
+    private static readonly DateTime Now = new(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task Handle_GetActiveDelivery_WhenActiveDeliveryExists_ShouldReturnDto()
+    {
+        var agent = CreateAvailableAgent(10);
+        var delivery = CreateAssignedDelivery(1, 10);
+        var handler = CreateHandler(delivery);
+
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+        Assert.Equal(1, result.Value.Id);
+        Assert.Equal(DeliveryStatus.Assigned, result.Value.Status);
+        Assert.Equal("Test Restaurant", result.Value.RestaurantName);
+        Assert.Equal("Street", result.Value.PickupStreet);
+        Assert.Equal("Street", result.Value.DropOffStreet);
+        Assert.Equal("+201000000099", result.Value.CustomerPhoneNumber);
+        Assert.Null(typeof(ActiveDeliveryDto).GetProperty("CustomerId"));
+    }
+
+    [Fact]
+    public async Task Handle_GetActiveDelivery_WhenNoActiveDelivery_ShouldReturnNotFound()
+    {
+        var agent = CreateAvailableAgent(10);
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
+    }
+
+    [Fact]
+    public async Task Handle_GetActiveDelivery_WrongAgent_ShouldReturnNotFound()
+    {
+        var agent = CreateAvailableAgent(10);
+        var delivery = CreateAssignedDelivery(1, 99);
+        var handler = CreateHandler(delivery);
+
+        var result = await handler.Handle(new GetActiveDeliveryQuery(agent.Id));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.DeliveryNotFound, result.Error?.Code);
+    }
+
+    private static User CreateAvailableAgent(int id)
+    {
+        var agent = User.Register($"agent{id}@test.com", $"agent{id}@test.com", $"Agent {id}");
+        agent.SubmitDeliveryAgentApplication(VehicleType.Motorcycle);
+        agent.ApproveDeliveryAgentApplication();
+        agent.GoOnline();
+        agent.UpdateLocation(new GeoLocation(30.0m, 31.0m));
+        TestIds.SetId(agent, id);
+        return agent;
+    }
+
+    private static Delivery CreatePendingDelivery(int id)
+    {
+        var delivery = new Delivery(1, 1, 1, "Test Restaurant", Address, Address, Now);
+        TestIds.SetId(delivery, id);
+        return delivery;
+    }
+
+    private static Delivery CreateAssignedDelivery(int id, int agentId)
+    {
+        var delivery = CreatePendingDelivery(id);
+        delivery.AssignAgent(agentId, Now.AddMinutes(1));
+        return delivery;
+    }
+
+    private static GetActiveDeliveryHandler CreateHandler(params Delivery[] deliveries)
+    {
+        var deliveryRepository = new FakeDeliveryRepository();
+        foreach (var delivery in deliveries)
+        {
+            deliveryRepository.Deliveries.Add(delivery);
+        }
+
+        var customer = User.Register("customer@test.com", "customer@test.com", "Customer");
+        customer.SetPhoneNumber("+201000000099");
+        TestIds.SetId(customer, 1);
+        var userRepository = new FakeUserRepository();
+        userRepository.Users.Add(customer);
+
+        return new GetActiveDeliveryHandler(deliveryRepository, userRepository);
+    }
+}

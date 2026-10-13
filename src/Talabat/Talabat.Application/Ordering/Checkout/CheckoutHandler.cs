@@ -1,5 +1,6 @@
 using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
+using Talabat.Application.Deliveries;
 using Talabat.Domain.Aggregates.Ordering;
 using Talabat.Domain.DomainServices.Checkout;
 using Talabat.Domain.Exceptions;
@@ -10,9 +11,10 @@ namespace Talabat.Application.Ordering.Checkout;
 public sealed class CheckoutHandler
 {
     private readonly ICartRepository _cartRepository;
-    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IOrderRepository _orderRepository;
+    private readonly IDeliveryRepository _deliveryRepository;
     private readonly IRestaurantLocalTimeProvider _restaurantLocalTimeProvider;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,18 +22,20 @@ public sealed class CheckoutHandler
 
     public CheckoutHandler(
         ICartRepository cartRepository,
-        ICustomerRepository customerRepository,
+        IUserRepository userRepository,
         IRestaurantRepository restaurantRepository,
         IOrderRepository orderRepository,
+        IDeliveryRepository deliveryRepository,
         IRestaurantLocalTimeProvider restaurantLocalTimeProvider,
         IClock clock,
         IUnitOfWork unitOfWork,
         CheckoutDomainService checkoutDomainService)
     {
         _cartRepository = cartRepository ?? throw new ArgumentNullException(nameof(cartRepository));
-        _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _restaurantRepository = restaurantRepository ?? throw new ArgumentNullException(nameof(restaurantRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
         _restaurantLocalTimeProvider = restaurantLocalTimeProvider ?? throw new ArgumentNullException(nameof(restaurantLocalTimeProvider));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -53,18 +57,18 @@ public sealed class CheckoutHandler
             return UseCaseResult<CheckoutOutcome>.Failure(CheckoutErrors.CartNotFound());
         }
 
-        var customer = await _customerRepository.GetByIdWithAddressesAsync(
+        var user = await _userRepository.GetByIdWithAddressesAsync(
             command.CustomerId,
             cancellationToken);
 
-        if (customer is null)
+        if (user is null)
         {
             return UseCaseResult<CheckoutOutcome>.Failure(CheckoutErrors.CustomerNotFound());
         }
 
         try
         {
-            var deliveryAddress = customer.CreateDeliveryAddressSnapshot(command.DeliveryAddressId);
+            var deliveryAddress = user.CreateDeliveryAddressSnapshot(command.DeliveryAddressId);
 
             var restaurant = await _restaurantRepository.GetByIdWithProductsAsync(
                 cart.RestaurantId,
@@ -97,13 +101,29 @@ public sealed class CheckoutHandler
                 deliveryAddress,
                 now);
 
-            await _orderRepository.AddAsync(order, cancellationToken);
-            cart.MarkCheckedOut(now);
-            _cartRepository.Update(cart);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // The order, the cart transition and the order's Delivery commit together (BR-DEL-001,
+            // BR-DEL-016): a placed order can never exist without its delivery. The delivery
+            // needs the generated order id, hence two saves inside one transaction.
+            await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+            {
+                await _orderRepository.AddAsync(order, ct);
+                cart.MarkCheckedOut(now);
+                _cartRepository.Update(cart);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var delivery = DeliveryFactory.ForOrder(
+                    order.Id,
+                    command.CustomerId,
+                    restaurant,
+                    deliveryAddress,
+                    now);
+
+                await _deliveryRepository.AddAsync(delivery, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, cancellationToken);
 
             return UseCaseResult<CheckoutOutcome>.Success(
-                CheckoutResultMapper.ToOutcome(order.Id, checkoutSucceeded));
+                CheckoutResultMapper.ToOutcome(order.Id, checkoutSucceeded, cart.RestaurantId, deliveryAddress));
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {
