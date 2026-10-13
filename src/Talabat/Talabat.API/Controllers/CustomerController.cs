@@ -3,16 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Customers.CreateProfile;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Customers.GetProfile;
 using Talabat.Application.Customers.UpdateProfile;
 using Talabat.Customer.API.Contracts.Customer;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/profile")]
-[Authorize]
+[Tags("Customer")]
+[Produces("application/json")]
 public sealed class CustomerController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -32,13 +35,20 @@ public sealed class CustomerController : ControllerBase
         _updateProfileHandler = updateProfileHandler;
     }
 
-    [HttpPost]
+    [HttpPost(Name = "CreateProfile")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
+    [Consumes("application/json")]
+    [ProducesResponseType<ProfileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateProfile(
         [FromBody] CreateProfileRequest request,
         CancellationToken cancellationToken)
     {
         var command = new CreateCustomerProfileCommand(
-            _currentUser.IdentityUserId,
+            _currentUser.UserId!.Value,
             request.FullName,
             request.Age,
             request.PhoneNumber);
@@ -56,7 +66,13 @@ public sealed class CustomerController : ControllerBase
                 [])));
     }
 
-    [HttpGet]
+    [HttpGet(Name = "GetProfile")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
+    [RequireCustomerProfile(notFoundOnMissing: true)]
+    [ProducesResponseType<ProfileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var result = await _getProfileHandler.Handle(
@@ -66,7 +82,15 @@ public sealed class CustomerController : ControllerBase
         return result.ToActionResult(profile => Ok(MapToResponse(profile)));
     }
 
-    [HttpPut]
+    [HttpPut(Name = "UpdateProfile")]
+    [Authorize(Policy = AuthorizationPolicies.CustomerScopeOnly)]
+    [RequireCustomerProfile]
+    [Consumes("application/json")]
+    [ProducesResponseType<ProfileResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateProfileRequest request,
         CancellationToken cancellationToken)

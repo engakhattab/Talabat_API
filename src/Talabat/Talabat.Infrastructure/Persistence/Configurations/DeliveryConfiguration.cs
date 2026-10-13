@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
-using CustomerAggregate = Talabat.Domain.Aggregates.Customer.Customer;
+using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence.Configurations;
 
@@ -29,11 +29,18 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         builder.Property(delivery => delivery.RestaurantId)
             .IsRequired();
 
+        builder.Property(delivery => delivery.RestaurantName)
+            .HasMaxLength(200)
+            .IsRequired();
+
         builder.Property(delivery => delivery.AssignedAgentId);
 
         builder.Property(delivery => delivery.Status)
             .HasConversion<int>()
             .IsRequired();
+
+        builder.Property(delivery => delivery.RowVersion)
+            .IsRowVersion();
 
         builder.Property(delivery => delivery.AssignedAt)
             .HasColumnType("datetime2");
@@ -64,7 +71,7 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
             .HasForeignKey(delivery => delivery.OrderId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<CustomerAggregate>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(delivery => delivery.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -74,7 +81,7 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
             .HasForeignKey(delivery => delivery.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<DeliveryAgent>()
+        builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(delivery => delivery.AssignedAgentId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -82,6 +89,10 @@ internal sealed class DeliveryConfiguration : IEntityTypeConfiguration<Delivery>
         builder.OwnsOne(
             delivery => delivery.DeliveryAddress,
             deliveryAddress => deliveryAddress.ConfigureDeliveryAddressSnapshot());
+
+        builder.OwnsOne(
+            delivery => delivery.RestaurantPickupAddress,
+            pickupAddress => pickupAddress.ConfigurePickupAddressSnapshot());
 
         builder.HasIndex(delivery => delivery.OrderId)
             .IsUnique()

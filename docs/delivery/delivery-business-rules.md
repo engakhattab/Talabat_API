@@ -108,3 +108,25 @@ Valid latitude is between -90 and 90. Valid longitude is between -180 and 180.
 Given an assigned delivery is cancelled or failed,
 When the terminal transition succeeds through delivery coordination,
 Then the assigned Busy agent becomes `Available`.
+
+### BR-DEL-016 - An order and its delivery are persisted atomically
+
+Given checkout succeeds,
+When the order is persisted,
+Then its delivery task is persisted in the same database transaction.
+If the delivery cannot be created, the whole checkout fails, nothing is committed, and the cart
+stays active so the customer can retry.
+
+Implementation: `CheckoutHandler` (Application) saves the order and the cart transition, then the
+`Delivery` built from the generated `OrderId`, inside `IUnitOfWork.ExecuteInTransactionAsync`. The
+`Order` aggregate still never creates or mutates a `Delivery`; the orchestration lives in the
+Application use case. Covered by `CheckoutHandlerSuccessTests` and the SQL Server tests in
+`CheckoutPersistenceTests` (rollback and commit).
+
+**History**: until 2026-10-13 this rule read "Delivery creation failure does not invalidate a
+committed order": the order was committed first, `CheckoutController` created the delivery
+best-effort in a second transaction, and failures were only logged, with reconciliation deferred.
+That reconciliation was never built, so a failed delivery creation left an order that would never
+be dispatched (project audit, defect D1). Committing both together removes the failure mode
+instead of mitigating it. A transactional outbox (`OrderPlaced` event) remains the target design
+once cross-context domain events are introduced.

@@ -23,6 +23,10 @@ public sealed class SeedDataMigrationTests
             .SingleAsync(item => item.Id == 1);
 
         Assert.Equal("Cairo Grill", restaurant.Name);
+        Assert.Equal("1 Demo Grill Street", restaurant.PickupAddress.Street);
+        Assert.Equal("Cairo", restaurant.PickupAddress.City);
+        Assert.Equal("1", restaurant.PickupAddress.BuildingNumber);
+        Assert.Equal("Ground Floor", restaurant.PickupAddress.Floor);
         Assert.Contains(restaurant.Products, product => product.Id == 101);
     }
 }

@@ -118,6 +118,23 @@ public sealed class Cart : AuditableEntity
         Status = CartStatus.CheckedOut;
     }
 
+    public void MarkExpired(DateTime currentTime)
+    {
+        currentTime = Guard.Utc(currentTime, nameof(currentTime));
+
+        if (Status != CartStatus.Active)
+        {
+            throw new CartNotActiveException();
+        }
+
+        if (!IsExpired(currentTime))
+        {
+            throw new CartNotActiveException();
+        }
+
+        Status = CartStatus.Expired;
+    }
+
     public Money GetTotal(IReadOnlyDictionary<int, Money> currentPrices)
     {
         ArgumentNullException.ThrowIfNull(currentPrices);

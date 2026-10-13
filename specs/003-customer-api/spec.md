@@ -1,5 +1,15 @@
 # Feature Specification: Talabat Customer API
 
+> **SUPERSEDED** — This specification describes the original Phase 7 account/profile-separation
+> model with `Customer.IdentityUserId` linkage and a separate `Customer` aggregate. The unified
+> `User : IdentityUser<int>` aggregate (specs 004–006) has replaced this design. The endpoint
+> contracts, `ProfileNotCreated` behavior, and owner-scoping rules described here remain valid
+> in their current form; all identity, data-model, and linkage text is superseded.
+>
+> Current authority: `user-aggregate-refactor-plan.md`,
+> `specs/004-unified-user-domain-model/`, `specs/005-unified-user-identity-cutover/`,
+> `specs/006-unified-user-behavior-governance/`.
+
 **Created**: 2026-07-16  
 **Status**: Draft  
 **Input**: User description: "Phase 7 — expose customer-facing use cases through the dedicated `Talabat.Customer.API` HTTP host"

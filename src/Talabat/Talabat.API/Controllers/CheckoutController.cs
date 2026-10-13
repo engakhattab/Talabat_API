@@ -1,16 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
+using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Customer.API.Contracts.Checkout;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
 [ApiController]
 [Route("api/me/checkout")]
-[Authorize]
+[Tags("Checkout")]
+[Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
+[Produces("application/json")]
 public sealed class CheckoutController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
@@ -24,7 +29,15 @@ public sealed class CheckoutController : ControllerBase
         _checkoutHandler = checkoutHandler;
     }
 
-    [HttpPost]
+    [HttpPost(Name = "Checkout")]
+    [Consumes("application/json")]
+    [ProducesResponseType<CheckoutSuccessResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<CheckoutUnavailableResponse>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Checkout(
         [FromBody] CheckoutRequest request,
         CancellationToken cancellationToken)
@@ -39,10 +52,8 @@ public sealed class CheckoutController : ControllerBase
         {
             return result.ToActionResult(outcome =>
             {
-                if (outcome is CheckoutSucceededOutcome succeeded)
-                {
-                    return StatusCode(201, new CheckoutSuccessResponse(succeeded.OrderId));
-                }
+                if (outcome is CheckoutSucceededOutcome ok)
+                    return StatusCode(201, new CheckoutSuccessResponse(ok.OrderId));
 
                 if (outcome is CheckoutProductsUnavailableOutcome unavailable)
                 {

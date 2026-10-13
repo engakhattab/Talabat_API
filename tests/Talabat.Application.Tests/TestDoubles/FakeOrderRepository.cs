@@ -39,6 +39,22 @@ public sealed class FakeOrderRepository : IOrderRepository
         return Task.FromResult(orders);
     }
 
+    public Task<(IReadOnlyCollection<Order> Items, int TotalCount)> GetPageByCustomerIdAsync(
+        int customerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var customerOrders = Orders
+            .Where(order => order.CustomerId == customerId)
+            .OrderByDescending(order => order.CreatedAt)
+            .ThenByDescending(order => order.Id)
+            .ToList();
+
+        IReadOnlyCollection<Order> page = customerOrders.Skip(skip).Take(take).ToList().AsReadOnly();
+        return Task.FromResult((page, customerOrders.Count));
+    }
+
     public Task AddAsync(
         Order order,
         CancellationToken cancellationToken = default)

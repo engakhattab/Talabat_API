@@ -9,9 +9,9 @@ public sealed class SetDefaultCustomerAddressHandlerTests
     [Fact]
     public async Task Handle_SetsOneDefaultAddress()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new SetDefaultCustomerAddressHandler(customers, new FakeUnitOfWork());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new SetDefaultCustomerAddressHandler(users, new FakeUnitOfWork());
 
         var result = await handler.Handle(new SetDefaultCustomerAddressCommand(1, 2));
 
@@ -23,9 +23,9 @@ public sealed class SetDefaultCustomerAddressHandlerTests
     [Fact]
     public async Task Handle_ReturnsNotFoundWhenAddressMissing()
     {
-        var customers = new FakeCustomerRepository();
-        customers.Customers.Add(TestData.CreateCustomer());
-        var handler = new SetDefaultCustomerAddressHandler(customers, new FakeUnitOfWork());
+        var users = new FakeUserRepository();
+        users.Users.Add(TestData.CreateCustomer());
+        var handler = new SetDefaultCustomerAddressHandler(users, new FakeUnitOfWork());
 
         var result = await handler.Handle(new SetDefaultCustomerAddressCommand(1, 999));
 

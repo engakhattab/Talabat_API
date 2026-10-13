@@ -1,8 +1,13 @@
 <Solution>
+  <Project Path="../../tests/Talabat.Admin.API.Tests/Talabat.Admin.API.Tests.csproj" />
   <Project Path="../../tests/Talabat.Application.Tests/Talabat.Application.Tests.csproj" />
+  <Project Path="../../tests/Talabat.ArchitectureTests/Talabat.ArchitectureTests.csproj" />
   <Project Path="../../tests/Talabat.Customer.API.Tests/Talabat.Customer.API.Tests.csproj" />
+  <Project Path="../../tests/Talabat.Delivery.API.Tests/Talabat.Delivery.API.Tests.csproj" />
+  <Project Path="../../tests/Talabat.Domain.Tests/Talabat.Domain.Tests.csproj" />
   <Project Path="../../tests/Talabat.Identity.Tests/Talabat.Identity.Tests.csproj" />
   <Project Path="../../tests/Talabat.Infrastructure.Tests/Talabat.Infrastructure.Tests.csproj" />
+  <Project Path="Talabat.Admin.API/Talabat.Admin.API.csproj" />
   <Project Path="Talabat.API/Talabat.Customer.API.csproj" Id="0de74048-5d7d-4ef3-8b6d-6cf43fdef8de" />
   <Project Path="Talabat.Application/Talabat.Application.csproj" Id="894b0d5b-9a7f-45df-bc10-fc12853f98a2" />
   <Project Path="Talabat.Delivery.API/Talabat.Delivery.API.csproj" Id="484e6342-7329-4a06-b838-3450d8b7288f" />

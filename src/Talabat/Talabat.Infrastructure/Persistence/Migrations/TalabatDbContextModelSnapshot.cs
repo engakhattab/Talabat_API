@@ -22,10 +22,13 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -49,7 +52,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetRoles", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -63,9 +66,8 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<string>("ClaimValue")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -74,7 +76,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetRoleClaims", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -88,9 +90,8 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<string>("ClaimValue")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -99,7 +100,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserClaims", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
                     b.Property<string>("LoginProvider")
                         .HasColumnType("nvarchar(450)");
@@ -110,9 +111,8 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
@@ -121,13 +121,13 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserLogins", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
                     b.HasKey("UserId", "RoleId");
 
@@ -136,10 +136,10 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserRoles", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("LoginProvider")
                         .HasColumnType("nvarchar(450)");
@@ -209,7 +209,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Carts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Carts_Status", "[Status] IN (1, 2, 3)");
+                            t.HasCheckConstraint("CK_Carts_Status", "[Status] IN (1, 2, 3, 4)");
                         });
                 });
 
@@ -400,69 +400,6 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Talabat.Domain.Aggregates.Customer.Customer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Age")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("IdentityUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdentityUserId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Customers_IdentityUserId")
-                        .HasFilter("[IdentityUserId] IS NOT NULL");
-
-                    b.ToTable("Customers", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Customers_Age_Positive", "[Age] > 0");
-                        });
-                });
-
             modelBuilder.Entity("Talabat.Domain.Aggregates.DeliveryManagement.Delivery", b =>
                 {
                     b.Property<int>("Id")
@@ -534,6 +471,17 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<int>("RestaurantId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RestaurantName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -555,71 +503,6 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.ToTable("Deliveries", null, t =>
                         {
                             t.HasCheckConstraint("CK_Deliveries_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7, 8)");
-                        });
-                });
-
-            modelBuilder.Entity("Talabat.Domain.Aggregates.DeliveryManagement.DeliveryAgent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VehicleType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DeliveryAgents", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DeliveryAgents_CurrentLatitude_Range", "([CurrentLatitude] IS NULL OR ([CurrentLatitude] >= -90 AND [CurrentLatitude] <= 90))");
-
-                            t.HasCheckConstraint("CK_DeliveryAgents_CurrentLocation_PairedNull", "(([CurrentLatitude] IS NULL AND [CurrentLongitude] IS NULL) OR ([CurrentLatitude] IS NOT NULL AND [CurrentLongitude] IS NOT NULL))");
-
-                            t.HasCheckConstraint("CK_DeliveryAgents_CurrentLongitude_Range", "([CurrentLongitude] IS NULL OR ([CurrentLongitude] >= -180 AND [CurrentLongitude] <= 180))");
-
-                            t.HasCheckConstraint("CK_DeliveryAgents_Status", "[Status] IN (1, 2, 3, 4)");
-
-                            t.HasCheckConstraint("CK_DeliveryAgents_VehicleType", "[VehicleType] IN (1, 2, 3)");
                         });
                 });
 
@@ -676,17 +559,43 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Talabat.Infrastructure.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("Talabat.Domain.Aggregates.Users.User", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Age")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AgentApprovalStatus")
                         .HasColumnType("int");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("DeliveryAgentStatus")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -695,11 +604,33 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -718,6 +649,12 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -727,6 +664,12 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VehicleType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -738,54 +681,71 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AspNetUsers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Users_Age", "([Age] IS NULL OR [Age] > 0)");
+
+                            t.HasCheckConstraint("CK_Users_AgentApprovalStatus", "([AgentApprovalStatus] IS NULL OR [AgentApprovalStatus] IN (1, 2, 3))");
+
+                            t.HasCheckConstraint("CK_Users_CurrentLatitude_Range", "([CurrentLatitude] IS NULL OR ([CurrentLatitude] >= -90 AND [CurrentLatitude] <= 90))");
+
+                            t.HasCheckConstraint("CK_Users_CurrentLocation_PairedNull", "(([CurrentLatitude] IS NULL AND [CurrentLongitude] IS NULL) OR ([CurrentLatitude] IS NOT NULL AND [CurrentLongitude] IS NOT NULL))");
+
+                            t.HasCheckConstraint("CK_Users_CurrentLongitude_Range", "([CurrentLongitude] IS NULL OR ([CurrentLongitude] >= -180 AND [CurrentLongitude] <= 180))");
+
+                            t.HasCheckConstraint("CK_Users_DeliveryAgentStatus", "([DeliveryAgentStatus] IS NULL OR [DeliveryAgentStatus] IN (1, 2, 3, 4))");
+
+                            t.HasCheckConstraint("CK_Users_UserType_Range", "([UserType] >= 0 AND [UserType] <= 15)");
+
+                            t.HasCheckConstraint("CK_Users_VehicleType", "([VehicleType] IS NULL OR [VehicleType] IN (1, 2, 3))");
+                        });
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
-                    b.HasOne("Talabat.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
-                    b.HasOne("Talabat.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Talabat.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
                 {
-                    b.HasOne("Talabat.Infrastructure.Identity.ApplicationUser", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -794,7 +754,7 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.Basket.Cart", b =>
                 {
-                    b.HasOne("Talabat.Domain.Aggregates.Customer.Customer", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -898,6 +858,59 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.Catalog.Restaurant", b =>
                 {
+                    b.OwnsOne("Talabat.Domain.ValueObjects.Address", "PickupAddress", b1 =>
+                        {
+                            b1.Property<int>("RestaurantId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("BuildingNumber")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)")
+                                .HasColumnName("PickupBuildingNumber");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("nvarchar(120)")
+                                .HasColumnName("PickupCity");
+
+                            b1.Property<string>("Floor")
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)")
+                                .HasColumnName("PickupFloor");
+
+                            b1.Property<string>("Street")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("nvarchar(300)")
+                                .HasColumnName("PickupStreet");
+
+                            b1.HasKey("RestaurantId");
+
+                            b1.ToTable("Restaurants");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RestaurantId");
+
+                            b1.HasData(
+                                new
+                                {
+                                    RestaurantId = 1,
+                                    BuildingNumber = "1",
+                                    City = "Cairo",
+                                    Floor = "Ground Floor",
+                                    Street = "1 Demo Grill Street"
+                                },
+                                new
+                                {
+                                    RestaurantId = 2,
+                                    BuildingNumber = "2",
+                                    City = "Cairo",
+                                    Street = "2 Demo Pizza Street"
+                                });
+                        });
+
                     b.OwnsOne("Talabat.Domain.ValueObjects.TimeRange", "OpeningHours", b1 =>
                         {
                             b1.Property<int>("RestaurantId")
@@ -935,92 +948,19 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
                     b.Navigation("OpeningHours")
                         .IsRequired();
-                });
 
-            modelBuilder.Entity("Talabat.Domain.Aggregates.Customer.Customer", b =>
-                {
-                    b.OwnsMany("Talabat.Domain.Aggregates.Customer.CustomerAddress", "_addresses", b1 =>
-                        {
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
-
-                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
-
-                            b1.Property<int>("CustomerId")
-                                .HasColumnType("int");
-
-                            b1.Property<bool>("IsDefault")
-                                .HasColumnType("bit");
-
-                            b1.Property<bool>("IsDeleted")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("bit")
-                                .HasDefaultValue(false);
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("CustomerId")
-                                .IsUnique()
-                                .HasDatabaseName("UX_CustomerAddresses_CustomerId_Default")
-                                .HasFilter("[IsDefault] = CAST(1 AS bit) AND [IsDeleted] = CAST(0 AS bit)");
-
-                            b1.ToTable("CustomerAddresses", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("CustomerId");
-
-                            b1.OwnsOne("Talabat.Domain.ValueObjects.Address", "Details", b2 =>
-                                {
-                                    b2.Property<int>("CustomerAddressId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("BuildingNumber")
-                                        .IsRequired()
-                                        .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
-                                        .HasColumnName("BuildingNumber");
-
-                                    b2.Property<string>("City")
-                                        .IsRequired()
-                                        .HasMaxLength(120)
-                                        .HasColumnType("nvarchar(120)")
-                                        .HasColumnName("City");
-
-                                    b2.Property<string>("Floor")
-                                        .HasMaxLength(50)
-                                        .HasColumnType("nvarchar(50)")
-                                        .HasColumnName("Floor");
-
-                                    b2.Property<string>("Street")
-                                        .IsRequired()
-                                        .HasMaxLength(300)
-                                        .HasColumnType("nvarchar(300)")
-                                        .HasColumnName("Street");
-
-                                    b2.HasKey("CustomerAddressId");
-
-                                    b2.ToTable("CustomerAddresses");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("CustomerAddressId");
-                                });
-
-                            b1.Navigation("Details")
-                                .IsRequired();
-                        });
-
-                    b.Navigation("_addresses");
+                    b.Navigation("PickupAddress")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.DeliveryManagement.Delivery", b =>
                 {
-                    b.HasOne("Talabat.Domain.Aggregates.DeliveryManagement.DeliveryAgent", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("AssignedAgentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Talabat.Domain.Aggregates.Customer.Customer", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1074,41 +1014,52 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                                 .HasForeignKey("DeliveryId");
                         });
 
-                    b.Navigation("DeliveryAddress")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Talabat.Domain.Aggregates.DeliveryManagement.DeliveryAgent", b =>
-                {
-                    b.OwnsOne("Talabat.Domain.ValueObjects.GeoLocation", "CurrentLocation", b1 =>
+                    b.OwnsOne("Talabat.Domain.ValueObjects.DeliveryAddressSnapshot", "RestaurantPickupAddress", b1 =>
                         {
-                            b1.Property<int>("DeliveryAgentId")
+                            b1.Property<int>("DeliveryId")
                                 .HasColumnType("int");
 
-                            b1.Property<decimal>("Latitude")
-                                .HasPrecision(9, 6)
-                                .HasColumnType("decimal(9,6)")
-                                .HasColumnName("CurrentLatitude");
+                            b1.Property<string>("BuildingNumber")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)")
+                                .HasColumnName("RestaurantPickupBuildingNumber");
 
-                            b1.Property<decimal>("Longitude")
-                                .HasPrecision(9, 6)
-                                .HasColumnType("decimal(9,6)")
-                                .HasColumnName("CurrentLongitude");
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("nvarchar(120)")
+                                .HasColumnName("RestaurantPickupCity");
 
-                            b1.HasKey("DeliveryAgentId");
+                            b1.Property<string>("Floor")
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)")
+                                .HasColumnName("RestaurantPickupFloor");
 
-                            b1.ToTable("DeliveryAgents");
+                            b1.Property<string>("Street")
+                                .IsRequired()
+                                .HasMaxLength(300)
+                                .HasColumnType("nvarchar(300)")
+                                .HasColumnName("RestaurantPickupStreet");
+
+                            b1.HasKey("DeliveryId");
+
+                            b1.ToTable("Deliveries");
 
                             b1.WithOwner()
-                                .HasForeignKey("DeliveryAgentId");
+                                .HasForeignKey("DeliveryId");
                         });
 
-                    b.Navigation("CurrentLocation");
+                    b.Navigation("DeliveryAddress")
+                        .IsRequired();
+
+                    b.Navigation("RestaurantPickupAddress")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.Ordering.Order", b =>
                 {
-                    b.HasOne("Talabat.Domain.Aggregates.Customer.Customer", null)
+                    b.HasOne("Talabat.Domain.Aggregates.Users.User", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1268,6 +1219,107 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("_items");
+                });
+
+            modelBuilder.Entity("Talabat.Domain.Aggregates.Users.User", b =>
+                {
+                    b.OwnsMany("Talabat.Domain.Aggregates.Users.UserAddress", "_addresses", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+
+                            b1.Property<bool>("IsDefault")
+                                .HasColumnType("bit");
+
+                            b1.Property<bool>("IsDeleted")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("bit")
+                                .HasDefaultValue(false);
+
+                            b1.Property<int>("UserId")
+                                .HasColumnType("int");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("UserId")
+                                .IsUnique()
+                                .HasDatabaseName("UX_UserAddresses_UserId_Default")
+                                .HasFilter("[IsDefault] = CAST(1 AS bit) AND [IsDeleted] = CAST(0 AS bit)");
+
+                            b1.ToTable("UserAddresses", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+
+                            b1.OwnsOne("Talabat.Domain.ValueObjects.Address", "Details", b2 =>
+                                {
+                                    b2.Property<int>("UserAddressId")
+                                        .HasColumnType("int");
+
+                                    b2.Property<string>("BuildingNumber")
+                                        .IsRequired()
+                                        .HasMaxLength(50)
+                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnName("BuildingNumber");
+
+                                    b2.Property<string>("City")
+                                        .IsRequired()
+                                        .HasMaxLength(120)
+                                        .HasColumnType("nvarchar(120)")
+                                        .HasColumnName("City");
+
+                                    b2.Property<string>("Floor")
+                                        .HasMaxLength(50)
+                                        .HasColumnType("nvarchar(50)")
+                                        .HasColumnName("Floor");
+
+                                    b2.Property<string>("Street")
+                                        .IsRequired()
+                                        .HasMaxLength(300)
+                                        .HasColumnType("nvarchar(300)")
+                                        .HasColumnName("Street");
+
+                                    b2.HasKey("UserAddressId");
+
+                                    b2.ToTable("UserAddresses");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("UserAddressId");
+                                });
+
+                            b1.Navigation("Details")
+                                .IsRequired();
+                        });
+
+                    b.OwnsOne("Talabat.Domain.ValueObjects.GeoLocation", "CurrentLocation", b1 =>
+                        {
+                            b1.Property<int>("UserId")
+                                .HasColumnType("int");
+
+                            b1.Property<decimal>("Latitude")
+                                .HasPrecision(9, 6)
+                                .HasColumnType("decimal(9,6)")
+                                .HasColumnName("CurrentLatitude");
+
+                            b1.Property<decimal>("Longitude")
+                                .HasPrecision(9, 6)
+                                .HasColumnType("decimal(9,6)")
+                                .HasColumnName("CurrentLongitude");
+
+                            b1.HasKey("UserId");
+
+                            b1.ToTable("AspNetUsers");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("CurrentLocation");
+
+                    b.Navigation("_addresses");
                 });
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.Catalog.Restaurant", b =>

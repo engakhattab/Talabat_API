@@ -46,6 +46,28 @@ public sealed class OrderRepository : IOrderRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(IReadOnlyCollection<Order> Items, int TotalCount)> GetPageByCustomerIdAsync(
+        int customerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Orders
+            .AsNoTracking()
+            .Where(order => order.CustomerId == customerId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Include("_items")
+            .OrderByDescending(order => order.CreatedAt)
+            .ThenByDescending(order => order.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task AddAsync(
         Order order,
         CancellationToken cancellationToken = default)

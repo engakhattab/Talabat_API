@@ -1,4 +1,4 @@
-using Talabat.Domain.Aggregates.Customer;
+using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Interfaces;
 
 namespace Talabat.Infrastructure.Tests.Persistence;
@@ -18,21 +18,24 @@ public sealed class AuditAndSoftDeleteTests
     {
         await using var database = await _fixture.CreateDatabaseAsync();
         await using var provider = InfrastructureTestServices.CreateServiceProvider(database.ConnectionString);
-        var repository = provider.GetRequiredService<ICustomerRepository>();
+        var repository = provider.GetRequiredService<IUserRepository>();
         var unitOfWork = provider.GetRequiredService<IUnitOfWork>();
 
-        var customer = new Customer("Audited Customer", 28);
-        await repository.AddAsync(customer);
+        var user = User.Register("audited", "audited@test.com", "Audited Customer");
+        user.InitializeCustomerProfile("Audited Customer", 28, null);
+
+        var dbContext = provider.GetRequiredService<TalabatDbContext>();
+        dbContext.Users.Add(user);
         await unitOfWork.SaveChangesAsync();
 
-        customer.UpdateProfile("Audited Customer Updated", 29);
-        repository.Update(customer);
+        user.UpdateCustomerProfile("Audited Customer Updated", 29, null);
+        repository.Update(user);
         await unitOfWork.SaveChangesAsync();
 
-        Assert.NotEqual(default, customer.CreatedAt);
-        Assert.NotNull(customer.ModifiedAt);
-        Assert.Null(customer.CreatedBy);
-        Assert.Null(customer.ModifiedBy);
+        Assert.NotEqual(default, user.CreatedAt);
+        Assert.NotNull(user.ModifiedAt);
+        Assert.Null(user.CreatedBy);
+        Assert.Null(user.ModifiedBy);
     }
 
     [Fact]
@@ -40,18 +43,21 @@ public sealed class AuditAndSoftDeleteTests
     {
         await using var database = await _fixture.CreateDatabaseAsync();
         await using var provider = InfrastructureTestServices.CreateServiceProvider(database.ConnectionString);
-        var repository = provider.GetRequiredService<ICustomerRepository>();
+        var repository = provider.GetRequiredService<IUserRepository>();
         var unitOfWork = provider.GetRequiredService<IUnitOfWork>();
 
-        var customer = new Customer("Deleted Customer", 40);
-        await repository.AddAsync(customer);
+        var user = User.Register("deleted", "deleted@test.com", "Deleted Customer");
+        user.InitializeCustomerProfile("Deleted Customer", 40, null);
+
+        var dbContext = provider.GetRequiredService<TalabatDbContext>();
+        dbContext.Users.Add(user);
         await unitOfWork.SaveChangesAsync();
 
-        customer.SoftDelete(PersistenceTestData.Now, deletedBy: null);
-        repository.Update(customer);
+        user.SoftDelete(PersistenceTestData.Now, deletedBy: null);
+        repository.Update(user);
         await unitOfWork.SaveChangesAsync();
 
-        var found = await repository.GetByIdAsync(customer.Id);
+        var found = await repository.GetByIdAsync(user.Id);
 
         Assert.Null(found);
     }

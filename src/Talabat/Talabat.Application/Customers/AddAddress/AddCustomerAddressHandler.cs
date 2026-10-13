@@ -10,14 +10,14 @@ namespace Talabat.Application.Customers.AddAddress;
 
 public sealed class AddCustomerAddressHandler
 {
-    private readonly ICustomerRepository _customerRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public AddCustomerAddressHandler(
-        ICustomerRepository customerRepository,
+        IUserRepository userRepository,
         IUnitOfWork unitOfWork)
     {
-        _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
 
@@ -25,11 +25,11 @@ public sealed class AddCustomerAddressHandler
         AddCustomerAddressCommand command,
         CancellationToken cancellationToken = default)
     {
-        var customer = await _customerRepository.GetByIdWithAddressesAsync(
+        var user = await _userRepository.GetByIdWithAddressesAsync(
             command.CustomerId,
             cancellationToken);
 
-        if (customer is null)
+        if (user is null)
         {
             return UseCaseResult<CustomerProfile>.Failure(
                 DomainExceptionMapper.NotFound(
@@ -39,20 +39,25 @@ public sealed class AddCustomerAddressHandler
 
         try
         {
+            if (command.MakeDefault)
+            {
+                user.ClearDefaultAddress();
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
             var address = new Address(
                 command.Street,
                 command.City,
                 command.BuildingNumber,
                 command.Floor);
 
-            customer.AddAddress(
+            user.AddAddress(
                 address,
                 command.MakeDefault);
 
-            _customerRepository.Update(customer);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(customer));
+            return UseCaseResult<CustomerProfile>.Success(CustomerMapper.ToProfile(user));
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {

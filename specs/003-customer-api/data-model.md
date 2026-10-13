@@ -1,5 +1,15 @@
 # Data Model: Talabat Customer API (Phase 7)
 
+> **SUPERSEDED** — This data model describes the original Phase 7 schema with a separate
+> `Customers` table, `IdentityUserId` string linkage key, and `CustomerConfiguration`.
+> The unified `User` aggregate (single `AspNetUsers` table, `UserType` flags, int
+> `sub = User.Id`) has replaced this design. Endpoint contracts and `ProfileNotCreated`
+> behavior described in sibling spec/plan documents remain valid.
+>
+> Current authority: `user-aggregate-refactor-plan.md`,
+> `specs/004-unified-user-domain-model/`, `specs/005-unified-user-identity-cutover/`,
+> `specs/006-unified-user-behavior-governance/`.
+
 **Date**: 2026-07-16  
 **Spec**: [spec.md](spec.md)
 
