@@ -20,6 +20,16 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         return Task.FromResult(SaveChangesCount);
     }
 
+    public int TransactionCount { get; private set; }
+
+    public async Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default)
+    {
+        TransactionCount++;
+        await operation(cancellationToken);
+    }
+
     private void AssignIds()
     {
         foreach (var store in _stores)
@@ -34,6 +44,9 @@ public sealed class FakeUnitOfWork : IUnitOfWork
                     break;
                 case FakeOrderRepository orders:
                     AssignOrderIds(orders);
+                    break;
+                case FakeDeliveryRepository deliveries:
+                    AssignDeliveryIds(deliveries);
                     break;
             }
         }
@@ -66,6 +79,16 @@ public sealed class FakeUnitOfWork : IUnitOfWork
             TestIds.SetId(
                 order,
                 NextId(orders.Orders.Select(existingOrder => existingOrder.Id), seed: 300));
+        }
+    }
+
+    private static void AssignDeliveryIds(FakeDeliveryRepository deliveries)
+    {
+        foreach (var delivery in deliveries.Deliveries.Where(delivery => delivery.Id == 0))
+        {
+            TestIds.SetId(
+                delivery,
+                NextId(deliveries.Deliveries.Select(existing => existing.Id), seed: 500));
         }
     }
 
