@@ -16,6 +16,8 @@ public sealed class AssignmentConcurrencyTests : IAsyncLifetime
 {
     private readonly CustomWebApplicationFactory _factory = new();
     private int _pendingDeliveryId;
+    private int _racerAId;
+    private int _racerBId;
 
     public async Task InitializeAsync()
     {
@@ -55,6 +57,11 @@ public sealed class AssignmentConcurrencyTests : IAsyncLifetime
         await db.SaveChangesAsync();
 
         _pendingDeliveryId = delivery.Id;
+
+        // Two approved agents that are online and idle, so both are eligible and the
+        // only thing deciding the winner is the optimistic-concurrency race itself.
+        _racerAId = await AddOnlineAgentAsync(db, "racer_a");
+        _racerBId = await AddOnlineAgentAsync(db, "racer_b");
     }
 
     public Task DisposeAsync()
@@ -69,8 +76,8 @@ public sealed class AssignmentConcurrencyTests : IAsyncLifetime
         using var clientA = _factory.CreateClient();
         using var clientB = _factory.CreateClient();
 
-        AuthenticateAs(clientA, _factory.DeliveryAgentUserId);
-        AuthenticateAs(clientB, _factory.AgentBUserId);
+        AuthenticateAs(clientA, _racerAId);
+        AuthenticateAs(clientB, _racerBId);
 
         var requestA = new HttpRequestMessage(HttpMethod.Post, $"/api/agent/deliveries/{_pendingDeliveryId}/assign");
         var requestB = new HttpRequestMessage(HttpMethod.Post, $"/api/agent/deliveries/{_pendingDeliveryId}/assign");
@@ -83,6 +90,27 @@ public sealed class AssignmentConcurrencyTests : IAsyncLifetime
         var statuses = results.Select(r => r.StatusCode).OrderBy(s => s).ToList();
         Assert.Contains(HttpStatusCode.OK, statuses);
         Assert.Contains(HttpStatusCode.Conflict, statuses);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+        var delivery = await db.Deliveries.AsNoTracking().SingleAsync(d => d.Id == _pendingDeliveryId);
+        Assert.Equal(DeliveryStatus.Assigned, delivery.Status);
+        Assert.Contains(delivery.AssignedAgentId!.Value, new[] { _racerAId, _racerBId });
+
+        var loserId = delivery.AssignedAgentId == _racerAId ? _racerBId : _racerAId;
+        var loser = await db.Users.AsNoTracking().SingleAsync(u => u.Id == loserId);
+        Assert.Equal(DeliveryAgentStatus.Available, loser.DeliveryAgentStatus);
+    }
+
+    private static async Task<int> AddOnlineAgentAsync(TalabatDbContext db, string name)
+    {
+        var agent = User.Register($"{name}_{Guid.NewGuid():N}", $"{name}_{Guid.NewGuid():N}@test.com", name);
+        agent.SubmitDeliveryAgentApplication(VehicleType.Bike);
+        agent.ApproveDeliveryAgentApplication();
+        agent.GoOnline();
+        db.Users.Add(agent);
+        await db.SaveChangesAsync();
+        return agent.Id;
     }
 
     private static void AuthenticateAs(HttpClient client, int userId)
