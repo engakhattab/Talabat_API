@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Talabat.Delivery.API.Tests.Infrastructure;
+using Talabat.Infrastructure.Persistence;
 
 namespace Talabat.Delivery.API.Tests;
 
@@ -26,6 +29,12 @@ public sealed class BolaRegressionTests : IClassFixture<CustomWebApplicationFact
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "DeliveryAgent");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "delivery.api");
 
+        // Location updates are only accepted while the agent is Available or Busy.
+        var online = await _client.PutAsync("/api/agent/status/online", null);
+        Assert.Equal(HttpStatusCode.NoContent, online.StatusCode);
+
+        var agentBLocationBefore = await GetLocationAsync(_factory.AgentBUserId);
+
         var response = await _client.PutAsJsonAsync("/api/agent/location", new
         {
             Latitude = 30.0m,
@@ -34,5 +43,18 @@ public sealed class BolaRegressionTests : IClassFixture<CustomWebApplicationFact
         });
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal((30.0m, 31.0m), await GetLocationAsync(_factory.DeliveryAgentUserId));
+        Assert.Equal(agentBLocationBefore, await GetLocationAsync(_factory.AgentBUserId));
+    }
+
+    private async Task<(decimal Latitude, decimal Longitude)?> GetLocationAsync(int userId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+        var user = await db.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+
+        return user.CurrentLocation is null
+            ? null
+            : (user.CurrentLocation.Latitude, user.CurrentLocation.Longitude);
     }
 }

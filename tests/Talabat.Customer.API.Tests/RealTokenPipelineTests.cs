@@ -110,9 +110,15 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
             ? DateTime.UtcNow.AddHours(-1)
             : DateTime.UtcNow.AddHours(1);
 
+        // NotBefore must precede Expires; the handler otherwise defaults it to "now",
+        // which makes an already-expired token impossible to mint.
+        var notBefore = expires.AddHours(-2);
+
         var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            NotBefore = notBefore,
+            IssuedAt = notBefore,
             Expires = expires,
             Issuer = "https://localhost:7237",
             Audience = audience,

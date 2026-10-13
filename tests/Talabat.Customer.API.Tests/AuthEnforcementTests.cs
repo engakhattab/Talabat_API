@@ -9,9 +9,11 @@ namespace Talabat.Customer.API.Tests;
 public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomWebApplicationFactory _factory;
 
     public AuthEnforcementTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -54,6 +56,9 @@ public sealed class AuthEnforcementTests : IClassFixture<CustomWebApplicationFac
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
+        _client.DefaultRequestHeaders.Add(
+            TestAuthHandler.SubjectHeader,
+            _factory.CreateUserWithoutProfile().ToString());
 
         var response = await _client.GetAsync("/api/me/cart");
 

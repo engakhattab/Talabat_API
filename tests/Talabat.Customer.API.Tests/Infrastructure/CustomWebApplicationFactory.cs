@@ -26,6 +26,28 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public int ForeignAddressId { get; private set; }
     public int ForeignOrderId { get; private set; }
 
+    /// <summary>
+    /// Creates a fresh persisted user with no customer profile. The default test user
+    /// (<see cref="TestAuthHandler.TestUserId"/>) is seeded with a profile, so tests that
+    /// exercise the "profile not created" paths must authenticate as one of these instead.
+    /// </summary>
+    public int CreateUserWithoutProfile()
+    {
+        using var scope = Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var user = User.Register($"noprofile-{suffix}", $"noprofile-{suffix}@test.com", "No Profile User");
+
+        var result = userManager.CreateAsync(user, "Password1!").GetAwaiter().GetResult();
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create profile-less test user: {string.Join(", ", result.Errors.Select(e => e.Code))}");
+        }
+
+        return user.Id;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>

@@ -12,9 +12,11 @@ namespace Talabat.Customer.API.Tests;
 public sealed class ErrorMappingTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly CustomWebApplicationFactory _factory;
 
     public ErrorMappingTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", "test-token");
@@ -56,6 +58,10 @@ public sealed class ErrorMappingTests : IClassFixture<CustomWebApplicationFactor
     [Fact]
     public async Task CartOperations_WithoutProfile_ReturnsProfileNotCreated409()
     {
+        _client.DefaultRequestHeaders.Add(
+            TestAuthHandler.SubjectHeader,
+            _factory.CreateUserWithoutProfile().ToString());
+
         var response = await _client.GetAsync("/api/me/cart");
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);

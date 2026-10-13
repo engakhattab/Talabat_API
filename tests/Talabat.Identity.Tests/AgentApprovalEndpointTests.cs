@@ -137,27 +137,37 @@ public sealed class AgentApprovalEndpointTests : IAsyncLifetime
     [Fact]
     public async Task Approve_outside_development_returns_404()
     {
-        var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Staging");
-        });
+        var factory = new IdentityWebApplicationFactory("Staging");
+        await factory.InitializeAsync();
 
-        using var client = factory.CreateClient();
-        var response = await client.PostAsync("/account/delivery-agents/1/approve", null);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        try
+        {
+            using var client = factory.CreateClient();
+            var response = await client.PostAsync("/account/delivery-agents/1/approve", null);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+        finally
+        {
+            await factory.DisposeAsync();
+        }
     }
 
     [Fact]
     public async Task Reject_outside_development_returns_404()
     {
-        var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Staging");
-        });
+        var factory = new IdentityWebApplicationFactory("Staging");
+        await factory.InitializeAsync();
 
-        using var client = factory.CreateClient();
-        var response = await client.PostAsync("/account/delivery-agents/1/reject", null);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        try
+        {
+            using var client = factory.CreateClient();
+            var response = await client.PostAsync("/account/delivery-agents/1/reject", null);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+        finally
+        {
+            await factory.DisposeAsync();
+        }
     }
 
     private static StringContent Json(object value)

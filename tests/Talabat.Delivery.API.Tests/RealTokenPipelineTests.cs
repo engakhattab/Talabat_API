@@ -40,7 +40,9 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
         var token = MintToken(_agentId, "DeliveryAgent", "delivery.api", "talabat.delivery.api");
         _client.DefaultRequestHeaders.Authorization = new("Bearer", token);
 
-        var response = await _client.GetAsync("/api/agent/deliveries/active");
+        // The fixture agent has no active delivery (GET /active would correctly return 404);
+        // the pending queue always answers 200 for an authorized agent.
+        var response = await _client.GetAsync("/api/agent/deliveries/pending");
 
         Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
@@ -134,9 +136,15 @@ public sealed class RealTokenPipelineTests : IClassFixture<RealTokenPipelineTest
             ? DateTime.UtcNow.AddHours(-1)
             : DateTime.UtcNow.AddHours(1);
 
+        // NotBefore must precede Expires; the handler otherwise defaults it to "now",
+        // which makes an already-expired token impossible to mint.
+        var notBefore = expires.AddHours(-2);
+
         var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            NotBefore = notBefore,
+            IssuedAt = notBefore,
             Expires = expires,
             Issuer = "https://localhost:7237",
             Audience = audience,
