@@ -1,5 +1,6 @@
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Application.Tests.TestDoubles;
+using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.DomainServices.Checkout;
 using Talabat.Domain.ValueObjects;
 
@@ -20,7 +21,7 @@ public sealed class CheckoutHandlerSuccessTests
         var restaurants = new FakeRestaurantRepository();
         restaurants.Restaurants.Add(restaurant);
         var orders = new FakeOrderRepository();
-        var unitOfWork = new FakeUnitOfWork(orders);
+        var unitOfWork = new FakeUnitOfWork(orders, _deliveries);
         var handler = CreateHandler(carts, users, restaurants, orders, unitOfWork);
 
         var result = await handler.Handle(new CheckoutCommand(1, 1));
@@ -30,14 +31,24 @@ public sealed class CheckoutHandlerSuccessTests
         Assert.Equal(160m, outcome.TotalAmount.Amount);
         Assert.Equal(1, orders.AddCount);
         Assert.Equal(1, carts.UpdateCount);
-        Assert.Equal(1, unitOfWork.SaveChangesCount);
+        // One transaction, two saves: the order (to obtain its id), then its delivery.
+        Assert.Equal(1, unitOfWork.TransactionCount);
+        Assert.Equal(2, unitOfWork.SaveChangesCount);
         var createdOrder = Assert.Single(orders.Orders);
         Assert.Equal(createdOrder.Id, outcome.OrderId);
         Assert.True(outcome.OrderId > 0);
         Assert.Equal(160m, createdOrder.TotalAmount.Amount);
+
+        var delivery = Assert.Single(_deliveries.Deliveries);
+        Assert.Equal(createdOrder.Id, delivery.OrderId);
+        Assert.Equal(DeliveryStatus.PendingAssignment, delivery.Status);
+        Assert.Equal(restaurant.Name, delivery.RestaurantName);
+        Assert.Equal(restaurant.PickupAddress.Street, delivery.RestaurantPickupAddress.Street);
     }
 
-    private static CheckoutHandler CreateHandler(
+    private readonly FakeDeliveryRepository _deliveries = new();
+
+    private CheckoutHandler CreateHandler(
         FakeCartRepository carts,
         FakeUserRepository users,
         FakeRestaurantRepository restaurants,
@@ -49,6 +60,7 @@ public sealed class CheckoutHandlerSuccessTests
             users,
             restaurants,
             orders,
+            _deliveries,
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },
             new FakeClock(),
             unitOfWork,

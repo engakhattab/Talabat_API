@@ -25,6 +25,7 @@ public sealed class CheckoutHandlerUnavailableProductsTests
             users,
             restaurants,
             orders,
+            new FakeDeliveryRepository(),
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },
             new FakeClock(),
             unitOfWork,

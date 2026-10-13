@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Application.Abstractions;
 using Talabat.Customer.API.Auth;
 using Talabat.Application.Common.Results;
-using Talabat.Application.Deliveries.CreateForOrder;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Customer.API.Contracts.Checkout;
 using Talabat.Customer.API.Extensions;
+using Talabat.Customer.API.Middleware;
 
 namespace Talabat.Customer.API.Controllers;
 
@@ -14,24 +14,19 @@ namespace Talabat.Customer.API.Controllers;
 [Route("api/me/checkout")]
 [Tags("Checkout")]
 [Authorize(Policy = AuthorizationPolicies.CustomerAccess)]
+[RequireCustomerProfile]
 [Produces("application/json")]
 public sealed class CheckoutController : ControllerBase
 {
     private readonly ICurrentUser _currentUser;
     private readonly CheckoutHandler _checkoutHandler;
-    private readonly CreateDeliveryForOrderHandler _createDeliveryHandler;
-    private readonly ILogger<CheckoutController> _logger;
 
     public CheckoutController(
         ICurrentUser currentUser,
-        CheckoutHandler checkoutHandler,
-        CreateDeliveryForOrderHandler createDeliveryHandler,
-        ILogger<CheckoutController> logger)
+        CheckoutHandler checkoutHandler)
     {
         _currentUser = currentUser;
         _checkoutHandler = checkoutHandler;
-        _createDeliveryHandler = createDeliveryHandler;
-        _logger = logger;
     }
 
     [HttpPost(Name = "Checkout")]
@@ -52,11 +47,6 @@ public sealed class CheckoutController : ControllerBase
             request.DeliveryAddressId);
 
         var result = await _checkoutHandler.Handle(command, cancellationToken);
-
-        if (result.IsSuccess && result.Value is CheckoutSucceededOutcome succeeded)
-        {
-            await TryCreateDeliveryAsync(succeeded, _currentUser.CustomerId!.Value, cancellationToken);
-        }
 
         if (result.IsSuccess)
         {
@@ -80,26 +70,5 @@ public sealed class CheckoutController : ControllerBase
         }
 
         return result.ToActionResult(_ => StatusCode(500));
-    }
-
-    private async Task TryCreateDeliveryAsync(
-        CheckoutSucceededOutcome succeeded,
-        int customerId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var deliveryCmd = new CreateDeliveryForOrderCommand(
-                succeeded.OrderId,
-                customerId,
-                succeeded.RestaurantId,
-                succeeded.DeliveryAddress);
-
-            await _createDeliveryHandler.Handle(deliveryCmd, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Delivery creation failed for OrderId {OrderId}", succeeded.OrderId);
-        }
     }
 }

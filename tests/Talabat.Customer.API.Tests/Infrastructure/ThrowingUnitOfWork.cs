@@ -17,4 +17,11 @@ public sealed class ThrowingUnitOfWork : IUnitOfWork
     {
         throw new ConcurrencyConflictException();
     }
+
+    public Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default)
+    {
+        return _inner.ExecuteInTransactionAsync(operation, cancellationToken);
+    }
 }

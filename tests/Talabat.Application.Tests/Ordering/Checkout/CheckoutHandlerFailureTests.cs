@@ -105,6 +105,7 @@ public sealed class CheckoutHandlerFailureTests
             users,
             restaurants,
             new FakeOrderRepository(),
+            new FakeDeliveryRepository(),
             new FakeRestaurantLocalTimeProvider { LocalTime = localTime ?? new TimeOnly(12, 0) },
             clock ?? new FakeClock(),
             new FakeUnitOfWork(),

@@ -50,18 +50,10 @@ public sealed class CreateDeliveryForOrderHandler
                     "Restaurant was not found."));
         }
 
-        var pickupAddress = new DeliveryAddressSnapshot(
-            restaurant.PickupAddress.Street,
-            restaurant.PickupAddress.City,
-            restaurant.PickupAddress.BuildingNumber,
-            restaurant.PickupAddress.Floor);
-
-        var delivery = new Domain.Aggregates.DeliveryManagement.Delivery(
+        var delivery = DeliveryFactory.ForOrder(
             cmd.OrderId,
             cmd.CustomerId,
-            cmd.RestaurantId,
-            restaurant.Name,
-            pickupAddress,
+            restaurant,
             cmd.DeliveryAddress,
             _clock.UtcNow);
 

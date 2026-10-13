@@ -109,24 +109,24 @@ Given an assigned delivery is cancelled or failed,
 When the terminal transition succeeds through delivery coordination,
 Then the assigned Busy agent becomes `Available`.
 
-### BR-DEL-016 - Delivery creation failure does not invalidate a committed order
+### BR-DEL-016 - An order and its delivery are persisted atomically
 
-Given checkout has succeeded and the order is committed,
-When delivery task creation fails,
-Then the order remains valid and the checkout response still reports success.
+Given checkout succeeds,
+When the order is persisted,
+Then its delivery task is persisted in the same database transaction.
+If the delivery cannot be created, the whole checkout fails, nothing is committed, and the cart
+stays active so the customer can retry.
 
-The failure is logged at Error severity with the `OrderId`. The delivery is created later by
-retry or reconciliation. The order is never rolled back, and the two operations never share
-a transaction.
+Implementation: `CheckoutHandler` (Application) saves the order and the cart transition, then the
+`Delivery` built from the generated `OrderId`, inside `IUnitOfWork.ExecuteInTransactionAsync`. The
+`Order` aggregate still never creates or mutates a `Delivery`; the orchestration lives in the
+Application use case. Covered by `CheckoutHandlerSuccessTests` and the SQL Server tests in
+`CheckoutPersistenceTests` (rollback and commit).
 
-**Rationale**: Everything needed to build the `Delivery` — `OrderId`, `CustomerId`,
-`RestaurantId`, `DeliveryAddressSnapshot` — is already persisted on the committed `Order`, so
-nothing is lost by deferring. Rolling the order back would invert the documented dependency
-direction (`docs/delivery/README.md`: "Ordering does not directly create or mutate Delivery")
-and cannot cleanly undo `cart.MarkCheckedOut(now)`.
-
-**Deferred**: Reconciliation for orders with no delivery row (repository query + dev-only backfill
-endpoint). The eventual correct solution is a transactional outbox (`OrderPlaced` domain event
-committed in the same transaction, dispatched at-least-once), which removes this failure mode
-rather than mitigating it. There is no domain-event dispatch or outbox table today, so this is
-explicitly deferred — but recorded so the gap stays a deliberate decision rather than an accident.
+**History**: until 2026-10-13 this rule read "Delivery creation failure does not invalidate a
+committed order": the order was committed first, `CheckoutController` created the delivery
+best-effort in a second transaction, and failures were only logged, with reconciliation deferred.
+That reconciliation was never built, so a failed delivery creation left an order that would never
+be dispatched (project audit, defect D1). Committing both together removes the failure mode
+instead of mitigating it. A transactional outbox (`OrderPlaced` event) remains the target design
+once cross-context domain events are introduced.
