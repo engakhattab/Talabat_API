@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "identity",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Talabat/Talabat.Identity", "--launch-profile", "https"],
+      "port": 7237,
+      "url": "https://localhost:7237"
+    },
+    {
+      "name": "customer-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Talabat/Talabat.API", "--launch-profile", "https"],
+      "port": 7056,
+      "url": "https://localhost:7056"
+    },
+    {
+      "name": "delivery-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Talabat/Talabat.Delivery.API", "--launch-profile", "https"],
+      "port": 7225,
+      "url": "https://localhost:7225"
+    },
+    {
+      "name": "admin-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Talabat/Talabat.Admin.API", "--environment", "Development", "--urls", "https://localhost:7310"],
+      "port": 7310,
+      "url": "https://localhost:7310"
+    }
+  ]
+}
