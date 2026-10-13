@@ -28,6 +28,13 @@
       "runtimeArgs": ["run", "--project", "src/Talabat/Talabat.Admin.API", "--environment", "Development", "--urls", "https://localhost:7310"],
       "port": 7310,
       "url": "https://localhost:7310"
+    },
+    {
+      "name": "customer-web",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/d", "/s", "/c", "set PATH=C:\\PROGRA~1\\nodejs;%PATH%&& cd /d ..\\talabat-frontend\\talabat-web&& npm run start -- customer"],
+      "port": 4200,
+      "url": "http://localhost:4200"
     }
   ]
 }
