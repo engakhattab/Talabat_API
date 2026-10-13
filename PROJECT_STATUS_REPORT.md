@@ -1,5 +1,7 @@
 # Talabat Platform — Project Status Report
 
+> **Superseded for sequencing by [`ROADMAP.md`](ROADMAP.md).** This report is audit evidence; its §17 roadmap is superseded.
+
 | | |
 |---|---|
 | **Audit date** | 2026-10-13 |
