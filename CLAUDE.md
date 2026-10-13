@@ -8,6 +8,9 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
   (Angular 22 workspace in `talabat-web/`; only the `customer` app exists).
 - **Master plan: `ROADMAP.md`** — milestones, phases, gates, and the current position. Read it first; it wins over
   older plans. Audit evidence and history: `PROJECT_STATUS_REPORT.md`.
+- **Domain language: `CONTEXT.md`** (glossary). Use its terms: *Delivery Agent* (never courier/driver), *Restaurant
+  Owner*, *Order Fulfillment*, *Release*, *Hand-over*, *Customer Order Status*, *Reason Code*.
+- **Order lifecycle (accepted design): `specs/011-order-lifecycle/design.md`** + ADRs in `docs/adr/`.
 
 ## Solution layout (`src/Talabat/Talabat.slnx`, .NET 10, EF Core 10.0.9, Duende IdentityServer 8.0.2)
 
@@ -49,9 +52,12 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
   one sanctioned non-ProblemDetails error response.
 - **Test-first (mandatory):** name the test cases, write them and see them fail before writing production code for any
   feature, bug fix, or domain transition; production code only makes those tests pass. Never weaken, skip, or delete
-  tests to pass a gate.
-- **Phase discipline:** work only on the current `ROADMAP.md` phase; do not start the next one until its gate passes.
-  Every progress update states the current milestone/phase, completed phases, and the next phase.
+  tests to pass a gate. A test may be rewritten or removed only when an accepted design revises the rule it encodes:
+  the commit names the rule ID and the replacement test lands in the same red commit.
+- **Phase discipline (strictly sequential):** work only on the current `ROADMAP.md` phase; no parallel tracks; do not
+  start the next one until its gate passes. Every progress update states the current milestone/phase, completed
+  phases, and the next phase. Multi-task phases use an integration branch `feature/phase-<n>-<slug>` with one task
+  branch + PR per task into it, then one PR into `main` at the gate.
 - Commits: Conventional Commits whose body explains the bug, root cause, and fix.
 - **Git attribution (strict, permanent):** Never add Claude, Anthropic, or AI attribution as git commit author or via
   `Co-authored-by` trailer. All commits must strictly use the local git config user and email with zero AI
@@ -98,5 +104,6 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
 
 - Position, completed phases and next phase: see "Current position" in `ROADMAP.md` (kept up to date there only).
 - `main` and frontend `master` are green in CI (backend 640/640 + vulnerability scan; frontend all CI stages).
-- In flight: Phase 1 order-lifecycle design (`specs/011-order-lifecycle/design.md`, ADRs in `docs/adr/`). Until
-  Phase 2 lands, checkout still creates the delivery and `Order` has no lifecycle.
+- Phase 1 order-lifecycle design is **accepted**; Phase 2 implements it on `feature/phase-2-order-lifecycle` (task plan
+  in `ROADMAP.md`). Until Phase 2 lands on `main`, checkout still creates the delivery, agents can still "cancel", and
+  `Order` has no lifecycle. Phase 2 drops and recreates the local `talabat` database (owner approved; no backfill).

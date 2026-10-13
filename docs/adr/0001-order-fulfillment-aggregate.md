@@ -1,13 +1,14 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Restaurant-side order lifecycle lives in a separate `OrderFulfillment` aggregate
 
 `Order` stays the immutable purchase record (BR-ORD-006), and the kitchen lifecycle (accept/reject, preparing, ready,
-hand-over) gets its own `OrderFulfillment` aggregate, one per order, in a Restaurant Operations context — mirroring the
-existing `Order`/`Delivery` split. We rejected putting a `Status` on `Order` because it would contradict the documented
-immutability, make a single row contended by restaurant and courier writes, and mix purchase and kitchen invariants.
+hand-over, cancellation) gets its own `OrderFulfillment` aggregate, one per order, in a Restaurant Operations context —
+mirroring the existing `Order`/`Delivery` split. We rejected putting a `Status` on `Order` because it would contradict the
+documented immutability, make a single row contended by restaurant and delivery agent writes, and mix purchase and
+kitchen invariants.
 
 ## Consequences
 
