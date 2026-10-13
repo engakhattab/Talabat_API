@@ -17,6 +17,9 @@ public sealed class CustomerEndpointTests : IClassFixture<CustomWebApplicationFa
             new AuthenticationHeaderValue("Bearer", "test-token");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, "Customer");
         _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
+        _client.DefaultRequestHeaders.Add(
+            TestAuthHandler.SubjectHeader,
+            factory.CreateUserWithoutProfile().ToString());
     }
 
     [Fact]

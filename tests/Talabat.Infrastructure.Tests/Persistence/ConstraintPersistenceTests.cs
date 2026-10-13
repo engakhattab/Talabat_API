@@ -120,19 +120,20 @@ public sealed class ConstraintPersistenceTests
     }
 
     [Fact]
-    public async Task One_migration_history_row_exists()
+    public async Task Migration_history_matches_every_defined_migration_in_order()
     {
         await using var database = await _fixture.CreateDatabaseAsync();
         await using var dbContext = database.CreateContext();
 
         var historyRows = await dbContext.Database
             .SqlQueryRaw<string>("""
-                SELECT MigrationId AS [Value] FROM __EFMigrationsHistory
+                SELECT MigrationId AS [Value] FROM __EFMigrationsHistory ORDER BY MigrationId
                 """)
             .ToListAsync();
 
-        Assert.Single(historyRows);
+        Assert.Equal(dbContext.Database.GetMigrations().ToList(), historyRows);
         Assert.Contains("InitialUnifiedUser", historyRows[0]);
+        Assert.Empty(await dbContext.Database.GetPendingMigrationsAsync());
     }
 
     [Fact]

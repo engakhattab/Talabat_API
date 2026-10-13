@@ -147,10 +147,13 @@ public sealed class IdentityServerConfigTests : IAsyncLifetime
         }
     }
 
+    // Postman callbacks are a development convenience for the Customer and Delivery clients only.
+    private static readonly string[] PostmanEnabledClientIds = ["talabat-customer-spa", "talabat-delivery-spa"];
+
     [Fact]
     public void Both_clients_still_have_postman_v1_callback_redirect_uri()
     {
-        foreach (var client in IdentityServerConfig.Clients)
+        foreach (var client in IdentityServerConfig.Clients.Where(c => PostmanEnabledClientIds.Contains(c.ClientId)))
         {
             Assert.Contains("https://oauth.pstmn.io/v1/callback", client.RedirectUris);
         }
@@ -159,9 +162,16 @@ public sealed class IdentityServerConfigTests : IAsyncLifetime
     [Fact]
     public void Both_clients_still_have_postman_v1_browser_callback_redirect_uri()
     {
-        foreach (var client in IdentityServerConfig.Clients)
+        foreach (var client in IdentityServerConfig.Clients.Where(c => PostmanEnabledClientIds.Contains(c.ClientId)))
         {
             Assert.Contains("https://oauth.pstmn.io/v1/browser-callback", client.RedirectUris);
         }
+    }
+
+    [Fact]
+    public void Admin_client_has_no_postman_redirect_uris()
+    {
+        var admin = Assert.Single(IdentityServerConfig.Clients, c => c.ClientId == "talabat-admin-spa");
+        Assert.DoesNotContain(admin.RedirectUris, uri => uri.StartsWith("https://oauth.pstmn.io/", StringComparison.Ordinal));
     }
 }

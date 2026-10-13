@@ -155,6 +155,16 @@ public sealed class OpenApiDocumentQualityTests : IClassFixture<CustomWebApplica
                         {
                             var schema = mediaType.GetProperty("schema");
                             var @ref = schema.GetProperty("$ref").GetString();
+
+                            // Checkout's 422 is a typed business outcome, not an error envelope:
+                            // the Customer SPA's unavailable-item recovery consumes its
+                            // `unavailableItems` payload. It is the only sanctioned exception.
+                            if (path.Name == "/api/me/checkout" && code == "422")
+                            {
+                                Assert.Equal("#/components/schemas/CheckoutUnavailableResponse", @ref);
+                                continue;
+                            }
+
                             Assert.Contains("ProblemDetails", @ref);
                         }
                     }

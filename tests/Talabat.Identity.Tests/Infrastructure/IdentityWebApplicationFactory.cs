@@ -17,7 +17,13 @@ public sealed class IdentityWebApplicationFactory : IAsyncLifetime
 {
     private SqlServerDatabaseFixture? _fixture;
     private TestDatabase? _database;
+    private readonly string _environment;
     private bool _zeroValidationInterval;
+
+    public IdentityWebApplicationFactory(string environment = "Development")
+    {
+        _environment = environment;
+    }
 
     public WebApplicationFactory<Program> Factory { get; private set; } = default!;
 
@@ -55,7 +61,7 @@ public sealed class IdentityWebApplicationFactory : IAsyncLifetime
                 }
             });
 
-            builder.UseEnvironment("Development");
+            builder.UseEnvironment(_environment);
         });
 
         using var scope = Factory.Services.CreateScope();
