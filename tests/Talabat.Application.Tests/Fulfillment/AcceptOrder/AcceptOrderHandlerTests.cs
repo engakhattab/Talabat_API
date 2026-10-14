@@ -89,13 +89,17 @@ public sealed class AcceptOrderHandlerTests
     }
 
     // D11: the restaurant itself (Owner API, M3) may accept only its own orders; an Admin acts on behalf of the
-    // order's restaurant.
+    // order's restaurant. Like a delivery agent touching another agent's delivery, it is an ownership mismatch (403).
     [Fact]
     public async Task Accept_by_another_restaurant_is_refused_and_creates_nothing()
     {
         var result = await CreateHandler().Handle(new AcceptOrderCommand(1, new FulfillmentActor.Restaurant(2)));
 
         Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCategory.OwnershipMismatch, result.Error!.Category);
+        Assert.Equal(
+            nameof(Talabat.Domain.Exceptions.OrderFulfillmentRestaurantMismatchException),
+            result.Error.Code);
         Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, Assert.Single(_fulfillments.Fulfillments).Status);
         Assert.Empty(_deliveries.Deliveries);
     }
