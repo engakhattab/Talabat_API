@@ -13,9 +13,9 @@ disagree with this file, this file wins. Domain language: [`CONTEXT.md`](CONTEXT
 | | |
 |---|---|
 | **Current milestone** | M1 — Order Lifecycle Spine |
-| **Current phase** | **Phase 1 — Order lifecycle design: accepted** ([`specs/011-order-lifecycle/design.md`](specs/011-order-lifecycle/design.md)); complete once its PR is merged |
-| **Completed** | Phase 0 |
-| **Next** | Phase 2 — Lifecycle backend (test-first) |
+| **Current phase** | **Phase 2 — Lifecycle backend** (test-first), on `feature/phase-2-order-lifecycle`; see [Phase 2 plan](#phase-2-plan) |
+| **Completed** | Phase 0, Phase 1 |
+| **Next** | Phase 3 — Customer order tracking (frontend) |
 
 ## Working rules (apply to every phase)
 
@@ -39,8 +39,8 @@ disagree with this file, this file wins. Domain language: [`CONTEXT.md`](CONTEXT
 | Phase | Milestone | Side | Objective | Prerequisites | Key deliverables | Completion gate | Status |
 |---|---|---|---|---|---|---|---|
 | **0** | M0 Foundation | BE + FE | Trustworthy baseline | — | Local DB + migrations, green CI both repos, tooling (Node 24, JDK 21, `gh`), audit (`PROJECT_STATUS_REPORT.md`) | Backend 640/640 + vuln scan green; frontend CI all stages green; full stack runs locally | ✅ Complete |
-| **1** | M1 Lifecycle Spine | Design | Freeze the cross-role order state model | 0 | Design document (Q1–Q21 answered), ADR-0001/0002, `CONTEXT.md` glossary | Document + ADRs *Accepted*; PR merged | ✅ Accepted — merge pending |
-| **2** | M1 | BE | Implement the spine | 1 | See [Phase 2 plan](#phase-2-plan) | Design §4 test catalogue written first and green (incl. §4.1 retirements); backend E2E 35–36 pass; Customer, Delivery and Admin contracts committed and parity-tested | ⏳ Next |
+| **1** | M1 Lifecycle Spine | Design | Freeze the cross-role order state model | 0 | Design document (Q1–Q21 answered), ADR-0001/0002, `CONTEXT.md` glossary | Document + ADRs *Accepted*; PR merged | ✅ Complete |
+| **2** | M1 | BE | Implement the spine | 1 | See [Phase 2 plan](#phase-2-plan) | Design §4 test catalogue written first and green (incl. §4.1 retirements); backend E2E 35–36 pass; Customer, Delivery and Admin contracts committed and parity-tested | 🔄 In progress |
 | **3** | M1 | FE | Customer order tracking | 2 | Copy contract + regenerate client (separate commit); status timeline on order list/details (polling); customer cancel while `Placed`; reason-code display | Customer unit tests + `api:verify` + prod build green; live journey (driven with `advance-order`) shows every status | ⏳ |
 | **4** | M2 Delivery Agent | BE | Delivery app test & contract readiness ([readiness plan](docs/delivery-backend-readiness-plan.md) Phase 5, revised) | 3 | Fixtures for the Delivery app: orders at `ReadyForPickup` (and before it), restore operation; Delivery/Admin contracts reproducible | Idempotent on SQL Server; contracts reproducible from a clean DB | ⏳ |
 | **5** | M2 | FE | Delivery Agent app | 4 | [Delivery frontend roadmap](../talabat-frontend/docs/talabat-delivery-frontend-roadmap.md) Phases 1–9 on port 4300; frontend constitution Scope Guard amended at phase start | Agent E2E: online → claim → arrive → pickup blocked until ready (`fulfillmentStatus` shown) → deliver; release; fail after pickup | ⏳ |
@@ -56,17 +56,23 @@ disagree with this file, this file wins. Domain language: [`CONTEXT.md`](CONTEXT
 
 ## Phase 2 plan
 
-Integration branch `feature/phase-2-order-lifecycle` off `main`; each task below is its own branch and PR into it, and
-each starts with its red tests from design §4.
+Integration branch `feature/phase-2-order-lifecycle` off `main`. Work is cut into **vertical slices** (tracer bullets):
+each ticket goes through domain → persistence → application → API and leaves something working and testable. Each ticket
+is a GitHub issue, built with `/implement` (test-first via `/tdd`, then `/code-review`) on its own task branch, with a PR
+into the integration branch. Tickets are worked blockers-first; one `/implement` session per ticket.
 
-| Task | Content | Tests (design §4) |
-|---|---|---|
-| 2.0 | CI also runs on PRs into `feature/**` | CI run on the first task PR |
-| 2.1 | Domain: `OrderFulfillment` (states, `CancelledBy`, reason codes, deadline), `Delivery.Release`, fail-after-pickup, pickup gate | 1–14 + §4.1 domain retirements |
-| 2.2 | Persistence: mapping, `AddOrderFulfillment` migration (no backfill), repositories; drop and recreate local `talabat` | 27–29 |
-| 2.3 | Application: checkout/accept/reject/prepare/ready/pickup/cancel/release workflows, `CustomerOrderStatusMapper`, provisioner admin + agent + `advance-order` | 15–26, 30, 31 + §4.1 application retirements |
-| 2.4 | APIs and contracts: Customer (status, cancel), Delivery (`fulfillmentStatus`, `/release`, remove `/cancel`), Admin act-on-behalf; OpenAPI regenerated and committed | 32–34 + §4.1 API retirements |
-| 2.5 | Backend E2E and docs: E2E 35–36, BR-FUL-001…009 and BR-DEL revisions in `docs/delivery/delivery-business-rules.md`, `CLAUDE.md` gotchas | 35–36 |
+| Ticket | Slice | Blocked by | Tests (design §4) |
+|---|---|---|---|
+| T0 | CI also runs on PRs into `feature/**` | — | CI runs on T1's PR |
+| T1 | Checkout creates the order fulfillment (no delivery); customer sees `Placed` — `OrderFulfillment` core, `AddOrderFulfillment` migration (no backfill; drop/recreate local `talabat`), status mapper, Customer API `status` | T0 | 1, 9, 10, 15, 27–29, 32 (status fields) + §4.1 checkout retirements |
+| T2 | Admin accepts → delivery created → `Accepted`; agents see only accepted orders | T1 | 2, 16, 17 (accept twice), 30, 33 (queue), 34 (accept) + §4.1 delivery-creation retirement |
+| T3 | Preparing, ready, pickup gate, hand-over, `fulfillmentStatus` for agents → `OnTheWay` / `Delivered` | T2 | 4–6, 18, 19, 26, 33 (gate, `fulfillmentStatus`), 34 (prepare, ready) + §4.1 pickup re-arrangements |
+| T4 | Release by the agent and by an Admin on their behalf; `/cancel` removed | T2 | 12, 13, 20, 33 (`/release`, `/cancel` gone), 34 (release) + §4.1 agent-cancel retirements |
+| T5 | Reject and customer cancel, with reason codes | T1 | 3, 11, 17 (reject after accept), 21, 32 (cancel endpoint, `cancelledBy`/`reasonCode`), 34 (reject) |
+| T6 | Restaurant and Admin cancel after acceptance (delivery cancelled, agent freed) | T2, T5 | 7, 22–24, 34 (cancel) |
+| T7 | Fail only after pickup → `DeliveryFailed` | T3 | 14, 33 (fail before pickup → 409) + §4.1 fail retirements |
+| T8 | Provisioner: test Admin, test agent, `advance-order` | T3 | 31 |
+| T9 | Backend E2E, full mapper/terminal-state coverage, business-rule docs (BR-FUL-001…009, BR-DEL revisions), `CLAUDE.md` gotchas | T3–T8 | 8, 25 (all combinations), 35, 36 |
 
 ## Dependency flow (strictly sequential)
 
@@ -86,6 +92,7 @@ copy + client regeneration (own commit), then frontend screens.
 | 2026-10-13 | Audit + baseline remediation merged (backend PR #2–#4, frontend PR #1–#2) |
 | 2026-10-14 | Frontend CI fixed (frontend PR #3) — **Phase 0 complete**; Phase 1 design opened for review |
 | 2026-10-14 | Phase 1 design grilled (two rounds, Q1–Q21) and **accepted**; roadmap made strictly sequential |
+| 2026-10-14 | PR #5 merged — **Phase 1 complete**; agent skills committed (PR #6); Phase 2 re-cut into vertical slices T0–T9 and started |
 
 ## Superseded / reference documents
 
