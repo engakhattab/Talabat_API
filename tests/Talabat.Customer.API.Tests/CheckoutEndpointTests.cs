@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Talabat.Customer.API.Tests.Infrastructure;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Infrastructure.Persistence;
 using Xunit;
 
@@ -25,8 +26,11 @@ public sealed class CheckoutEndpointTests : IClassFixture<CustomWebApplicationFa
         _client.DefaultRequestHeaders.Add(TestAuthHandler.ScopeHeader, "customer.api");
     }
 
+    // Replaces Checkout_Authenticated_CreatesDeliveryWithRestaurantPickupSnapshot (design §4.1,
+    // BR-DEL-001/016 revised by D3): checkout places the order with the restaurant and creates no
+    // delivery; the pickup snapshot is taken on acceptance (test 16, T2).
     [Fact]
-    public async Task Checkout_Authenticated_CreatesDeliveryWithRestaurantPickupSnapshot()
+    public async Task Checkout_Authenticated_PlacesOrderWithRestaurantAndCreatesNoDelivery()
     {
         var request = new { DeliveryAddressId = 1 };
         var response = await _client.PostAsJsonAsync("/api/me/checkout", request);
@@ -37,13 +41,11 @@ public sealed class CheckoutEndpointTests : IClassFixture<CustomWebApplicationFa
 
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
-        var delivery = await dbContext.Deliveries.SingleAsync(item => item.OrderId == orderId);
+        var fulfillment = await dbContext.Set<OrderFulfillment>().SingleAsync(item => item.OrderId == orderId);
 
-        Assert.Equal("Ownership Restaurant", delivery.RestaurantName);
-        Assert.Equal("5 Pickup Street", delivery.RestaurantPickupAddress.Street);
-        Assert.Equal("Cairo", delivery.RestaurantPickupAddress.City);
-        Assert.Equal("5", delivery.RestaurantPickupAddress.BuildingNumber);
-        Assert.Equal("Ground Floor", delivery.RestaurantPickupAddress.Floor);
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, fulfillment.Status);
+        Assert.Equal(fulfillment.PlacedAt.AddMinutes(10), fulfillment.AcceptanceDeadline);
+        Assert.False(await dbContext.Deliveries.AnyAsync(item => item.OrderId == orderId));
     }
 
     [Fact]

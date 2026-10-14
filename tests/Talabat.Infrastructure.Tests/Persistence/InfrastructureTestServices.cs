@@ -44,6 +44,7 @@ internal static class InfrastructureTestServices
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<IOrderFulfillmentRepository, OrderFulfillmentRepository>();
 
         return services.BuildServiceProvider();
     }

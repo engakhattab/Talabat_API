@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Talabat.Customer.API.Tests.Infrastructure;
 using Xunit;
 
@@ -38,6 +39,30 @@ public sealed class OrderEndpointTests : IClassFixture<CustomWebApplicationFacto
             response.StatusCode == HttpStatusCode.OK ||
             response.StatusCode == HttpStatusCode.NotFound ||
             response.StatusCode == HttpStatusCode.Conflict);
+    }
+
+    // Design §4 test 32 (status fields, D9): a just-placed order shows Placed and no delivery agent.
+    [Fact]
+    public async Task Order_list_and_details_expose_status_and_delivery_agent_assigned()
+    {
+        var checkout = await _client.PostAsJsonAsync("/api/me/checkout", new { DeliveryAddressId = 1 });
+        Assert.Equal(HttpStatusCode.Created, checkout.StatusCode);
+        using var checkoutDocument = JsonDocument.Parse(await checkout.Content.ReadAsStringAsync());
+        var orderId = checkoutDocument.RootElement.GetProperty("orderId").GetInt32();
+
+        var details = await _client.GetAsync($"/api/me/orders/{orderId}");
+        Assert.Equal(HttpStatusCode.OK, details.StatusCode);
+        using var detailsDocument = JsonDocument.Parse(await details.Content.ReadAsStringAsync());
+        Assert.Equal("Placed", detailsDocument.RootElement.GetProperty("status").GetString());
+        Assert.False(detailsDocument.RootElement.GetProperty("deliveryAgentAssigned").GetBoolean());
+
+        var list = await _client.GetAsync("/api/me/orders");
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+        using var listDocument = JsonDocument.Parse(await list.Content.ReadAsStringAsync());
+        var summary = listDocument.RootElement.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("id").GetInt32() == orderId);
+        Assert.Equal("Placed", summary.GetProperty("status").GetString());
+        Assert.False(summary.GetProperty("deliveryAgentAssigned").GetBoolean());
     }
 
     [Fact]

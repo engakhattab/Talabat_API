@@ -48,6 +48,9 @@ public sealed class FakeUnitOfWork : IUnitOfWork
                 case FakeDeliveryRepository deliveries:
                     AssignDeliveryIds(deliveries);
                     break;
+                case FakeOrderFulfillmentRepository fulfillments:
+                    AssignFulfillmentIds(fulfillments);
+                    break;
             }
         }
     }
@@ -89,6 +92,16 @@ public sealed class FakeUnitOfWork : IUnitOfWork
             TestIds.SetId(
                 delivery,
                 NextId(deliveries.Deliveries.Select(existing => existing.Id), seed: 500));
+        }
+    }
+
+    private static void AssignFulfillmentIds(FakeOrderFulfillmentRepository fulfillments)
+    {
+        foreach (var fulfillment in fulfillments.Fulfillments.Where(fulfillment => fulfillment.Id == 0))
+        {
+            TestIds.SetId(
+                fulfillment,
+                NextId(fulfillments.Fulfillments.Select(existing => existing.Id), seed: 700));
         }
     }
 

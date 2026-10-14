@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Talabat.Application.Abstractions;
+using Talabat.Application.Fulfillment;
 using Talabat.Domain.Interfaces;
 using Talabat.Infrastructure.Persistence;
 using Talabat.Infrastructure.Persistence.Auditing;
@@ -40,7 +41,12 @@ public static class DependencyInjection
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<IOrderFulfillmentRepository, OrderFulfillmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+
+        services.AddSingleton(
+            configuration.GetSection(OrderFulfillmentOptions.SectionName).Get<OrderFulfillmentOptions>()
+            ?? new OrderFulfillmentOptions());
         services.AddScoped<IUserCapabilityService, UserCapabilityService>();
 
         services.AddSingleton<IClock, SystemClock>();
