@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.Admin.API.Auth;
 using Talabat.Admin.API.Contracts.Orders;
+using Talabat.Admin.API.Extensions;
+using Talabat.Application.Fulfillment;
 using Talabat.Application.Fulfillment.AcceptOrder;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Admin.API.Controllers;
 
@@ -27,8 +30,16 @@ public sealed class OrdersController : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public Task<IActionResult> Accept(int orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Accept(int orderId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var result = await _acceptHandler.Handle(
+            new AcceptOrderCommand(orderId, new FulfillmentActor.Admin()),
+            cancellationToken);
+
+        return result.ToActionResult(accepted => Ok(new AcceptOrderResponse(
+            accepted.OrderId,
+            OrderFulfillmentStatus.Accepted.ToString(),
+            accepted.DeliveryId,
+            accepted.AcceptedAt)));
     }
 }
