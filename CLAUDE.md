@@ -74,7 +74,8 @@ dotnet ef migrations add <Name> --project src/Talabat/Talabat.Infrastructure --s
 dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup-project src/Talabat/Talabat.API
 ```
 
-- CI (`.github/workflows/ci.yml`) = Release build + full `dotnet test` (SQL Server container) + the vulnerability gate.
+- CI (`.github/workflows/ci.yml`) = Release build + full `dotnet test` (SQL Server container) + the vulnerability gate,
+  on pushes and pull requests to `main` and `feature/**`.
   The full suite takes ~6 min locally; Infrastructure/Identity tests fall back from Testcontainers to LocalDB (no Docker).
 - Hosts: `.claude/launch.json` (Identity https://localhost:7237, Customer :7056, Delivery :7225, Admin :7310).
   SPA clients: `talabat-customer-spa` (4200), `talabat-delivery-spa` (4300), `talabat-admin-spa` (4400).
