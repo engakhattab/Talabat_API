@@ -107,3 +107,17 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
 - Phase 1 order-lifecycle design is **accepted**; Phase 2 implements it on `feature/phase-2-order-lifecycle` (task plan
   in `ROADMAP.md`). Until Phase 2 lands on `main`, checkout still creates the delivery, agents can still "cancel", and
   `Order` has no lifecycle. Phase 2 drops and recreates the local `talabat` database (owner approved; no backfill).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and tickets live in GitHub Issues for engakhattab/Talabat_API, managed with `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
