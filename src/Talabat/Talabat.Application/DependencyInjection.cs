@@ -98,6 +98,8 @@ public static class DependencyInjection
 
         // Deliveries
         services.AddScoped<CreateDeliveryForOrderHandler>();
+
+        // Fulfillment (restaurant side of the order lifecycle)
         services.AddScoped<AcceptOrderHandler>();
 
         // Domain Services
