@@ -55,7 +55,9 @@ public sealed class OrderController : ControllerBase
                 o.RestaurantId,
                 new MoneyDto(o.TotalAmount.Amount),
                 o.CreatedAtUtc,
-                o.ItemCount)).ToList();
+                o.ItemCount,
+                o.Status,
+                o.DeliveryAgentAssigned)).ToList();
 
             return Ok(new OrderListResponse(
                 items, orders.Page, orders.PageSize, orders.TotalCount));
@@ -97,7 +99,9 @@ public sealed class OrderController : ControllerBase
                 deliveryAddress,
                 items,
                 new MoneyDto(order.TotalAmount.Amount),
-                order.CreatedAtUtc));
+                order.CreatedAtUtc,
+                order.Status,
+                order.DeliveryAgentAssigned));
         });
     }
 }

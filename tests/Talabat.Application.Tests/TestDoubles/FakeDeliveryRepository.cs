@@ -22,6 +22,12 @@ public sealed class FakeDeliveryRepository : IDeliveryRepository
         return Task.FromResult(Deliveries.SingleOrDefault(d => d.OrderId == orderId));
     }
 
+    public Task<IReadOnlyCollection<Delivery>> GetByOrderIdsAsync(IReadOnlyCollection<int> orderIds, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyCollection<Delivery> matches = Deliveries.Where(d => orderIds.Contains(d.OrderId)).ToList();
+        return Task.FromResult(matches);
+    }
+
     public Task<Delivery?> GetActiveByAgentIdAsync(int agentId, CancellationToken cancellationToken = default)
     {
         var active = Deliveries.FirstOrDefault(d =>

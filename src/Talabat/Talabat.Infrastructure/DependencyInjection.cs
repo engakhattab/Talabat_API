@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Talabat.Application.Abstractions;
+using Talabat.Application.Fulfillment;
 using Talabat.Domain.Interfaces;
 using Talabat.Infrastructure.Persistence;
 using Talabat.Infrastructure.Persistence.Auditing;
@@ -40,16 +41,33 @@ public static class DependencyInjection
         services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+        services.AddScoped<IOrderFulfillmentRepository, OrderFulfillmentRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserCapabilityService, UserCapabilityService>();
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IRestaurantLocalTimeProvider, RestaurantLocalTimeProvider>();
+        services.AddSingleton(BindOrderFulfillmentOptions(configuration));
 
         services.Configure<E2EProvisioningOptions>(
             configuration.GetSection(E2EProvisioningOptions.SectionName));
         services.AddScoped<IE2EProvisioner, E2EProvisioner>();
 
         return services;
+    }
+
+    private static OrderFulfillmentOptions BindOrderFulfillmentOptions(IConfiguration configuration)
+    {
+        var options = configuration.GetSection(OrderFulfillmentOptions.SectionName).Get<OrderFulfillmentOptions>()
+            ?? new OrderFulfillmentOptions();
+
+        if (options.AcceptanceWindow <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException(
+                $"{OrderFulfillmentOptions.SectionName}:{nameof(OrderFulfillmentOptions.AcceptanceWindow)} "
+                + $"must be greater than zero (configured: {options.AcceptanceWindow}).");
+        }
+
+        return options;
     }
 }

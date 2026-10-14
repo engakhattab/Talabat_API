@@ -11,7 +11,7 @@ public sealed class GetOrderDetailsHandlerTests
     {
         var orders = new FakeOrderRepository();
         orders.Orders.Add(TestData.CreateOrder(1, customerId: 1));
-        var handler = new GetOrderDetailsHandler(orders);
+        var handler = new GetOrderDetailsHandler(orders, TestData.CreateFulfillmentsFor(orders), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderDetailsQuery(1, 1));
 
@@ -28,7 +28,7 @@ public sealed class GetOrderDetailsHandlerTests
     {
         var orders = new FakeOrderRepository();
         orders.Orders.Add(TestData.CreateOrder(1, customerId: 2));
-        var handler = new GetOrderDetailsHandler(orders);
+        var handler = new GetOrderDetailsHandler(orders, TestData.CreateFulfillmentsFor(orders), new FakeDeliveryRepository());
 
         var otherCustomerResult = await handler.Handle(new GetOrderDetailsQuery(1, 1));
         var missingResult = await handler.Handle(new GetOrderDetailsQuery(1, 999));

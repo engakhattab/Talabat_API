@@ -1,6 +1,7 @@
 using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.ValueObjects;
 
@@ -97,5 +98,27 @@ public static class TestData
         TestIds.SetId(order, id);
 
         return order;
+    }
+
+    /// <summary>The fulfillment checkout creates alongside every order (design D3).</summary>
+    public static OrderFulfillment CreateFulfillment(Order order)
+    {
+        var fulfillment = new OrderFulfillment(
+            order.Id,
+            order.RestaurantId,
+            order.CreatedAt,
+            TimeSpan.FromMinutes(10));
+
+        TestIds.SetId(fulfillment, 700 + order.Id);
+
+        return fulfillment;
+    }
+
+    /// <summary>Gives every order in <paramref name="orders"/> its checkout fulfillment.</summary>
+    public static FakeOrderFulfillmentRepository CreateFulfillmentsFor(FakeOrderRepository orders)
+    {
+        var fulfillments = new FakeOrderFulfillmentRepository();
+        fulfillments.Fulfillments.AddRange(orders.Orders.Select(CreateFulfillment));
+        return fulfillments;
     }
 }

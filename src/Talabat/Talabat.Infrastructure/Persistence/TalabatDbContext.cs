@@ -5,6 +5,7 @@ using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Aggregates.Users;
 
 namespace Talabat.Infrastructure.Persistence;
@@ -25,6 +26,8 @@ public sealed class TalabatDbContext : IdentityDbContext<User, IdentityRole<int>
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<Delivery> Deliveries => Set<Delivery>();
+
+    public DbSet<OrderFulfillment> OrderFulfillments => Set<OrderFulfillment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

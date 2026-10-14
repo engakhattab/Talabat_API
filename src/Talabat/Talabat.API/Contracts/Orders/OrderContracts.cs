@@ -1,3 +1,4 @@
+using Talabat.Application.Ordering.Status;
 using Talabat.Customer.API.Contracts.Common;
 
 namespace Talabat.Customer.API.Contracts.Orders;
@@ -13,7 +14,9 @@ public sealed record OrderSummaryDto(
     int RestaurantId,
     MoneyDto Total,
     DateTime PlacedAt,
-    int ItemCount);
+    int ItemCount,
+    CustomerOrderStatus Status,
+    bool DeliveryAgentAssigned);
 
 public sealed record OrderDetailResponse(
     int Id,
@@ -22,7 +25,9 @@ public sealed record OrderDetailResponse(
     OrderDeliveryAddressDto DeliveryAddress,
     IReadOnlyCollection<OrderLineItemDto> Items,
     MoneyDto Total,
-    DateTime PlacedAt);
+    DateTime PlacedAt,
+    CustomerOrderStatus Status,
+    bool DeliveryAgentAssigned);
 
 public sealed record OrderDeliveryAddressDto(
     string Street,

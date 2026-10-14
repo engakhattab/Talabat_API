@@ -1,7 +1,8 @@
 using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
-using Talabat.Application.Deliveries;
+using Talabat.Application.Fulfillment;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.DomainServices.Checkout;
 using Talabat.Domain.Exceptions;
 using Talabat.Domain.Interfaces;
@@ -14,7 +15,8 @@ public sealed class CheckoutHandler
     private readonly IUserRepository _userRepository;
     private readonly IRestaurantRepository _restaurantRepository;
     private readonly IOrderRepository _orderRepository;
-    private readonly IDeliveryRepository _deliveryRepository;
+    private readonly IOrderFulfillmentRepository _fulfillmentRepository;
+    private readonly OrderFulfillmentOptions _fulfillmentOptions;
     private readonly IRestaurantLocalTimeProvider _restaurantLocalTimeProvider;
     private readonly IClock _clock;
     private readonly IUnitOfWork _unitOfWork;
@@ -25,7 +27,8 @@ public sealed class CheckoutHandler
         IUserRepository userRepository,
         IRestaurantRepository restaurantRepository,
         IOrderRepository orderRepository,
-        IDeliveryRepository deliveryRepository,
+        IOrderFulfillmentRepository fulfillmentRepository,
+        OrderFulfillmentOptions fulfillmentOptions,
         IRestaurantLocalTimeProvider restaurantLocalTimeProvider,
         IClock clock,
         IUnitOfWork unitOfWork,
@@ -35,7 +38,8 @@ public sealed class CheckoutHandler
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _restaurantRepository = restaurantRepository ?? throw new ArgumentNullException(nameof(restaurantRepository));
         _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
-        _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
+        _fulfillmentRepository = fulfillmentRepository ?? throw new ArgumentNullException(nameof(fulfillmentRepository));
+        _fulfillmentOptions = fulfillmentOptions ?? throw new ArgumentNullException(nameof(fulfillmentOptions));
         _restaurantLocalTimeProvider = restaurantLocalTimeProvider ?? throw new ArgumentNullException(nameof(restaurantLocalTimeProvider));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -101,9 +105,9 @@ public sealed class CheckoutHandler
                 deliveryAddress,
                 now);
 
-            // The order, the cart transition and the order's Delivery commit together (BR-DEL-001,
-            // BR-DEL-016): a placed order can never exist without its delivery. The delivery
-            // needs the generated order id, hence two saves inside one transaction.
+            // Checkout places the order with the restaurant (design D3): the order, the cart transition
+            // and the order's fulfillment commit together; no delivery exists until acceptance. The
+            // fulfillment needs the generated order id, hence two saves inside one transaction.
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 await _orderRepository.AddAsync(order, ct);
@@ -111,14 +115,13 @@ public sealed class CheckoutHandler
                 _cartRepository.Update(cart);
                 await _unitOfWork.SaveChangesAsync(ct);
 
-                var delivery = DeliveryFactory.ForOrder(
+                var fulfillment = new OrderFulfillment(
                     order.Id,
-                    command.CustomerId,
-                    restaurant,
-                    deliveryAddress,
-                    now);
+                    order.RestaurantId,
+                    now,
+                    _fulfillmentOptions.AcceptanceWindow);
 
-                await _deliveryRepository.AddAsync(delivery, ct);
+                await _fulfillmentRepository.AddAsync(fulfillment, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
             }, cancellationToken);
 

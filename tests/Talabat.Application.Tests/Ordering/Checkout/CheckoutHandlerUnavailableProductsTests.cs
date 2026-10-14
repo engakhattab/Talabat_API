@@ -1,3 +1,4 @@
+using Talabat.Application.Fulfillment;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Application.Tests.TestDoubles;
 using Talabat.Domain.DomainServices.Checkout;
@@ -25,7 +26,8 @@ public sealed class CheckoutHandlerUnavailableProductsTests
             users,
             restaurants,
             orders,
-            new FakeDeliveryRepository(),
+            new FakeOrderFulfillmentRepository(),
+            new OrderFulfillmentOptions(),
             new FakeRestaurantLocalTimeProvider { LocalTime = new TimeOnly(12, 0) },
             new FakeClock(),
             unitOfWork,

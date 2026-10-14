@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Talabat.Customer.API.Contracts.Orders;
 using Talabat.Customer.API.Tests.Infrastructure;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Persistence;
@@ -96,9 +97,10 @@ public sealed class OrderHistoryPagingTests : IClassFixture<CustomWebApplication
         Assert.True(created.Succeeded);
 
         var product = db.Set<Talabat.Domain.Aggregates.Catalog.Product>().First();
+        var orders = new List<Order>();
         for (var i = 0; i < orderCount; i++)
         {
-            db.Orders.Add(Order.CreateFromCheckout(
+            orders.Add(Order.CreateFromCheckout(
                 customer.Id,
                 product.RestaurantId,
                 [new CheckoutItemSnapshot(product.Id, product.Name, new Money(10m), quantityPerOrder)],
@@ -106,6 +108,15 @@ public sealed class OrderHistoryPagingTests : IClassFixture<CustomWebApplication
                 DateTime.UtcNow.AddMinutes(i)));
         }
 
+        db.Orders.AddRange(orders);
+        await db.SaveChangesAsync();
+
+        // Every placed order has its fulfillment (design D3).
+        db.OrderFulfillments.AddRange(orders.Select(order => new OrderFulfillment(
+            order.Id,
+            order.RestaurantId,
+            order.CreatedAt,
+            TimeSpan.FromMinutes(10))));
         await db.SaveChangesAsync();
         return customer.Id;
     }
