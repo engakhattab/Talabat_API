@@ -110,6 +110,8 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
 
 ## Agent skills
 
+Which skill to run when, and in what order: `docs/agents/skills-workflow.md`.
+
 ### Issue tracker
 
 Issues and tickets live in GitHub Issues for engakhattab/Talabat_API, managed with `gh`. See `docs/agents/issue-tracker.md`.
