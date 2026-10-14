@@ -76,6 +76,38 @@ public sealed class OrderAcceptanceTests : IClassFixture<AdminWebApplicationFact
         Assert.Equal("InvalidOrderFulfillmentStatusTransitionException", problem.GetProperty("errorCode").GetString());
     }
 
+    // D12: a write conflict raised by SaveChanges (RowVersion race or unique index) escapes the handler and must
+    // still reach the caller as 409 ConcurrencyConflict, not 500. A stray delivery already holding the order stands
+    // in for the concurrent writer: the acceptance's delivery insert then violates UX_Deliveries_OrderId, which the
+    // unit of work raises as the same ConcurrencyConflictException a RowVersion race does.
+    [Fact]
+    public async Task Accept_that_loses_a_write_conflict_returns_409_concurrency_conflict()
+    {
+        var orderId = await PlaceOrderAsync();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<TalabatDbContext>();
+            var order = await db.Orders.SingleAsync(item => item.Id == orderId);
+            await db.Deliveries.AddAsync(new Delivery(
+                order.Id,
+                order.CustomerId,
+                order.RestaurantId,
+                "Stray",
+                new DeliveryAddressSnapshot("Stray Pickup", "Cairo", "1"),
+                new DeliveryAddressSnapshot("Stray Drop-off", "Cairo", "2"),
+                DateTime.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        using var admin = CreateClient(_factory.AdminUserId, "Admin", "admin.api");
+        var response = await admin.PostAsync(AcceptUrl(orderId), null);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("ConcurrencyConflict", problem.GetProperty("errorCode").GetString());
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, (await ReadFulfillmentAsync(orderId)).Status);
+    }
+
     [Fact]
     public async Task Accept_unknown_order_returns_not_found()
     {
