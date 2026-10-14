@@ -4,6 +4,7 @@ using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Tests.TestDoubles;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.RestaurantOperations;
+using Talabat.Domain.ValueObjects;
 
 namespace Talabat.Application.Tests.Fulfillment.AcceptOrder;
 
@@ -58,6 +59,26 @@ public sealed class AcceptOrderHandlerTests
         Assert.Equal(1, _unitOfWork.TransactionCount);
         Assert.Equal(1, _unitOfWork.SaveChangesInsideTransactionCount);
         Assert.Equal(_unitOfWork.SaveChangesCount, _unitOfWork.SaveChangesInsideTransactionCount);
+    }
+
+    // D3: the pickup snapshot is taken "from the restaurant at acceptance time": an edit made while the order
+    // awaited the restaurant is captured, an edit made after acceptance does not reach the delivery.
+    [Fact]
+    public async Task Accept_takes_the_pickup_snapshot_at_acceptance_time()
+    {
+        var restaurant = _restaurants.Restaurants.Single();
+        restaurant.UpdatePickupDetails("Renamed Before Accept", new Address("2 New Pickup Street", "Giza", "2", "1"));
+
+        var result = await CreateHandler().Handle(new AcceptOrderCommand(1, new FulfillmentActor.Admin()));
+        restaurant.UpdatePickupDetails("Renamed After Accept", new Address("3 Later Street", "Alexandria", "3"));
+
+        Assert.True(result.IsSuccess);
+        var delivery = Assert.Single(_deliveries.Deliveries);
+        Assert.Equal("Renamed Before Accept", delivery.RestaurantName);
+        Assert.Equal("2 New Pickup Street", delivery.RestaurantPickupAddress.Street);
+        Assert.Equal("Giza", delivery.RestaurantPickupAddress.City);
+        Assert.Equal("2", delivery.RestaurantPickupAddress.BuildingNumber);
+        Assert.Equal("1", delivery.RestaurantPickupAddress.Floor);
     }
 
     // Design §4 test 17 (part): an order is accepted once; the second accept conflicts and creates nothing.
