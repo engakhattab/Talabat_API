@@ -1,8 +1,8 @@
 namespace Talabat.Application.Fulfillment;
 
 /// <summary>
-/// Order fulfillment settings (design D10). Hosts bind them from the <c>OrderFulfillment</c>
-/// configuration section.
+/// Order fulfillment settings (design D10), bound and validated by Infrastructure from the
+/// <c>OrderFulfillment</c> configuration section.
 /// </summary>
 public sealed class OrderFulfillmentOptions
 {
