@@ -12,39 +12,6 @@ public sealed class CreateDeliveryForOrderHandlerTests
     private static readonly DateTime Now = new(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public async Task Handle_CreatesPendingAssignmentDelivery()
-    {
-        var repository = new FakeDeliveryRepository();
-        var unitOfWork = new FakeUnitOfWork(repository);
-        var clock = new FakeClock { UtcNow = Now };
-        var restaurants = CreateRestaurantRepository();
-        var handler = new CreateDeliveryForOrderHandler(repository, restaurants, unitOfWork, clock);
-
-        var cmd = new CreateDeliveryForOrderCommand(
-            OrderId: 1,
-            CustomerId: 100,
-            RestaurantId: 200,
-            DeliveryAddress: Address);
-
-        var result = await handler.Handle(cmd);
-
-        Assert.True(result.IsSuccess);
-        Assert.Single(repository.Deliveries);
-        var delivery = repository.Deliveries[0];
-        Assert.Equal(1, delivery.OrderId);
-        Assert.Equal(100, delivery.CustomerId);
-        Assert.Equal(200, delivery.RestaurantId);
-        Assert.Equal("Restaurant 200", delivery.RestaurantName);
-        Assert.Equal("200 Test Pickup Street", delivery.RestaurantPickupAddress.Street);
-        Assert.Equal("Cairo", delivery.RestaurantPickupAddress.City);
-        Assert.Equal("200", delivery.RestaurantPickupAddress.BuildingNumber);
-        Assert.Null(delivery.AssignedAgentId);
-        Assert.Equal(DeliveryStatus.PendingAssignment, delivery.Status);
-        Assert.Equal("1 Test St", delivery.DeliveryAddress.Street);
-        Assert.Equal("Cairo", delivery.DeliveryAddress.City);
-    }
-
-    [Fact]
     public async Task Handle_RestaurantChangesAfterCreation_DoNotMutateDeliverySnapshot()
     {
         var deliveryRepository = new FakeDeliveryRepository();

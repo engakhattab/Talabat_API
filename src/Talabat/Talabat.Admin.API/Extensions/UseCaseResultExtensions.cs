@@ -12,7 +12,12 @@ public static class UseCaseResultExtensions
             return onSuccess(result.Value);
         }
 
-        var error = result.Error!;
+        var details = result.Error!.ToProblemDetails();
+        return new ObjectResult(details) { StatusCode = details.Status };
+    }
+
+    public static ProblemDetails ToProblemDetails(this ApplicationError error)
+    {
         var statusCode = error.Category switch
         {
             ApplicationErrorCategory.Validation => StatusCodes.Status400BadRequest,
@@ -32,6 +37,6 @@ public static class UseCaseResultExtensions
             Type = $"https://tools.ietf.org/html/rfc9110#section-{(statusCode == 404 ? "15.5.5" : statusCode == 409 ? "15.5.10" : "15.5.1")}" 
         };
         details.Extensions["errorCode"] = error.Code;
-        return new ObjectResult(details) { StatusCode = statusCode };
+        return details;
     }
 }

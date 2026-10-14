@@ -29,6 +29,7 @@ using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
 using Talabat.Application.DeliveryAgents.UpdateLocation;
+using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Application.Ordering.GetOrderDetails;
 using Talabat.Application.Ordering.GetOrderHistory;
@@ -97,6 +98,9 @@ public static class DependencyInjection
 
         // Deliveries
         services.AddScoped<CreateDeliveryForOrderHandler>();
+
+        // Fulfillment (restaurant side of the order lifecycle)
+        services.AddScoped<AcceptOrderHandler>();
 
         // Domain Services
         services.AddScoped<CheckoutDomainService>();

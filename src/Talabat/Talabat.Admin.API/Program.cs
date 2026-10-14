@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Talabat.Admin.API.Auth;
+using Talabat.Admin.API.Middleware;
 using Talabat.Application;
 using Talabat.Infrastructure;
 
@@ -88,6 +89,8 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddCors(options => options.AddPolicy("AdminSpaCorsPolicy", policy =>
     policy.WithOrigins("http://localhost:4400").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
