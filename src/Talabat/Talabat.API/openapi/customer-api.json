@@ -1460,6 +1460,19 @@
           }
         }
       },
+      "CustomerOrderStatus": {
+        "enum": [
+          "Placed",
+          "Accepted",
+          "Preparing",
+          "ReadyForPickup",
+          "OnTheWay",
+          "Delivered",
+          "Rejected",
+          "Cancelled",
+          "DeliveryFailed"
+        ]
+      },
       "MenuProductDto": {
         "required": [
           "id",
@@ -1562,7 +1575,9 @@
           "deliveryAddress",
           "items",
           "total",
-          "placedAt"
+          "placedAt",
+          "status",
+          "deliveryAgentAssigned"
         ],
         "type": "object",
         "properties": {
@@ -1596,6 +1611,12 @@
           "placedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomerOrderStatus"
+          },
+          "deliveryAgentAssigned": {
+            "type": "boolean"
           }
         }
       },
@@ -1662,7 +1683,9 @@
           "restaurantId",
           "total",
           "placedAt",
-          "itemCount"
+          "itemCount",
+          "status",
+          "deliveryAgentAssigned"
         ],
         "type": "object",
         "properties": {
@@ -1687,6 +1710,12 @@
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": "integer",
             "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomerOrderStatus"
+          },
+          "deliveryAgentAssigned": {
+            "type": "boolean"
           }
         }
       },
