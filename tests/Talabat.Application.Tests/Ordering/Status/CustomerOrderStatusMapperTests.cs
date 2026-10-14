@@ -14,9 +14,13 @@ public sealed class CustomerOrderStatusMapperTests
 {
     private const int OrderId = 300;
     private const int RestaurantId = 1;
+    private const int AgentId = 42;
 
     [Theory]
     [InlineData(OrderFulfillmentStatus.AwaitingRestaurant, null, CustomerOrderStatus.Placed, false)]
+    [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.PendingAssignment, CustomerOrderStatus.Accepted, false)]
+    [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.Assigned, CustomerOrderStatus.Accepted, true)]
+    [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.ArrivedAtRestaurant, CustomerOrderStatus.Accepted, true)]
     public void Status_mapper_maps_every_reachable_combination(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus,
@@ -35,6 +39,10 @@ public sealed class CustomerOrderStatusMapperTests
     [Theory]
     // A delivery exists only once the restaurant has accepted (D3).
     [InlineData(OrderFulfillmentStatus.AwaitingRestaurant, DeliveryStatus.PendingAssignment)]
+    // Acceptance creates the delivery in the same transaction (D3).
+    [InlineData(OrderFulfillmentStatus.Accepted, null)]
+    // Food leaves the restaurant only through the hand-over (D5).
+    [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.PickedUp)]
     public void Status_mapper_rejects_impossible_combinations(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus)
@@ -52,6 +60,7 @@ public sealed class CustomerOrderStatusMapperTests
         return status switch
         {
             OrderFulfillmentStatus.AwaitingRestaurant => fulfillment,
+            OrderFulfillmentStatus.Accepted => Accepted(fulfillment),
             _ => throw new NotSupportedException($"Arrange a {status} fulfillment once that transition exists.")
         };
     }
@@ -64,7 +73,34 @@ public sealed class CustomerOrderStatusMapperTests
         return status switch
         {
             DeliveryStatus.PendingAssignment => delivery,
+            DeliveryStatus.Assigned => Assigned(delivery),
+            DeliveryStatus.ArrivedAtRestaurant => ArrivedAtRestaurant(Assigned(delivery)),
+            DeliveryStatus.PickedUp => PickedUp(ArrivedAtRestaurant(Assigned(delivery))),
             _ => throw new NotSupportedException($"Arrange a {status} delivery when a test needs it.")
         };
+    }
+
+    private static OrderFulfillment Accepted(OrderFulfillment fulfillment)
+    {
+        fulfillment.Accept(RestaurantId, TestData.UtcNow.AddMinutes(1));
+        return fulfillment;
+    }
+
+    private static Delivery Assigned(Delivery delivery)
+    {
+        delivery.AssignAgent(AgentId, TestData.UtcNow.AddMinutes(2));
+        return delivery;
+    }
+
+    private static Delivery ArrivedAtRestaurant(Delivery delivery)
+    {
+        delivery.MarkArrivedAtRestaurant(AgentId, TestData.UtcNow.AddMinutes(3));
+        return delivery;
+    }
+
+    private static Delivery PickedUp(Delivery delivery)
+    {
+        delivery.MarkPickedUp(AgentId, TestData.UtcNow.AddMinutes(4));
+        return delivery;
     }
 }
