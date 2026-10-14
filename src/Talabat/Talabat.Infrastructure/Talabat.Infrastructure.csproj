@@ -25,6 +25,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- Pin: Microsoft.Data.SqlClient 6.1.1 (via EF Core SqlServer) pulls 9.0.4, which is affected by
+         CVE-2026-84008 / CVE-2026-70162. Remove once EF Core SqlServer brings a patched version itself. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
 </Project>
