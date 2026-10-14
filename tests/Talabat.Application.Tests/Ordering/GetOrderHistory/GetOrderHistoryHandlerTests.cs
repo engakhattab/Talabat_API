@@ -12,7 +12,7 @@ public sealed class GetOrderHistoryHandlerTests
         orders.Orders.Add(TestData.CreateOrder(1, customerId: 1, createdAt: TestData.UtcNow.AddDays(-1)));
         orders.Orders.Add(TestData.CreateOrder(2, customerId: 2, createdAt: TestData.UtcNow));
         orders.Orders.Add(TestData.CreateOrder(3, customerId: 1, createdAt: TestData.UtcNow));
-        var handler = new GetOrderHistoryHandler(orders);
+        var handler = new GetOrderHistoryHandler(orders, TestData.CreateFulfillmentsFor(orders), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderHistoryQuery(1));
 
@@ -25,7 +25,7 @@ public sealed class GetOrderHistoryHandlerTests
     {
         var orders = new FakeOrderRepository();
         orders.Orders.Add(TestData.CreateOrder(1, customerId: 1)); // one line, quantity 2
-        var handler = new GetOrderHistoryHandler(orders);
+        var handler = new GetOrderHistoryHandler(orders, TestData.CreateFulfillmentsFor(orders), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderHistoryQuery(1));
 
@@ -41,7 +41,7 @@ public sealed class GetOrderHistoryHandlerTests
             orders.Orders.Add(TestData.CreateOrder(id, customerId: 1, createdAt: TestData.UtcNow.AddMinutes(id)));
         }
 
-        var handler = new GetOrderHistoryHandler(orders);
+        var handler = new GetOrderHistoryHandler(orders, TestData.CreateFulfillmentsFor(orders), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderHistoryQuery(1, Page: 2, PageSize: 2));
 
@@ -56,7 +56,7 @@ public sealed class GetOrderHistoryHandlerTests
     [InlineData(-3, 500, 1, 50)]
     public async Task Handle_ClampsOutOfRangePaging(int page, int pageSize, int expectedPage, int expectedPageSize)
     {
-        var handler = new GetOrderHistoryHandler(new FakeOrderRepository());
+        var handler = new GetOrderHistoryHandler(new FakeOrderRepository(), new FakeOrderFulfillmentRepository(), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderHistoryQuery(1, page, pageSize));
 
@@ -67,7 +67,7 @@ public sealed class GetOrderHistoryHandlerTests
     [Fact]
     public async Task Handle_ReturnsEmptyCollectionWhenNoOrdersExist()
     {
-        var handler = new GetOrderHistoryHandler(new FakeOrderRepository());
+        var handler = new GetOrderHistoryHandler(new FakeOrderRepository(), new FakeOrderFulfillmentRepository(), new FakeDeliveryRepository());
 
         var result = await handler.Handle(new GetOrderHistoryQuery(1));
 

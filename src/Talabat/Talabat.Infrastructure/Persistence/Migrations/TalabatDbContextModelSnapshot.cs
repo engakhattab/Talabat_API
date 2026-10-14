@@ -559,6 +559,78 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Talabat.Domain.Aggregates.RestaurantOperations.OrderFulfillment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AcceptanceDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PlacedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RestaurantId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_OrderFulfillments_OrderId");
+
+                    b.HasIndex("RestaurantId");
+
+                    b.ToTable("OrderFulfillments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderFulfillments_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
+                        });
+                });
+
             modelBuilder.Entity("Talabat.Domain.Aggregates.Users.User", b =>
                 {
                     b.Property<int>("Id")
@@ -1219,6 +1291,21 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("_items");
+                });
+
+            modelBuilder.Entity("Talabat.Domain.Aggregates.RestaurantOperations.OrderFulfillment", b =>
+                {
+                    b.HasOne("Talabat.Domain.Aggregates.Ordering.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Talabat.Domain.Aggregates.Catalog.Restaurant", null)
+                        .WithMany()
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Talabat.Domain.Aggregates.Users.User", b =>

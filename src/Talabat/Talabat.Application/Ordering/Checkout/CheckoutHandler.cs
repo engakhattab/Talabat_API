@@ -2,6 +2,7 @@ using Talabat.Application.Abstractions;
 using Talabat.Application.Common.Results;
 using Talabat.Application.Fulfillment;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.DomainServices.Checkout;
 using Talabat.Domain.Exceptions;
 using Talabat.Domain.Interfaces;
@@ -104,11 +105,23 @@ public sealed class CheckoutHandler
                 deliveryAddress,
                 now);
 
+            // Checkout places the order with the restaurant (design D3): the order, the cart transition
+            // and the order's fulfillment commit together; no delivery exists until acceptance. The
+            // fulfillment needs the generated order id, hence two saves inside one transaction.
             await _unitOfWork.ExecuteInTransactionAsync(async ct =>
             {
                 await _orderRepository.AddAsync(order, ct);
                 cart.MarkCheckedOut(now);
                 _cartRepository.Update(cart);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var fulfillment = new OrderFulfillment(
+                    order.Id,
+                    order.RestaurantId,
+                    now,
+                    _fulfillmentOptions.AcceptanceWindow);
+
+                await _fulfillmentRepository.AddAsync(fulfillment, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
             }, cancellationToken);
 

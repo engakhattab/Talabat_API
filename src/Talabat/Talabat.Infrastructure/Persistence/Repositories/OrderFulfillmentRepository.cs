@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Interfaces;
 
@@ -16,20 +17,27 @@ public sealed class OrderFulfillmentRepository : IOrderFulfillmentRepository
         int orderId,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return _dbContext.OrderFulfillments
+            .SingleOrDefaultAsync(fulfillment => fulfillment.OrderId == orderId, cancellationToken);
     }
 
-    public Task<IReadOnlyCollection<OrderFulfillment>> GetByOrderIdsAsync(
+    public async Task<IReadOnlyCollection<OrderFulfillment>> GetByOrderIdsAsync(
         IReadOnlyCollection<int> orderIds,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(orderIds);
+
+        return await _dbContext.OrderFulfillments
+            .AsNoTracking()
+            .Where(fulfillment => orderIds.Contains(fulfillment.OrderId))
+            .ToListAsync(cancellationToken);
     }
 
-    public Task AddAsync(
+    public async Task AddAsync(
         OrderFulfillment fulfillment,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(fulfillment);
+        await _dbContext.OrderFulfillments.AddAsync(fulfillment, cancellationToken);
     }
 }

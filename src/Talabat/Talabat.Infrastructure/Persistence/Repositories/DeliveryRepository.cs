@@ -40,6 +40,18 @@ public sealed class DeliveryRepository : IDeliveryRepository
             .SingleOrDefaultAsync(delivery => delivery.OrderId == orderId, cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<Delivery>> GetByOrderIdsAsync(
+        IReadOnlyCollection<int> orderIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(orderIds);
+
+        return await _dbContext.Deliveries
+            .AsNoTracking()
+            .Where(delivery => orderIds.Contains(delivery.OrderId))
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<Delivery?> GetActiveByAgentIdAsync(
         int agentId,
         CancellationToken cancellationToken = default)

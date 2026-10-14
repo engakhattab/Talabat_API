@@ -11,6 +11,15 @@ public static class CustomerOrderStatusMapper
 {
     public static CustomerOrderProgress Map(OrderFulfillment fulfillment, Delivery? delivery)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(fulfillment);
+
+        return (fulfillment.Status, delivery) switch
+        {
+            (OrderFulfillmentStatus.AwaitingRestaurant, null) =>
+                new CustomerOrderProgress(CustomerOrderStatus.Placed, DeliveryAgentAssigned: false),
+            _ => throw new InvalidOperationException(
+                $"Order {fulfillment.OrderId} has fulfillment {fulfillment.Status} with "
+                + $"{(delivery is null ? "no delivery" : $"delivery {delivery.Status}")}, which no lifecycle allows.")
+        };
     }
 }

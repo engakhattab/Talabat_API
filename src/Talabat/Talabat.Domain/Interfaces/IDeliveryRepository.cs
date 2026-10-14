@@ -17,6 +17,10 @@ public interface IDeliveryRepository
         int orderId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<Delivery>> GetByOrderIdsAsync(
+        IReadOnlyCollection<int> orderIds,
+        CancellationToken cancellationToken = default);
+
     Task<Delivery?> GetActiveByAgentIdAsync(
         int agentId,
         CancellationToken cancellationToken = default);

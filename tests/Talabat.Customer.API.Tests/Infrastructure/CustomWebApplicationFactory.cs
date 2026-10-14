@@ -11,6 +11,7 @@ using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Aggregates.Basket;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
@@ -177,6 +178,13 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 foreignUser.CreateDeliveryAddressSnapshot(foreignUser.Addresses.Single().Id),
                 DateTime.UtcNow);
             db.Orders.Add(foreignOrder);
+            db.SaveChanges();
+
+            db.OrderFulfillments.Add(new OrderFulfillment(
+                foreignOrder.Id,
+                restaurant.Id,
+                foreignOrder.CreatedAt,
+                TimeSpan.FromMinutes(10)));
             db.SaveChanges();
 
             ForeignCustomerId = foreignUser.Id;
