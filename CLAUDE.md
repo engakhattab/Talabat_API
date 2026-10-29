@@ -54,6 +54,9 @@ Roles: Customer, Delivery Agent, Admin, Restaurant Owner (not built yet).
   feature, bug fix, or domain transition; production code only makes those tests pass. Never weaken, skip, or delete
   tests to pass a gate. A test may be rewritten or removed only when an accepted design revises the rule it encodes:
   the commit names the rule ID and the replacement test lands in the same red commit.
+- **Learning walkthrough (mandatory, permanent):** every change ships `docs/learning/<ticket>-technical-walkthrough.md`
+  before its PR opens. It explains the what, how and why of each file touched, for the owner's learning. The format
+  and required sections are in `docs/learning/README.md`.
 - **Phase discipline (strictly sequential):** work only on the current `ROADMAP.md` phase; no parallel tracks; do not
   start the next one until its gate passes. Every progress update states the current milestone/phase, completed
   phases, and the next phase. Multi-task phases use an integration branch `feature/phase-<n>-<slug>` with one task
@@ -110,6 +113,8 @@ dotnet ef database update --project src/Talabat/Talabat.Infrastructure --startup
   `Order` has no lifecycle. Phase 2 drops and recreates the local `talabat` database (owner approved; no backfill).
 
 ## Agent skills
+
+Which skill to run when, and in what order: `docs/agents/skills-workflow.md`.
 
 ### Issue tracker
 
