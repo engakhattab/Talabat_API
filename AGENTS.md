@@ -8,6 +8,12 @@ Read it first. The detailed audit and roadmap are in `PROJECT_STATUS_REPORT.md`.
 Never add Claude, Anthropic, or AI attribution as git commit author or via `Co-authored-by` trailer. All commits must
 strictly use the local git config user and email with zero AI co-authorship metadata.
 
+## Learning walkthrough (strict, permanent)
+
+Every change (ticket, feature, fix, refactor) ships `docs/learning/<ticket>-technical-walkthrough.md` before its PR
+opens. It is a teaching document explaining what changed in each file, how, and why. Follow the format and required
+sections in `docs/learning/README.md`.
+
 <!-- SPECKIT START -->
 Current roadmap increment:
 
