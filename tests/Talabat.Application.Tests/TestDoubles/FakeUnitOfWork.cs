@@ -5,6 +5,7 @@ namespace Talabat.Application.Tests.TestDoubles;
 public sealed class FakeUnitOfWork : IUnitOfWork
 {
     private readonly object[] _stores;
+    private bool _inTransaction;
 
     public FakeUnitOfWork(params object[] stores)
     {
@@ -13,10 +14,18 @@ public sealed class FakeUnitOfWork : IUnitOfWork
 
     public int SaveChangesCount { get; private set; }
 
+    /// <summary>Saves made inside <see cref="ExecuteInTransactionAsync"/>, i.e. ones that commit atomically.</summary>
+    public int SaveChangesInsideTransactionCount { get; private set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         AssignIds();
         SaveChangesCount++;
+        if (_inTransaction)
+        {
+            SaveChangesInsideTransactionCount++;
+        }
+
         return Task.FromResult(SaveChangesCount);
     }
 
@@ -27,7 +36,15 @@ public sealed class FakeUnitOfWork : IUnitOfWork
         CancellationToken cancellationToken = default)
     {
         TransactionCount++;
-        await operation(cancellationToken);
+        _inTransaction = true;
+        try
+        {
+            await operation(cancellationToken);
+        }
+        finally
+        {
+            _inTransaction = false;
+        }
     }
 
     private void AssignIds()

@@ -33,6 +33,7 @@ public static class DomainExceptionMapper
             InvalidDeliveryAgentStatusTransitionException ex => Conflict(ex.GetType().Name, ex.Message),
             InvalidQuantityException ex => Validation(ApplicationErrorCodes.InvalidQuantity, ex.Message),
             MissingDeliveryAddressException ex => NotFound(ApplicationErrorCodes.AddressNotFound, ex.Message),
+            OrderFulfillmentRestaurantMismatchException ex => OwnershipMismatch(ex.GetType().Name, ex.Message),
             ProductNotFoundException ex => NotFound(ApplicationErrorCodes.ProductNotFound, ex.Message),
             ProductUnavailableException ex => Unavailable(ApplicationErrorCodes.ProductUnavailable, ex.Message),
             RestaurantClosedException ex => Unavailable(ApplicationErrorCodes.RestaurantClosed, ex.Message),
