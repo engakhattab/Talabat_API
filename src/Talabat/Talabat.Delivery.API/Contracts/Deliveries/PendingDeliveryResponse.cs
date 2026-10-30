@@ -1,4 +1,5 @@
 using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Delivery.API.Contracts.Deliveries;
 
@@ -10,4 +11,5 @@ public sealed record PendingDeliveryResponse(
     string RestaurantName,
     string PickupStreet,
     string PickupCity,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    OrderFulfillmentStatus FulfillmentStatus);

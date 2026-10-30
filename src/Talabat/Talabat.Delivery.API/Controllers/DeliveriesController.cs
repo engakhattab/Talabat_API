@@ -268,11 +268,11 @@ public sealed class DeliveriesController : ControllerBase
         new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.RestaurantName,
             dto.PickupStreet, dto.PickupCity, dto.PickupBuildingNumber, dto.PickupFloor,
             dto.DropOffStreet, dto.DropOffCity, dto.DropOffBuildingNumber, dto.DropOffFloor,
-            dto.CustomerPhoneNumber, dto.AssignedAt);
+            dto.CustomerPhoneNumber, dto.AssignedAt, dto.FulfillmentStatus);
 
     private static PendingDeliveryResponse MapToPendingDelivery(PendingDeliveryDto dto) =>
         new(dto.Id, dto.OrderId, dto.RestaurantId, dto.Status, dto.RestaurantName,
-            dto.PickupStreet, dto.PickupCity, dto.CreatedAt);
+            dto.PickupStreet, dto.PickupCity, dto.CreatedAt, dto.FulfillmentStatus);
 
     private static DeliveryHistoryResponse MapToDeliveryHistory(DeliveryHistoryDto dto) =>
         new(dto.Id, dto.OrderId, dto.RestaurantId,
