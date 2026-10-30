@@ -80,6 +80,22 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(1, unitOfWork.SaveChangesInsideTransactionCount);
     }
 
+    // Check order (D5): agent ownership (404), then the pickup gate, then the delivery's own state machine. An agent
+    // who has not arrived yet and whose order is not ready learns the more useful fact: the food is not ready.
+    [Fact]
+    public async Task Pickup_before_arrival_and_before_ready_returns_FulfillmentNotReady()
+    {
+        var delivery = CreateAssignedDelivery(1, 10);
+        var (handler, _, unitOfWork, _) = CreateHandler(AcceptedFulfillment(), delivery);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.FulfillmentNotReady, result.Error?.Code);
+        Assert.Equal(DeliveryStatus.Assigned, delivery.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
     // Same contract as the other fulfillment use cases: argument guards come back as a Validation result, not an
     // exception, and neither aggregate is saved.
     [Fact]
