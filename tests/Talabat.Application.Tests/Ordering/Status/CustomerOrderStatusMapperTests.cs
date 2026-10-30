@@ -21,6 +21,15 @@ public sealed class CustomerOrderStatusMapperTests
     [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.PendingAssignment, CustomerOrderStatus.Accepted, false)]
     [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.Assigned, CustomerOrderStatus.Accepted, true)]
     [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.ArrivedAtRestaurant, CustomerOrderStatus.Accepted, true)]
+    [InlineData(OrderFulfillmentStatus.Preparing, DeliveryStatus.PendingAssignment, CustomerOrderStatus.Preparing, false)]
+    [InlineData(OrderFulfillmentStatus.Preparing, DeliveryStatus.Assigned, CustomerOrderStatus.Preparing, true)]
+    [InlineData(OrderFulfillmentStatus.Preparing, DeliveryStatus.ArrivedAtRestaurant, CustomerOrderStatus.Preparing, true)]
+    [InlineData(OrderFulfillmentStatus.ReadyForPickup, DeliveryStatus.PendingAssignment, CustomerOrderStatus.ReadyForPickup, false)]
+    [InlineData(OrderFulfillmentStatus.ReadyForPickup, DeliveryStatus.Assigned, CustomerOrderStatus.ReadyForPickup, true)]
+    [InlineData(OrderFulfillmentStatus.ReadyForPickup, DeliveryStatus.ArrivedAtRestaurant, CustomerOrderStatus.ReadyForPickup, true)]
+    [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.PickedUp, CustomerOrderStatus.OnTheWay, true)]
+    [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.OutForDelivery, CustomerOrderStatus.OnTheWay, true)]
+    [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.Delivered, CustomerOrderStatus.Delivered, true)]
     public void Status_mapper_maps_every_reachable_combination(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus,
@@ -43,6 +52,11 @@ public sealed class CustomerOrderStatusMapperTests
     [InlineData(OrderFulfillmentStatus.Accepted, null)]
     // Food leaves the restaurant only through the hand-over (D5).
     [InlineData(OrderFulfillmentStatus.Accepted, DeliveryStatus.PickedUp)]
+    [InlineData(OrderFulfillmentStatus.Preparing, null)]
+    [InlineData(OrderFulfillmentStatus.ReadyForPickup, DeliveryStatus.PickedUp)]
+    // The hand-over and the pickup commit together (D5).
+    [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.ArrivedAtRestaurant)]
+    [InlineData(OrderFulfillmentStatus.HandedOver, null)]
     public void Status_mapper_rejects_impossible_combinations(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus)
@@ -61,6 +75,9 @@ public sealed class CustomerOrderStatusMapperTests
         {
             OrderFulfillmentStatus.AwaitingRestaurant => fulfillment,
             OrderFulfillmentStatus.Accepted => Accepted(fulfillment),
+            OrderFulfillmentStatus.Preparing => Preparing(Accepted(fulfillment)),
+            OrderFulfillmentStatus.ReadyForPickup => Ready(Accepted(fulfillment)),
+            OrderFulfillmentStatus.HandedOver => HandedOver(Ready(Accepted(fulfillment))),
             _ => throw new NotSupportedException($"Arrange a {status} fulfillment once that transition exists.")
         };
     }
@@ -76,6 +93,8 @@ public sealed class CustomerOrderStatusMapperTests
             DeliveryStatus.Assigned => Assigned(delivery),
             DeliveryStatus.ArrivedAtRestaurant => ArrivedAtRestaurant(Assigned(delivery)),
             DeliveryStatus.PickedUp => PickedUp(ArrivedAtRestaurant(Assigned(delivery))),
+            DeliveryStatus.OutForDelivery => OutForDelivery(PickedUp(ArrivedAtRestaurant(Assigned(delivery)))),
+            DeliveryStatus.Delivered => Delivered(OutForDelivery(PickedUp(ArrivedAtRestaurant(Assigned(delivery))))),
             _ => throw new NotSupportedException($"Arrange a {status} delivery when a test needs it.")
         };
     }
@@ -84,6 +103,36 @@ public sealed class CustomerOrderStatusMapperTests
     {
         fulfillment.Accept(RestaurantId, TestData.UtcNow.AddMinutes(1));
         return fulfillment;
+    }
+
+    private static OrderFulfillment Preparing(OrderFulfillment fulfillment)
+    {
+        fulfillment.StartPreparing(RestaurantId, TestData.UtcNow.AddMinutes(2));
+        return fulfillment;
+    }
+
+    private static OrderFulfillment Ready(OrderFulfillment fulfillment)
+    {
+        fulfillment.MarkReady(RestaurantId, TestData.UtcNow.AddMinutes(3));
+        return fulfillment;
+    }
+
+    private static OrderFulfillment HandedOver(OrderFulfillment fulfillment)
+    {
+        fulfillment.HandOver(RestaurantId, TestData.UtcNow.AddMinutes(4));
+        return fulfillment;
+    }
+
+    private static Delivery OutForDelivery(Delivery delivery)
+    {
+        delivery.MarkOutForDelivery(AgentId, TestData.UtcNow.AddMinutes(5));
+        return delivery;
+    }
+
+    private static Delivery Delivered(Delivery delivery)
+    {
+        delivery.MarkDelivered(AgentId, TestData.UtcNow.AddMinutes(6));
+        return delivery;
     }
 
     private static Delivery Assigned(Delivery delivery)
