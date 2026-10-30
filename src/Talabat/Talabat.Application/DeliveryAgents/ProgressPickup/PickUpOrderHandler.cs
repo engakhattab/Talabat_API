@@ -8,15 +8,18 @@ namespace Talabat.Application.DeliveryAgents.ProgressPickup;
 public sealed class PickUpOrderHandler
 {
     private readonly IDeliveryRepository _deliveryRepository;
+    private readonly IOrderFulfillmentRepository _fulfillmentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
     public PickUpOrderHandler(
         IDeliveryRepository deliveryRepository,
+        IOrderFulfillmentRepository fulfillmentRepository,
         IUnitOfWork unitOfWork,
         IClock clock)
     {
         _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
+        _fulfillmentRepository = fulfillmentRepository ?? throw new ArgumentNullException(nameof(fulfillmentRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }

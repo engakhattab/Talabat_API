@@ -17,6 +17,7 @@ public static class ApplicationErrorCodes
     public const string DeliveryNotFound = nameof(DeliveryNotFound);
     public const string DuplicateAddress = nameof(DuplicateAddress);
     public const string EmptyCart = nameof(EmptyCart);
+    public const string FulfillmentNotReady = nameof(FulfillmentNotReady);
     public const string InvalidAddress = nameof(InvalidAddress);
     public const string InvalidCustomerProfile = nameof(InvalidCustomerProfile);
     public const string InvalidQuantity = nameof(InvalidQuantity);
