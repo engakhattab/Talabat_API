@@ -590,6 +590,9 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("HandedOverAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -606,6 +609,12 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("PlacedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PreparingAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReadyAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("RestaurantId")
