@@ -76,9 +76,19 @@ public sealed class OrderFulfillment : AuditableEntity
         PreparingAt = currentTime;
     }
 
+    /// <summary>Allowed from <c>Accepted</c> too: instant items skip <c>Preparing</c> (design D2).</summary>
     public void MarkReady(int restaurantId, DateTime currentTime)
     {
-        throw new NotImplementedException();
+        EnsureRestaurant(restaurantId);
+        if (Status is not (OrderFulfillmentStatus.Accepted or OrderFulfillmentStatus.Preparing))
+        {
+            throw new InvalidOrderFulfillmentStatusTransitionException();
+        }
+
+        EnsureTimeNotBefore(currentTime, PreparingAt ?? AcceptedAt!.Value);
+
+        Status = OrderFulfillmentStatus.ReadyForPickup;
+        ReadyAt = currentTime;
     }
 
     private void EnsureRestaurant(int restaurantId)
