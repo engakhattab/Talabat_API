@@ -52,6 +52,31 @@ public sealed class DeliveryFulfillmentStatusTests
         Assert.Equal(OrderFulfillmentStatus.Preparing, active.Value.FulfillmentStatus);
     }
 
+    // D3: a delivery is created only by acceptance, so one without a fulfillment is corrupt data, reported the same
+    // descriptive way by every query that reads both.
+    [Fact]
+    public async Task Delivery_without_a_fulfillment_is_reported_as_a_broken_invariant()
+    {
+        var deliveries = new FakeDeliveryRepository();
+        var orphan = new Delivery(399, 1, RestaurantId, "Test Restaurant", Address, Address, Now);
+        TestIds.SetId(orphan, 9);
+        orphan.AssignAgent(AgentId, Now);
+        var pendingOrphan = new Delivery(398, 1, RestaurantId, "Test Restaurant", Address, Address, Now);
+        TestIds.SetId(pendingOrphan, 8);
+        deliveries.Deliveries.Add(orphan);
+        deliveries.Deliveries.Add(pendingOrphan);
+        var noFulfillments = new FakeOrderFulfillmentRepository();
+
+        var pending = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new GetPendingDeliveriesHandler(deliveries, noFulfillments).Handle(new GetPendingDeliveriesQuery(AgentId)));
+        var active = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new GetActiveDeliveryHandler(deliveries, CustomerRepository(), noFulfillments)
+                .Handle(new GetActiveDeliveryQuery(AgentId)));
+
+        Assert.Contains("order 398", pending.Message);
+        Assert.Contains("order 399", active.Message);
+    }
+
     private static (Delivery Delivery, OrderFulfillment Fulfillment) AddOrder(
         FakeDeliveryRepository deliveries,
         FakeOrderFulfillmentRepository fulfillments,
