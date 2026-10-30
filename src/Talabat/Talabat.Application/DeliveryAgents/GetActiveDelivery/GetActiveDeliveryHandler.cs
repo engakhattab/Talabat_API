@@ -48,6 +48,10 @@ public sealed class GetActiveDeliveryHandler
                     "Delivery customer was not found."));
         }
 
+        // A delivery exists only after acceptance, so its fulfillment always exists (design D3).
+        var fulfillment = await _fulfillmentRepository.GetByOrderIdAsync(delivery.OrderId, cancellationToken)
+            ?? throw new InvalidOperationException($"Delivery {delivery.Id} has no fulfillment for order {delivery.OrderId}.");
+
         var dto = new ActiveDeliveryDto(
             delivery.Id,
             delivery.OrderId,
@@ -64,7 +68,7 @@ public sealed class GetActiveDeliveryHandler
             delivery.DeliveryAddress.Floor,
             customer.PhoneNumber,
             delivery.AssignedAt,
-            default);
+            fulfillment.Status);
 
         return UseCaseResult<ActiveDeliveryDto>.Success(dto);
     }
