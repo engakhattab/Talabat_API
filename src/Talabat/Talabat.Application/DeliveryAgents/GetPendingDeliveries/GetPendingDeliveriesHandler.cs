@@ -1,4 +1,5 @@
 using Talabat.Application.Common.Results;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Interfaces;
 
 namespace Talabat.Application.DeliveryAgents.GetPendingDeliveries;
@@ -26,7 +27,8 @@ public sealed class GetPendingDeliveriesHandler
         var fulfillments = await _fulfillmentRepository.GetByOrderIdsAsync(
             deliveries.Select(d => d.OrderId).ToList(),
             cancellationToken);
-        var fulfillmentStatusByOrder = fulfillments.ToDictionary(f => f.OrderId, f => f.Status);
+        IReadOnlyDictionary<int, OrderFulfillmentStatus> fulfillmentStatusByOrder =
+            fulfillments.ToDictionary(f => f.OrderId, f => f.Status);
 
         var dtos = deliveries
             .Select(d => new PendingDeliveryDto(
@@ -38,7 +40,7 @@ public sealed class GetPendingDeliveriesHandler
                 d.RestaurantPickupAddress.Street,
                 d.RestaurantPickupAddress.City,
                 d.CreatedAt,
-                fulfillmentStatusByOrder[d.OrderId]))
+                fulfillmentStatusByOrder.RequiredStatusFor(d)))
             .ToList()
             .AsReadOnly();
 
