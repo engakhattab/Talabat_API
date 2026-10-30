@@ -93,9 +93,15 @@ public sealed class OrderFulfillment : AuditableEntity
         ReadyAt = currentTime;
     }
 
+    /// <summary>Entered only by the pickup workflow, never by an actor directly (design D2, D5).</summary>
     public void HandOver(int restaurantId, DateTime currentTime)
     {
-        throw new NotImplementedException();
+        EnsureRestaurant(restaurantId);
+        EnsureStatus(OrderFulfillmentStatus.ReadyForPickup);
+        EnsureTimeNotBefore(currentTime, ReadyAt!.Value);
+
+        Status = OrderFulfillmentStatus.HandedOver;
+        HandedOverAt = currentTime;
     }
 
     private void EnsureRestaurant(int restaurantId)
