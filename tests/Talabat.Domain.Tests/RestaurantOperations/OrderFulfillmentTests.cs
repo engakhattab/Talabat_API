@@ -156,6 +156,41 @@ public sealed class OrderFulfillmentTests
         Assert.Throws<OrderFulfillmentRestaurantMismatchException>(() =>
             fulfillment.MarkReady(RestaurantId + 1, PlacedAt.AddMinutes(2)));
         Assert.Equal(OrderFulfillmentStatus.Accepted, fulfillment.Status);
+
+        fulfillment.MarkReady(RestaurantId, PlacedAt.AddMinutes(3));
+        Assert.Throws<OrderFulfillmentRestaurantMismatchException>(() =>
+            fulfillment.HandOver(RestaurantId + 1, PlacedAt.AddMinutes(4)));
+        Assert.Equal(OrderFulfillmentStatus.ReadyForPickup, fulfillment.Status);
+    }
+
+    // Design §4 test 6 (D2, D5): only the pickup workflow hands over, and only once the food is ready.
+    [Fact]
+    public void Hand_over_only_from_ready_for_pickup()
+    {
+        var awaiting = NewFulfillment();
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            awaiting.HandOver(RestaurantId, PlacedAt.AddMinutes(1)));
+
+        var accepted = AcceptedFulfillment();
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            accepted.HandOver(RestaurantId, PlacedAt.AddMinutes(2)));
+
+        var preparing = AcceptedFulfillment();
+        preparing.StartPreparing(RestaurantId, PlacedAt.AddMinutes(2));
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            preparing.HandOver(RestaurantId, PlacedAt.AddMinutes(3)));
+        Assert.Equal(OrderFulfillmentStatus.Preparing, preparing.Status);
+
+        var ready = AcceptedFulfillment();
+        ready.MarkReady(RestaurantId, PlacedAt.AddMinutes(10));
+        var handedOverAt = PlacedAt.AddMinutes(12);
+
+        ready.HandOver(RestaurantId, handedOverAt);
+
+        Assert.Equal(OrderFulfillmentStatus.HandedOver, ready.Status);
+        Assert.Equal(handedOverAt, ready.HandedOverAt);
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            ready.HandOver(RestaurantId, PlacedAt.AddMinutes(13)));
     }
 
     private static OrderFulfillment NewFulfillment()

@@ -28,6 +28,8 @@ public sealed class OrderFulfillment : AuditableEntity
 
     public DateTime? ReadyAt { get; private set; }
 
+    public DateTime? HandedOverAt { get; private set; }
+
     public byte[] RowVersion { get; private set; } = [];
 
     private OrderFulfillment()
@@ -89,6 +91,11 @@ public sealed class OrderFulfillment : AuditableEntity
 
         Status = OrderFulfillmentStatus.ReadyForPickup;
         ReadyAt = currentTime;
+    }
+
+    public void HandOver(int restaurantId, DateTime currentTime)
+    {
+        throw new NotImplementedException();
     }
 
     private void EnsureRestaurant(int restaurantId)
