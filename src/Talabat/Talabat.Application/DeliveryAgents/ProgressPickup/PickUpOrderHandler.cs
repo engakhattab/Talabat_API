@@ -57,9 +57,9 @@ public sealed class PickUpOrderHandler
             delivery.MarkPickedUp(command.AgentId, now);
             fulfillment.HandOver(delivery.RestaurantId, now);
         }
-        catch (DomainException ex)
+        catch (Exception exception) when (exception is DomainException or ArgumentException)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception));
         }
 
         // Pickup and hand-over commit together or not at all (D5, D12).
