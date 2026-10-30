@@ -67,6 +67,26 @@ public sealed class DeliveryOperationalContractTests : IClassFixture<CustomWebAp
         Assert.False(delivery.TryGetProperty("customerId", out _));
     }
 
+    // Design §4 test 33 (part): agents see the kitchen state (D5, BR-DEL-020).
+    [Fact]
+    public async Task Pending_and_active_responses_include_fulfillmentStatus()
+    {
+        using var pending = JsonDocument.Parse(await _client.GetStringAsync("/api/agent/deliveries/pending"));
+        var pendingDelivery = pending.RootElement.EnumerateArray()
+            .Single(item => item.GetProperty("id").GetInt32() == _factory.PendingDeliveryId);
+        using var active = JsonDocument.Parse(await _client.GetStringAsync("/api/agent/deliveries/active"));
+
+        Assert.Equal("Accepted", pendingDelivery.GetProperty("fulfillmentStatus").GetString());
+        Assert.Equal("Accepted", active.RootElement.GetProperty("fulfillmentStatus").GetString());
+
+        using var openApi = JsonDocument.Parse(await _client.GetStringAsync("/openapi/v1.json"));
+        var schemas = openApi.RootElement.GetProperty("components").GetProperty("schemas");
+        Assert.True(schemas.GetProperty("PendingDeliveryResponse").GetProperty("properties")
+            .TryGetProperty("fulfillmentStatus", out _));
+        Assert.True(schemas.GetProperty("ActiveDeliveryResponse").GetProperty("properties")
+            .TryGetProperty("fulfillmentStatus", out _));
+    }
+
     [Fact]
     public async Task Active_AnotherAgentCannotReadAssignedDelivery()
     {
