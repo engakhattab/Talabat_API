@@ -1234,7 +1234,8 @@
           "dropOffBuildingNumber",
           "dropOffFloor",
           "customerPhoneNumber",
-          "assignedAt"
+          "assignedAt",
+          "fulfillmentStatus"
         ],
         "type": "object",
         "properties": {
@@ -1293,6 +1294,9 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "fulfillmentStatus": {
+            "$ref": "#/components/schemas/OrderFulfillmentStatus"
           }
         }
       },
@@ -1458,6 +1462,17 @@
           }
         }
       },
+      "OrderFulfillmentStatus": {
+        "enum": [
+          "AwaitingRestaurant",
+          "Accepted",
+          "Preparing",
+          "ReadyForPickup",
+          "HandedOver",
+          "Rejected",
+          "Cancelled"
+        ]
+      },
       "PendingDeliveryResponse": {
         "required": [
           "id",
@@ -1467,7 +1482,8 @@
           "restaurantName",
           "pickupStreet",
           "pickupCity",
-          "createdAt"
+          "createdAt",
+          "fulfillmentStatus"
         ],
         "type": "object",
         "properties": {
@@ -1501,6 +1517,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "fulfillmentStatus": {
+            "$ref": "#/components/schemas/OrderFulfillmentStatus"
           }
         }
       },
