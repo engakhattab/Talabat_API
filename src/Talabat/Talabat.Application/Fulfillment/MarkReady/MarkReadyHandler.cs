@@ -5,7 +5,7 @@ using Talabat.Domain.Interfaces;
 
 namespace Talabat.Application.Fulfillment.MarkReady;
 
-/// <summary>The kitchen marks an order ready for pickup, from Accepted or Preparing (design D2).</summary>
+/// <summary>The restaurant marks an order ready for pickup, from Accepted or Preparing (design D2).</summary>
 public sealed class MarkReadyHandler
 {
     private readonly IOrderFulfillmentRepository _fulfillmentRepository;

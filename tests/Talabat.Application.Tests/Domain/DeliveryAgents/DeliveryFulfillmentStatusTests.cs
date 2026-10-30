@@ -8,7 +8,7 @@ using Talabat.Domain.ValueObjects;
 
 namespace Talabat.Application.Tests.Domain.DeliveryAgents;
 
-/// <summary>Agents see the kitchen state before they try to pick up (design D5, BR-DEL-020).</summary>
+/// <summary>Delivery agents see the order fulfillment status before they try to pick up (design D5, BR-DEL-020).</summary>
 public sealed class DeliveryFulfillmentStatusTests
 {
     private static readonly DeliveryAddressSnapshot Address = new("Street", "City", "1", null);

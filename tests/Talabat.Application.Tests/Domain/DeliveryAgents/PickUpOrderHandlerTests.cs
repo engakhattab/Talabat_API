@@ -37,11 +37,11 @@ public sealed class PickUpOrderHandlerTests
     [Theory]
     [InlineData(OrderFulfillmentStatus.Accepted)]
     [InlineData(OrderFulfillmentStatus.Preparing)]
-    public async Task Pickup_before_ready_returns_FulfillmentNotReady(OrderFulfillmentStatus kitchenStatus)
+    public async Task Pickup_before_ready_returns_FulfillmentNotReady(OrderFulfillmentStatus fulfillmentStatus)
     {
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
         var fulfillment = AcceptedFulfillment();
-        if (kitchenStatus == OrderFulfillmentStatus.Preparing)
+        if (fulfillmentStatus == OrderFulfillmentStatus.Preparing)
         {
             fulfillment.StartPreparing(RestaurantId, Now);
         }
@@ -55,7 +55,7 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(ApplicationErrorCodes.FulfillmentNotReady, result.Error?.Code);
         Assert.Equal(ApplicationErrorCategory.Conflict, result.Error?.Category);
         Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
-        Assert.Equal(kitchenStatus, fulfillment.Status);
+        Assert.Equal(fulfillmentStatus, fulfillment.Status);
         Assert.Equal(0, unitOfWork.SaveChangesCount);
     }
 
