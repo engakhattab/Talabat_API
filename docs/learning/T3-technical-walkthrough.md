@@ -18,14 +18,14 @@ glossary's terms.
 
 After T2, an Admin can **accept** an order: the **Order Fulfillment** moves to `Accepted` and the order's **Delivery**
 is created in `PendingAssignment`. A Delivery Agent can claim it, arrive at the restaurant and pick it up, but the
-kitchen side stopped at `Accepted`: nobody could say the food was being cooked or was ready. Worse, an agent could
+restaurant side of the Order Fulfillment stopped at `Accepted`: nobody could say the food was being cooked or was ready. Worse, an agent could
 "pick up" food that did not exist yet.
 
 T3 completes the happy path:
 
-> The kitchen (an Admin on the restaurant's behalf, until the Restaurant Owner app exists) **starts preparing** an
+> The restaurant (an Admin on its behalf, until the Restaurant Owner app exists) **starts preparing** an
 > accepted order and **marks it ready for pickup** (skipping `Preparing` is allowed for instant items). Delivery agents
-> see the kitchen state, `fulfillmentStatus`, on pending and active deliveries. **Pickup is gated**: it is refused with
+> see the order fulfillment status, `fulfillmentStatus`, on pending and active deliveries. **Pickup is gated**: it is refused with
 > `409 FulfillmentNotReady` until the order is `ReadyForPickup`; a successful pickup also performs the **Hand-over**
 > of the fulfillment in the same transaction. The customer sees `Preparing`, `ReadyForPickup`, `OnTheWay` and
 > `Delivered`.
@@ -63,7 +63,7 @@ delivery, because D3 makes a delivery without one impossible.
 
 ## 2. Layer-by-layer flow
 
-### Write side: the kitchen (Admin API)
+### Write side: the restaurant (Admin API)
 
 ```
 POST /api/orders/{orderId}/start-preparing     POST /api/orders/{orderId}/mark-ready     (Talabat.Admin.API)
@@ -120,7 +120,7 @@ UnitOfWork: UPDATE Deliveries ... ; UPDATE OrderFulfillments ...   (one SQL tran
   backwards". They hold no matter who calls (Admin API today, Owner API in M3, the provisioner in T8), so they belong
   in the aggregate, not in a handler. Each method uses the existing private guards (`EnsureRestaurant`,
   `EnsureStatus`, `EnsureTimeNotBefore`), so the three new transitions read exactly like `Accept`.
-- `MarkReady` checks time against `PreparingAt ?? AcceptedAt`: the latest kitchen timestamp, whichever path was taken.
+- `MarkReady` checks time against `PreparingAt ?? AcceptedAt`: the latest fulfillment timestamp, whichever path was taken.
 - `HandOver` takes a `restaurantId` even though an agent triggers it. D2 says *every* transition is guarded by
   `RestaurantId`. The pickup passes the **delivery's** restaurant, so a delivery paired with another restaurant's
   fulfillment (a data bug) is refused rather than silently handed over.
@@ -142,6 +142,15 @@ UnitOfWork: UPDATE Deliveries ... ; UPDATE OrderFulfillments ...   (one SQL tran
   owns the transaction, so it is the natural home. The domain methods it calls still protect their own invariants.
 - *Why the gate check comes before `MarkPickedUp`:* failing early means neither aggregate is mutated in memory on the
   409 path. The test asserts both statuses are unchanged and nothing was saved.
+- *Why it catches `DomainException or ArgumentException`:* the same contract as the other fulfillment use cases.
+  Argument guards (for example `Guard.Utc` on the clock reading) come back as a Validation result instead of escaping
+  as an exception. The older filter caught only `DomainException`; the review flagged the inconsistency.
+
+**`DeliveryAgents/DeliveryFulfillmentLookup.cs`** (new, internal)
+- `GetRequiredForDeliveryAsync` (active delivery, pickup) and `RequiredStatusFor` (the pending queue's batched lookup)
+  hold the D3 invariant "every delivery has a fulfillment" **once**, and throw the same `InvalidOperationException`
+  naming the delivery and the order. Before the review, two handlers copied the null-check and the pending queue
+  failed with a bare `KeyNotFoundException`.
 
 **`Common/Results/ApplicationErrorCodes.cs`** (modified)
 - New `FulfillmentNotReady` code. It is an application-level code, not an exception name, because the gate is an
@@ -193,8 +202,8 @@ like `status`), and the mapping passes it through.
 |---|---|
 | `Talabat.Domain.Tests/RestaurantOperations/OrderFulfillmentTests.cs` | Tests 4, 5, 6 and the restaurant guard on the new transitions (test 9). |
 | `Talabat.Application.Tests/Ordering/Status/CustomerOrderStatusMapperTests.cs` | Test 25 rows for T3, plus impossible pairs that must keep throwing. |
-| `Talabat.Application.Tests/Domain/DeliveryAgents/PickUpOrderHandlerTests.cs` | Tests 18 and 19; existing tests re-arranged with a ready fulfillment (§4.1). |
-| `Talabat.Application.Tests/Domain/DeliveryAgents/DeliveryFulfillmentStatusTests.cs` (new) | Test 26 across both query handlers. |
+| `Talabat.Application.Tests/Domain/DeliveryAgents/PickUpOrderHandlerTests.cs` | Tests 18 and 19; existing tests re-arranged with a ready fulfillment (§4.1); the check order (gate before delivery state); argument guards return a Validation result. |
+| `Talabat.Application.Tests/Domain/DeliveryAgents/DeliveryFulfillmentStatusTests.cs` (new) | Test 26 across both query handlers; a delivery without a fulfillment is reported the same descriptive way by both. |
 | `GetPendingDeliveriesHandlerTests.cs`, `GetActiveDeliveryHandlerTests.cs` | Arranged with an accepted fulfillment (D3); assertions unchanged. |
 | `Talabat.Delivery.API.Tests/PickupGateTests.cs` (new) | Test 33 (part): arrive → 409 `FulfillmentNotReady` → ready → pickup → `PickedUp` + `HandedOver`. |
 | `Talabat.Delivery.API.Tests/DeliveryOperationalContractTests.cs` | `fulfillmentStatus` in the pending/active JSON and both OpenAPI schemas. |
@@ -205,7 +214,7 @@ like `status`), and the mapping passes it through.
 
 ## 4. Tricky concepts and decisions
 
-**Why the hand-over is not an endpoint.** D2 says `HandedOver` is entered *only* by the pickup workflow. If the kitchen
+**Why the hand-over is not an endpoint.** D2 says `HandedOver` is entered *only* by the pickup workflow. If the restaurant
 could hand over on its own, the fulfillment could say "with the agent" while the delivery says "at the restaurant".
 That is exactly the two-lifecycles-disagree problem ADR-0001 exists to prevent. Tying both changes to one use case and
 one transaction makes that disagreement impossible.
@@ -219,7 +228,7 @@ back (so the delivery is *not* picked up either), and the global handler returns
 **Order of checks on pickup.** Agent ownership first (404 hides other agents' deliveries, no information leak), then
 the gate (409 `FulfillmentNotReady`), then the delivery's own state machine (409
 `InvalidDeliveryStatusTransitionException`, e.g. picking up before arriving). An agent who has not arrived *and*
-whose food is not ready gets `FulfillmentNotReady`, the more useful message.
+whose food is not ready gets `FulfillmentNotReady`, the more useful message. A test now pins this order.
 
 **Why the migration was folded into `AddOrderFulfillment`.** Test 29 asserts `AddOrderFulfillment` is the **last**
 migration, encoding D12's "one migration for the phase on top of the four existing ones". A second migration would
@@ -236,7 +245,8 @@ seeded exactly such impossible rows.
 
 **`fulfillmentStatus` after pickup.** D5 lists `Accepted | Preparing | ReadyForPickup` for the agent. Those are the
 values on the pending queue and on an active delivery before pickup. After pickup, the active delivery truthfully
-reports `HandedOver`. The OpenAPI enum lists all fulfillment states because it is the one domain enum.
+reports `HandedOver`. The OpenAPI enum lists all fulfillment states because it is the one domain enum. The review
+flagged this as wider than D5's wording; the owner chose to keep the full enum rather than add an agent-only enum.
 
 **Trade-offs not taken.**
 - *A domain service for pickup* (like `DeliveryAssignmentDomainService`): there is no extra invariant beyond "gate,
@@ -245,6 +255,9 @@ reports `HandedOver`. The OpenAPI enum lists all fulfillment states because it i
 - *A separate `AddFulfillmentProgressTimestamps` migration*: see above.
 - *Handler-level tests for start-preparing / mark-ready*: agreed seams were the domain (rules) and HTTP (wiring). The
   handlers are thin and are fully exercised by `OrderPreparationTests`.
+- *Merging `StartPreparingHandler` and `MarkReadyHandler` into one generic handler*: the review noted they share
+  their shape. They stay separate: each is one use case the Owner API (M3) will wrap, and the reject/cancel use cases
+  (T5, T6) take reason codes, so a shared abstraction now would be shaped by two cases and bent by the next ones.
 
 ---
 
@@ -264,6 +277,11 @@ reports `HandedOver`. The OpenAPI enum lists all fulfillment states because it i
 | `a0bd1d8` chore | Delivery contract regenerated (additions only). |
 | `cd023cf` test / `4d2d936` feat | Test 34 (part): Admin start-preparing and mark-ready endpoints. |
 | `d569ceb` chore | Admin contract regenerated (additions only). |
+| `611ca21` docs | This walkthrough. |
+| `df8ca32` refactor | Review: Order Fulfillment vocabulary instead of "kitchen" (CONTEXT.md). |
+| `20142c2` test / `34d404e` fix | Review: a delivery without a fulfillment is reported the same descriptive way everywhere. |
+| `8506a20` test / `671ecf4` fix | Review: pickup returns argument guards as a Validation result. |
+| `dc33406` test | Review: the pickup check order is pinned (passed on first run). |
 
 Each red commit compiled (stubs throwing `NotImplementedException`, or a missing route), so it fails on behaviour, not
 on the build.
