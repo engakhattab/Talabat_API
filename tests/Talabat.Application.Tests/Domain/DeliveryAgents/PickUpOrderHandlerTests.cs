@@ -96,6 +96,28 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(0, unitOfWork.SaveChangesCount);
     }
 
+    // D3: a delivery without a fulfillment is corrupt data, reported like the pending and active queries do.
+    [Fact]
+    public async Task Pickup_of_a_delivery_without_a_fulfillment_is_reported_as_a_broken_invariant()
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var deliveries = new FakeDeliveryRepository();
+        deliveries.Deliveries.Add(delivery);
+        var unitOfWork = new FakeUnitOfWork();
+        var handler = new PickUpOrderHandler(
+            deliveries,
+            new FakeOrderFulfillmentRepository(),
+            unitOfWork,
+            new FakeClock { UtcNow = Now.AddMinutes(5) });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10)));
+
+        Assert.Contains($"order {OrderId}", exception.Message);
+        Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
     // Same contract as the other fulfillment use cases: argument guards come back as a Validation result, not an
     // exception, and neither aggregate is saved.
     [Fact]

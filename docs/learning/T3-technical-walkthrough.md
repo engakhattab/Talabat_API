@@ -18,8 +18,8 @@ glossary's terms.
 
 After T2, an Admin can **accept** an order: the **Order Fulfillment** moves to `Accepted` and the order's **Delivery**
 is created in `PendingAssignment`. A Delivery Agent can claim it, arrive at the restaurant and pick it up, but the
-restaurant side of the Order Fulfillment stopped at `Accepted`: nobody could say the food was being cooked or was ready. Worse, an agent could
-"pick up" food that did not exist yet.
+restaurant side of the Order Fulfillment stopped at `Accepted`: nobody could say the food was being cooked or was
+ready. Worse, an agent could "pick up" food that did not exist yet.
 
 T3 completes the happy path:
 
@@ -120,7 +120,8 @@ UnitOfWork: UPDATE Deliveries ... ; UPDATE OrderFulfillments ...   (one SQL tran
   backwards". They hold no matter who calls (Admin API today, Owner API in M3, the provisioner in T8), so they belong
   in the aggregate, not in a handler. Each method uses the existing private guards (`EnsureRestaurant`,
   `EnsureStatus`, `EnsureTimeNotBefore`), so the three new transitions read exactly like `Accept`.
-- `MarkReady` checks time against `PreparingAt ?? AcceptedAt`: the latest fulfillment timestamp, whichever path was taken.
+- `MarkReady` checks time against `PreparingAt ?? AcceptedAt`: the latest fulfillment timestamp, whichever path was
+  taken.
 - `HandOver` takes a `restaurantId` even though an agent triggers it. D2 says *every* transition is guarded by
   `RestaurantId`. The pickup passes the **delivery's** restaurant, so a delivery paired with another restaurant's
   fulfillment (a data bug) is refused rather than silently handed over.
@@ -214,8 +215,9 @@ like `status`), and the mapping passes it through.
 
 ## 4. Tricky concepts and decisions
 
-**Why the hand-over is not an endpoint.** D2 says `HandedOver` is entered *only* by the pickup workflow. If the restaurant
-could hand over on its own, the fulfillment could say "with the agent" while the delivery says "at the restaurant".
+**Why the hand-over is not an endpoint.** D2 says `HandedOver` is entered *only* by the pickup workflow. If the
+restaurant could hand over on its own, the fulfillment could say "with the agent" while the delivery says "at the
+restaurant".
 That is exactly the two-lifecycles-disagree problem ADR-0001 exists to prevent. Tying both changes to one use case and
 one transaction makes that disagreement impossible.
 
@@ -282,6 +284,7 @@ flagged this as wider than D5's wording; the owner chose to keep the full enum r
 | `20142c2` test / `34d404e` fix | Review: a delivery without a fulfillment is reported the same descriptive way everywhere. |
 | `8506a20` test / `671ecf4` fix | Review: pickup returns argument guards as a Validation result. |
 | `dc33406` test | Review: the pickup check order is pinned (passed on first run). |
+| next `test` commit | Review: pickup of a delivery without a fulfillment is reported like the queries (passed on first run). |
 
 Each red commit compiled (stubs throwing `NotImplementedException`, or a missing route), so it fails on behaviour, not
 on the build.
