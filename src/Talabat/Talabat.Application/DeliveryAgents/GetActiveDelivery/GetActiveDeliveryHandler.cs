@@ -8,13 +8,16 @@ public sealed class GetActiveDeliveryHandler
 {
     private readonly IDeliveryRepository _deliveryRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IOrderFulfillmentRepository _fulfillmentRepository;
 
     public GetActiveDeliveryHandler(
         IDeliveryRepository deliveryRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IOrderFulfillmentRepository fulfillmentRepository)
     {
         _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _fulfillmentRepository = fulfillmentRepository ?? throw new ArgumentNullException(nameof(fulfillmentRepository));
     }
 
     public async Task<UseCaseResult<ActiveDeliveryDto>> Handle(
@@ -60,7 +63,8 @@ public sealed class GetActiveDeliveryHandler
             delivery.DeliveryAddress.BuildingNumber,
             delivery.DeliveryAddress.Floor,
             customer.PhoneNumber,
-            delivery.AssignedAt);
+            delivery.AssignedAt,
+            default);
 
         return UseCaseResult<ActiveDeliveryDto>.Success(dto);
     }

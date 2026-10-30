@@ -6,11 +6,14 @@ namespace Talabat.Application.DeliveryAgents.GetPendingDeliveries;
 public sealed class GetPendingDeliveriesHandler
 {
     private readonly IDeliveryRepository _deliveryRepository;
+    private readonly IOrderFulfillmentRepository _fulfillmentRepository;
 
     public GetPendingDeliveriesHandler(
-        IDeliveryRepository deliveryRepository)
+        IDeliveryRepository deliveryRepository,
+        IOrderFulfillmentRepository fulfillmentRepository)
     {
         _deliveryRepository = deliveryRepository ?? throw new ArgumentNullException(nameof(deliveryRepository));
+        _fulfillmentRepository = fulfillmentRepository ?? throw new ArgumentNullException(nameof(fulfillmentRepository));
     }
 
     public async Task<UseCaseResult<IReadOnlyCollection<PendingDeliveryDto>>> Handle(
@@ -28,7 +31,8 @@ public sealed class GetPendingDeliveriesHandler
                 d.RestaurantName,
                 d.RestaurantPickupAddress.Street,
                 d.RestaurantPickupAddress.City,
-                d.CreatedAt))
+                d.CreatedAt,
+                default))
             .ToList()
             .AsReadOnly();
 

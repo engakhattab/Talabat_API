@@ -81,6 +81,12 @@ public sealed class GetPendingDeliveriesHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
-        return new GetPendingDeliveriesHandler(deliveryRepository);
+        // A delivery exists only for an accepted order (design D3).
+        var fulfillment = new Talabat.Domain.Aggregates.RestaurantOperations.OrderFulfillment(1, 1, Now, TimeSpan.FromMinutes(10));
+        fulfillment.Accept(1, Now);
+        var fulfillmentRepository = new FakeOrderFulfillmentRepository();
+        fulfillmentRepository.Fulfillments.Add(fulfillment);
+
+        return new GetPendingDeliveriesHandler(deliveryRepository, fulfillmentRepository);
     }
 }
