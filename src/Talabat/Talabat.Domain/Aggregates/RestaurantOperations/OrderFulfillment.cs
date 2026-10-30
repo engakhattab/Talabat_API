@@ -66,7 +66,12 @@ public sealed class OrderFulfillment : AuditableEntity
 
     public void StartPreparing(int restaurantId, DateTime currentTime)
     {
-        throw new NotImplementedException();
+        EnsureRestaurant(restaurantId);
+        EnsureStatus(OrderFulfillmentStatus.Accepted);
+        EnsureTimeNotBefore(currentTime, AcceptedAt!.Value);
+
+        Status = OrderFulfillmentStatus.Preparing;
+        PreparingAt = currentTime;
     }
 
     private void EnsureRestaurant(int restaurantId)
