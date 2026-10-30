@@ -80,6 +80,25 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(1, unitOfWork.SaveChangesInsideTransactionCount);
     }
 
+    // Same contract as the other fulfillment use cases: argument guards come back as a Validation result, not an
+    // exception, and neither aggregate is saved.
+    [Fact]
+    public async Task Pickup_with_a_non_utc_time_returns_validation_failure_and_saves_nothing()
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var fulfillment = ReadyFulfillment();
+        var (handler, clock, unitOfWork, _) = CreateHandler(fulfillment, delivery);
+        clock.UtcNow = DateTime.SpecifyKind(Now.AddMinutes(5), DateTimeKind.Unspecified);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCategory.Validation, result.Error?.Category);
+        Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
+        Assert.Equal(OrderFulfillmentStatus.ReadyForPickup, fulfillment.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
     [Fact]
     public async Task Handle_PickUpOrder_WrongAgent_ShouldReturnNotFound()
     {
