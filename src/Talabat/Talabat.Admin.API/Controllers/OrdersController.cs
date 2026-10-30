@@ -5,6 +5,8 @@ using Talabat.Admin.API.Contracts.Orders;
 using Talabat.Admin.API.Extensions;
 using Talabat.Application.Fulfillment;
 using Talabat.Application.Fulfillment.AcceptOrder;
+using Talabat.Application.Fulfillment.MarkReady;
+using Talabat.Application.Fulfillment.StartPreparing;
 using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Admin.API.Controllers;
@@ -18,10 +20,17 @@ namespace Talabat.Admin.API.Controllers;
 public sealed class OrdersController : ControllerBase
 {
     private readonly AcceptOrderHandler _acceptHandler;
+    private readonly StartPreparingHandler _startPreparingHandler;
+    private readonly MarkReadyHandler _markReadyHandler;
 
-    public OrdersController(AcceptOrderHandler acceptHandler)
+    public OrdersController(
+        AcceptOrderHandler acceptHandler,
+        StartPreparingHandler startPreparingHandler,
+        MarkReadyHandler markReadyHandler)
     {
         _acceptHandler = acceptHandler ?? throw new ArgumentNullException(nameof(acceptHandler));
+        _startPreparingHandler = startPreparingHandler ?? throw new ArgumentNullException(nameof(startPreparingHandler));
+        _markReadyHandler = markReadyHandler ?? throw new ArgumentNullException(nameof(markReadyHandler));
     }
 
     [HttpPost("{orderId:int}/accept", Name = "AcceptOrder")]
@@ -41,5 +50,41 @@ public sealed class OrdersController : ControllerBase
             OrderFulfillmentStatus.Accepted.ToString(),
             accepted.DeliveryId,
             accepted.AcceptedAt)));
+    }
+
+    [HttpPost("{orderId:int}/start-preparing", Name = "StartPreparingOrder")]
+    [ProducesResponseType<StartPreparingResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> StartPreparing(int orderId, CancellationToken cancellationToken)
+    {
+        var result = await _startPreparingHandler.Handle(
+            new StartPreparingCommand(orderId, new FulfillmentActor.Admin()),
+            cancellationToken);
+
+        return result.ToActionResult(preparing => Ok(new StartPreparingResponse(
+            preparing.OrderId,
+            OrderFulfillmentStatus.Preparing.ToString(),
+            preparing.PreparingAt)));
+    }
+
+    [HttpPost("{orderId:int}/mark-ready", Name = "MarkOrderReady")]
+    [ProducesResponseType<MarkReadyResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> MarkReady(int orderId, CancellationToken cancellationToken)
+    {
+        var result = await _markReadyHandler.Handle(
+            new MarkReadyCommand(orderId, new FulfillmentActor.Admin()),
+            cancellationToken);
+
+        return result.ToActionResult(ready => Ok(new MarkReadyResponse(
+            ready.OrderId,
+            OrderFulfillmentStatus.ReadyForPickup.ToString(),
+            ready.ReadyAt)));
     }
 }
