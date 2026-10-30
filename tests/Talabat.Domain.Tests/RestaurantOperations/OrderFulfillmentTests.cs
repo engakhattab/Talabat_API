@@ -90,8 +90,35 @@ public sealed class OrderFulfillmentTests
         Assert.Equal(PlacedAt, fulfillment.AcceptedAt);
     }
 
+    // Design §4 test 4 (D2).
+    [Fact]
+    public void Start_preparing_only_from_accepted()
+    {
+        var awaiting = NewFulfillment();
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            awaiting.StartPreparing(RestaurantId, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, awaiting.Status);
+
+        var fulfillment = AcceptedFulfillment();
+        var preparingAt = PlacedAt.AddMinutes(4);
+
+        fulfillment.StartPreparing(RestaurantId, preparingAt);
+
+        Assert.Equal(OrderFulfillmentStatus.Preparing, fulfillment.Status);
+        Assert.Equal(preparingAt, fulfillment.PreparingAt);
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            fulfillment.StartPreparing(RestaurantId, PlacedAt.AddMinutes(5)));
+    }
+
     private static OrderFulfillment NewFulfillment()
     {
         return new OrderFulfillment(OrderId, RestaurantId, PlacedAt, AcceptanceWindow);
+    }
+
+    private static OrderFulfillment AcceptedFulfillment()
+    {
+        var fulfillment = NewFulfillment();
+        fulfillment.Accept(RestaurantId, PlacedAt.AddMinutes(1));
+        return fulfillment;
     }
 }
