@@ -5,6 +5,9 @@ Which skill to run, in what order, for the work this project actually does. It s
 this file decides **how** each piece of work moves. Skill names are typed as `/mattpocock-skills:<name>`;
 the short form `/<name>` is used below.
 
+A practical Arabic companion with a per-ticket decision tree ("does this ticket need a spec?") is
+[`skills-guide-ar.md`](skills-guide-ar.md).
+
 Setup is done (`/setup-matt-pocock-skills`): tracker = GitHub Issues, default triage labels, single-context domain
 docs. Re-run it only to change one of those.
 
@@ -28,7 +31,8 @@ Tickets made by `/to-tickets` are already agent-ready: **do not run `/triage` on
 One ticket per session, blockers first, strictly in order.
 
 1. **`/clear`** (fresh context: the ticket is self-contained).
-2. **`/implement T<n>`**. It does, in order:
+2. **`/tdd for T<n>`** first, to propose the test **seams**. The owner approves them before any test is written.
+3. **`/implement T<n>`**, passing the approved seams. It does, in order:
    - reads the issue, `ROADMAP.md`, the design and `CONTEXT.md`;
    - creates the task branch off the integration branch;
    - drives **`/tdd`**: names the design §4 tests, commits them failing (red), then the production code (green),
@@ -37,10 +41,12 @@ One ticket per session, blockers first, strictly in order.
    - runs the full `dotnet test` once at the end;
    - runs **`/code-review`** against the integration branch (Standards + Spec, in parallel) and fixes what is in
      scope, test-first;
+   - writes the learning walkthrough `docs/learning/T<n>-technical-walkthrough.md` (format:
+     [`docs/learning/README.md`](../learning/README.md));
    - pushes and opens the PR into the integration branch.
-3. **Auto-fix on the PR** (app CI monitor) instead of watching CI by hand. Merge when CI is green, then close the
+4. **Auto-fix on the PR** (app CI monitor) instead of watching CI by hand. Merge when CI is green, then close the
    issue with a comment pointing at the PR (issues close automatically only on merges into `main`).
-4. After the last ticket: run the phase gate, open the single PR from the integration branch into `main`, update
+5. After the last ticket: run the phase gate, open the single PR from the integration branch into `main`, update
    "Current position" in `ROADMAP.md`.
 
 Use **`/tdd`** on its own for a small behaviour that has no ticket, and **`/code-review`** on its own to review any
