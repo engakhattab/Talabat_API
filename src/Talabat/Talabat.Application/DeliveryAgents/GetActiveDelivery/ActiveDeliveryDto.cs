@@ -1,4 +1,5 @@
 using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Application.DeliveryAgents.GetActiveDelivery;
 
@@ -17,4 +18,5 @@ public sealed record ActiveDeliveryDto(
     string DropOffBuildingNumber,
     string? DropOffFloor,
     string? CustomerPhoneNumber,
-    DateTime? AssignedAt);
+    DateTime? AssignedAt,
+    OrderFulfillmentStatus FulfillmentStatus);

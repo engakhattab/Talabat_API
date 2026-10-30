@@ -1,3 +1,5 @@
+using Talabat.Domain.Aggregates.RestaurantOperations;
+
 namespace Talabat.Application.Fulfillment;
 
 /// <summary>
@@ -13,4 +15,19 @@ public abstract record FulfillmentActor
     public sealed record Admin : FulfillmentActor;
 
     public sealed record Restaurant(int RestaurantId) : FulfillmentActor;
+
+    /// <summary>
+    /// The restaurant the transition is performed as: an Admin acts as the order's own restaurant, a restaurant as
+    /// itself (so the domain's RestaurantId guard refuses another restaurant's order).
+    /// </summary>
+    public int ActingRestaurantId(OrderFulfillment fulfillment)
+    {
+        ArgumentNullException.ThrowIfNull(fulfillment);
+
+        return this switch
+        {
+            Restaurant restaurant => restaurant.RestaurantId,
+            _ => fulfillment.RestaurantId
+        };
+    }
 }

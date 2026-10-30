@@ -11,6 +11,7 @@ using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Aggregates.Catalog;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.Ordering;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.ValueObjects;
 using Talabat.Infrastructure.Identity;
 using Talabat.Infrastructure.Persistence;
@@ -24,6 +25,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public int DeliveryAgentUserId { get; private set; }
     public int AgentBUserId { get; private set; }
     public int DeliveryId { get; private set; }
+
+    /// <summary>The order behind <see cref="DeliveryId"/>, assigned to the default test agent.</summary>
+    public int OrderId { get; private set; }
     public int PendingDeliveryId { get; private set; }
     public int RoleOnlyAgentUserId { get; private set; }
     public int PendingApplicantUserId { get; private set; }
@@ -171,6 +175,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 DateTime.UtcNow);
             db.Orders.Add(order);
             db.SaveChanges();
+            db.OrderFulfillments.Add(AcceptedFulfillment(order));
+            OrderId = order.Id;
 
             var delivery = new Talabat.Domain.Aggregates.DeliveryManagement.Delivery(
                 order.Id,
@@ -198,6 +204,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 DateTime.UtcNow);
             db.Orders.Add(pendingOrder);
             db.SaveChanges();
+            db.OrderFulfillments.Add(AcceptedFulfillment(pendingOrder));
 
             var pendingDelivery = new Talabat.Domain.Aggregates.DeliveryManagement.Delivery(
                 pendingOrder.Id,
@@ -218,6 +225,15 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         }
 
         return host;
+    }
+
+    /// <summary>A delivery exists only for an accepted order (design D3), so every seeded delivery has one.</summary>
+    private static OrderFulfillment AcceptedFulfillment(Order order)
+    {
+        var placedAt = DateTime.UtcNow;
+        var fulfillment = new OrderFulfillment(order.Id, order.RestaurantId, placedAt, TimeSpan.FromMinutes(10));
+        fulfillment.Accept(order.RestaurantId, placedAt);
+        return fulfillment;
     }
 
     protected override void Dispose(bool disposing)

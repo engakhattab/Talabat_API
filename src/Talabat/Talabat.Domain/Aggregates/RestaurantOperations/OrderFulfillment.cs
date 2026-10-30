@@ -24,6 +24,12 @@ public sealed class OrderFulfillment : AuditableEntity
 
     public DateTime? AcceptedAt { get; private set; }
 
+    public DateTime? PreparingAt { get; private set; }
+
+    public DateTime? ReadyAt { get; private set; }
+
+    public DateTime? HandedOverAt { get; private set; }
+
     public byte[] RowVersion { get; private set; } = [];
 
     private OrderFulfillment()
@@ -60,6 +66,42 @@ public sealed class OrderFulfillment : AuditableEntity
 
         Status = OrderFulfillmentStatus.Accepted;
         AcceptedAt = currentTime;
+    }
+
+    public void StartPreparing(int restaurantId, DateTime currentTime)
+    {
+        EnsureRestaurant(restaurantId);
+        EnsureStatus(OrderFulfillmentStatus.Accepted);
+        EnsureTimeNotBefore(currentTime, AcceptedAt!.Value);
+
+        Status = OrderFulfillmentStatus.Preparing;
+        PreparingAt = currentTime;
+    }
+
+    /// <summary>Allowed from <c>Accepted</c> too: instant items skip <c>Preparing</c> (design D2).</summary>
+    public void MarkReady(int restaurantId, DateTime currentTime)
+    {
+        EnsureRestaurant(restaurantId);
+        if (Status is not (OrderFulfillmentStatus.Accepted or OrderFulfillmentStatus.Preparing))
+        {
+            throw new InvalidOrderFulfillmentStatusTransitionException();
+        }
+
+        EnsureTimeNotBefore(currentTime, PreparingAt ?? AcceptedAt!.Value);
+
+        Status = OrderFulfillmentStatus.ReadyForPickup;
+        ReadyAt = currentTime;
+    }
+
+    /// <summary>Entered only by the pickup workflow, never by an actor directly (design D2, D5).</summary>
+    public void HandOver(int restaurantId, DateTime currentTime)
+    {
+        EnsureRestaurant(restaurantId);
+        EnsureStatus(OrderFulfillmentStatus.ReadyForPickup);
+        EnsureTimeNotBefore(currentTime, ReadyAt!.Value);
+
+        Status = OrderFulfillmentStatus.HandedOver;
+        HandedOverAt = currentTime;
     }
 
     private void EnsureRestaurant(int restaurantId)

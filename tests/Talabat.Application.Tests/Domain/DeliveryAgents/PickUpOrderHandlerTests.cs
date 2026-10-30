@@ -2,6 +2,7 @@ using Talabat.Application.Common.Results;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
 using Talabat.Application.Tests.TestDoubles;
 using Talabat.Domain.Aggregates.DeliveryManagement;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.Aggregates.Users;
 using Talabat.Domain.Exceptions;
 using Talabat.Domain.ValueObjects;
@@ -12,12 +13,15 @@ public sealed class PickUpOrderHandlerTests
 {
     private static readonly DateTime Now = new(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc);
     private static readonly DeliveryAddressSnapshot Address = new("Street", "City", "1", null);
+    private const int OrderId = 1;
+    private const int RestaurantId = 1;
 
+    // §4.1: arranged with a ready fulfillment now that pickup is gated on it (BR-DEL-019).
     [Fact]
     public async Task Handle_PickUpOrder_FromArrivedAtRestaurant_ShouldSucceed()
     {
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
-        var (handler, clock) = CreateHandler(10, delivery);
+        var (handler, clock, _, _) = CreateHandler(ReadyFulfillment(), delivery);
 
         clock.UtcNow = Now.AddMinutes(5);
 
@@ -29,11 +33,58 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(clock.UtcNow, delivery.PickedUpAt);
     }
 
+    // Design §4 test 18 (D5, BR-DEL-019).
+    [Theory]
+    [InlineData(OrderFulfillmentStatus.Accepted)]
+    [InlineData(OrderFulfillmentStatus.Preparing)]
+    public async Task Pickup_before_ready_returns_FulfillmentNotReady(OrderFulfillmentStatus kitchenStatus)
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var fulfillment = AcceptedFulfillment();
+        if (kitchenStatus == OrderFulfillmentStatus.Preparing)
+        {
+            fulfillment.StartPreparing(RestaurantId, Now);
+        }
+
+        var (handler, clock, unitOfWork, _) = CreateHandler(fulfillment, delivery);
+        clock.UtcNow = Now.AddMinutes(5);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.FulfillmentNotReady, result.Error?.Code);
+        Assert.Equal(ApplicationErrorCategory.Conflict, result.Error?.Category);
+        Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
+        Assert.Equal(kitchenStatus, fulfillment.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
+    // Design §4 test 19 (D5, D12).
+    [Fact]
+    public async Task Pickup_when_ready_hands_over_fulfillment_atomically()
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var fulfillment = ReadyFulfillment();
+        var (handler, clock, unitOfWork, _) = CreateHandler(fulfillment, delivery);
+        clock.UtcNow = Now.AddMinutes(5);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(DeliveryStatus.PickedUp, delivery.Status);
+        Assert.Equal(OrderFulfillmentStatus.HandedOver, fulfillment.Status);
+        Assert.Equal(clock.UtcNow, delivery.PickedUpAt);
+        Assert.Equal(clock.UtcNow, fulfillment.HandedOverAt);
+        Assert.Equal(1, unitOfWork.TransactionCount);
+        Assert.Equal(1, unitOfWork.SaveChangesCount);
+        Assert.Equal(1, unitOfWork.SaveChangesInsideTransactionCount);
+    }
+
     [Fact]
     public async Task Handle_PickUpOrder_WrongAgent_ShouldReturnNotFound()
     {
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
-        var (handler, _) = CreateHandler(10, delivery);
+        var (handler, _, _, _) = CreateHandler(ReadyFulfillment(), delivery);
 
         var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 99));
 
@@ -44,7 +95,7 @@ public sealed class PickUpOrderHandlerTests
     [Fact]
     public async Task Handle_PickUpOrder_DeliveryNotFound_ShouldReturnNotFound()
     {
-        var (handler, _) = CreateHandler(10);
+        var (handler, _, _, _) = CreateHandler(ReadyFulfillment());
 
         var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 999, AgentId: 10));
 
@@ -56,7 +107,7 @@ public sealed class PickUpOrderHandlerTests
     public async Task Handle_PickUpOrder_FromAssigned_ShouldFail()
     {
         var delivery = CreateAssignedDelivery(1, 10);
-        var (handler, _) = CreateHandler(10, delivery);
+        var (handler, _, _, _) = CreateHandler(ReadyFulfillment(), delivery);
 
         var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
 
@@ -96,9 +147,22 @@ public sealed class PickUpOrderHandlerTests
         return delivery;
     }
 
-    private static (PickUpOrderHandler Handler, FakeClock Clock) CreateHandler(
-        int agentId,
-        params Delivery[] deliveries)
+    private static OrderFulfillment AcceptedFulfillment()
+    {
+        var fulfillment = new OrderFulfillment(OrderId, RestaurantId, Now, TimeSpan.FromMinutes(10));
+        fulfillment.Accept(RestaurantId, Now);
+        return fulfillment;
+    }
+
+    private static OrderFulfillment ReadyFulfillment()
+    {
+        var fulfillment = AcceptedFulfillment();
+        fulfillment.MarkReady(RestaurantId, Now);
+        return fulfillment;
+    }
+
+    private static (PickUpOrderHandler Handler, FakeClock Clock, FakeUnitOfWork UnitOfWork, FakeOrderFulfillmentRepository Fulfillments)
+        CreateHandler(OrderFulfillment fulfillment, params Delivery[] deliveries)
     {
         var deliveryRepository = new FakeDeliveryRepository();
         foreach (var delivery in deliveries)
@@ -106,13 +170,18 @@ public sealed class PickUpOrderHandlerTests
             deliveryRepository.Deliveries.Add(delivery);
         }
 
+        var fulfillmentRepository = new FakeOrderFulfillmentRepository();
+        fulfillmentRepository.Fulfillments.Add(fulfillment);
+
         var clock = new FakeClock { UtcNow = Now };
+        var unitOfWork = new FakeUnitOfWork();
 
         var handler = new PickUpOrderHandler(
             deliveryRepository,
-            new FakeUnitOfWork(),
+            fulfillmentRepository,
+            unitOfWork,
             clock);
 
-        return (handler, clock);
+        return (handler, clock, unitOfWork, fulfillmentRepository);
     }
 }

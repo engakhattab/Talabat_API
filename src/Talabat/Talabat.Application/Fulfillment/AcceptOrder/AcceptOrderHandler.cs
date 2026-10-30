@@ -55,18 +55,12 @@ public sealed class AcceptOrderHandler
                 DomainExceptionMapper.NotFound(ApplicationErrorCodes.RestaurantNotFound, "Restaurant was not found."));
         }
 
-        // An Admin acts on behalf of the order's own restaurant (D11); a restaurant may accept only its orders.
-        var actingRestaurantId = command.Actor switch
-        {
-            FulfillmentActor.Restaurant actor => actor.RestaurantId,
-            _ => fulfillment.RestaurantId
-        };
-
         var now = _clock.UtcNow;
 
         try
         {
-            fulfillment.Accept(actingRestaurantId, now);
+            // An Admin acts on behalf of the order's own restaurant (D11); a restaurant may accept only its orders.
+            fulfillment.Accept(command.Actor.ActingRestaurantId(fulfillment), now);
         }
         catch (Exception exception) when (exception is DomainException or ArgumentException)
         {

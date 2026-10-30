@@ -527,6 +527,164 @@
           }
         ]
       }
+    },
+    "/api/orders/{orderId}/start-preparing": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "StartPreparingOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartPreparingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "admin.api"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/orders/{orderId}/mark-ready": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "MarkOrderReady",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkReadyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "admin.api"
+            ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -637,6 +795,27 @@
           }
         }
       },
+      "MarkReadyResponse": {
+        "required": [
+          "orderId",
+          "fulfillmentStatus",
+          "readyAt"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "format": "int32"
+          },
+          "fulfillmentStatus": {
+            "type": "string"
+          },
+          "readyAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -660,6 +839,27 @@
           "instance": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "StartPreparingResponse": {
+        "required": [
+          "orderId",
+          "fulfillmentStatus",
+          "preparingAt"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "format": "int32"
+          },
+          "fulfillmentStatus": {
+            "type": "string"
+          },
+          "preparingAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
