@@ -110,6 +110,54 @@ public sealed class OrderFulfillmentTests
             fulfillment.StartPreparing(RestaurantId, PlacedAt.AddMinutes(5)));
     }
 
+    // Design §4 test 5 (D2): skipping Preparing is allowed for instant items.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Mark_ready_from_accepted_or_preparing(bool startPreparingFirst)
+    {
+        var fulfillment = AcceptedFulfillment();
+        if (startPreparingFirst)
+        {
+            fulfillment.StartPreparing(RestaurantId, PlacedAt.AddMinutes(4));
+        }
+
+        var readyAt = PlacedAt.AddMinutes(15);
+
+        fulfillment.MarkReady(RestaurantId, readyAt);
+
+        Assert.Equal(OrderFulfillmentStatus.ReadyForPickup, fulfillment.Status);
+        Assert.Equal(readyAt, fulfillment.ReadyAt);
+    }
+
+    // Design §4 test 5 (D2).
+    [Fact]
+    public void Mark_ready_from_other_states_throws()
+    {
+        var awaiting = NewFulfillment();
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            awaiting.MarkReady(RestaurantId, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, awaiting.Status);
+
+        var ready = AcceptedFulfillment();
+        ready.MarkReady(RestaurantId, PlacedAt.AddMinutes(10));
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            ready.MarkReady(RestaurantId, PlacedAt.AddMinutes(11)));
+    }
+
+    // Design §4 test 9: every restaurant-side transition is guarded by RestaurantId.
+    [Fact]
+    public void Wrong_restaurant_id_throws_mismatch_on_preparing_and_ready()
+    {
+        var fulfillment = AcceptedFulfillment();
+
+        Assert.Throws<OrderFulfillmentRestaurantMismatchException>(() =>
+            fulfillment.StartPreparing(RestaurantId + 1, PlacedAt.AddMinutes(2)));
+        Assert.Throws<OrderFulfillmentRestaurantMismatchException>(() =>
+            fulfillment.MarkReady(RestaurantId + 1, PlacedAt.AddMinutes(2)));
+        Assert.Equal(OrderFulfillmentStatus.Accepted, fulfillment.Status);
+    }
+
     private static OrderFulfillment NewFulfillment()
     {
         return new OrderFulfillment(OrderId, RestaurantId, PlacedAt, AcceptanceWindow);

@@ -26,6 +26,8 @@ public sealed class OrderFulfillment : AuditableEntity
 
     public DateTime? PreparingAt { get; private set; }
 
+    public DateTime? ReadyAt { get; private set; }
+
     public byte[] RowVersion { get; private set; } = [];
 
     private OrderFulfillment()
@@ -72,6 +74,11 @@ public sealed class OrderFulfillment : AuditableEntity
 
         Status = OrderFulfillmentStatus.Preparing;
         PreparingAt = currentTime;
+    }
+
+    public void MarkReady(int restaurantId, DateTime currentTime)
+    {
+        throw new NotImplementedException();
     }
 
     private void EnsureRestaurant(int restaurantId)
