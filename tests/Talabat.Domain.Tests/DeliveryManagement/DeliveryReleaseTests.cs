@@ -44,6 +44,40 @@ public sealed class DeliveryReleaseTests
         Assert.Equal(CreatedAt.AddMinutes(11), delivery.AssignedAt);
     }
 
+    // Design §4 test 13 (D6): once the food is with the agent, release is not the way out (fail is, D8).
+    [Theory]
+    [InlineData(DeliveryStatus.PickedUp)]
+    [InlineData(DeliveryStatus.OutForDelivery)]
+    public void Release_after_pickup_throws(DeliveryStatus from)
+    {
+        var delivery = CreateDeliveryIn(from);
+
+        Assert.Throws<InvalidDeliveryStatusTransitionException>(
+            () => delivery.Release(AgentId, CreatedAt.AddMinutes(10)));
+        Assert.Equal(from, delivery.Status);
+        Assert.Equal(AgentId, delivery.AssignedAgentId);
+    }
+
+    // Design §4 test 13 (D6).
+    [Fact]
+    public void Release_by_other_agent_throws_mismatch()
+    {
+        var delivery = CreateDeliveryIn(DeliveryStatus.Assigned);
+
+        Assert.Throws<DeliveryAgentMismatchException>(
+            () => delivery.Release(99, CreatedAt.AddMinutes(10)));
+        Assert.Equal(AgentId, delivery.AssignedAgentId);
+    }
+
+    [Fact]
+    public void Release_of_unassigned_delivery_throws_not_assigned()
+    {
+        var delivery = new Delivery(300, 1, 1, "Cairo Grill", Address, Address, CreatedAt);
+
+        Assert.Throws<DeliveryNotAssignedException>(
+            () => delivery.Release(AgentId, CreatedAt.AddMinutes(10)));
+    }
+
     private static Delivery CreateDeliveryIn(DeliveryStatus status)
     {
         var delivery = new Delivery(300, 1, 1, "Cairo Grill", Address, Address, CreatedAt);
