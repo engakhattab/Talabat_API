@@ -65,6 +65,39 @@ public sealed class OrderFulfillmentPersistenceTests
                 both.Select(fulfillment => fulfillment.OrderId).Order());
         }
 
+        // T5 (D13): a rejection and a customer cancellation keep their actor, reason code, note and time.
+        var rejectedAt = PersistenceTestData.Now.AddMinutes(2);
+        var cancelledAt = PersistenceTestData.Now.AddMinutes(3);
+        using (var endScope = provider.CreateScope())
+        {
+            var repository = endScope.ServiceProvider.GetRequiredService<IOrderFulfillmentRepository>();
+            var rejecting = await repository.GetByOrderIdAsync(firstOrder.Id);
+            var cancelling = await repository.GetByOrderIdAsync(secondOrder.Id);
+
+            rejecting!.Reject(1, FulfillmentReasonCode.Other, "Oven broke", rejectedAt);
+            cancelling!.CancelByCustomer(FulfillmentReasonCode.ChangedMind, note: null, cancelledAt);
+            await endScope.ServiceProvider.GetRequiredService<IUnitOfWork>().SaveChangesAsync();
+        }
+
+        using (var endReadScope = provider.CreateScope())
+        {
+            var repository = endReadScope.ServiceProvider.GetRequiredService<IOrderFulfillmentRepository>();
+            var rejected = await repository.GetByOrderIdAsync(firstOrder.Id);
+            var cancelled = await repository.GetByOrderIdAsync(secondOrder.Id);
+
+            Assert.Equal(OrderFulfillmentStatus.Rejected, rejected!.Status);
+            Assert.Equal(FulfillmentReasonCode.Other, rejected.ReasonCode);
+            Assert.Equal("Oven broke", rejected.ReasonNote);
+            Assert.Equal(rejectedAt, DateTime.SpecifyKind(rejected.RejectedAt!.Value, DateTimeKind.Utc));
+            Assert.Null(rejected.CancelledBy);
+
+            Assert.Equal(OrderFulfillmentStatus.Cancelled, cancelled!.Status);
+            Assert.Equal(CancellationActor.Customer, cancelled.CancelledBy);
+            Assert.Equal(FulfillmentReasonCode.ChangedMind, cancelled.ReasonCode);
+            Assert.Null(cancelled.ReasonNote);
+            Assert.Equal(cancelledAt, DateTime.SpecifyKind(cancelled.CancelledAt!.Value, DateTimeKind.Utc));
+        }
+
         using (var duplicateScope = provider.CreateScope())
         {
             var repository = duplicateScope.ServiceProvider.GetRequiredService<IOrderFulfillmentRepository>();
@@ -80,6 +113,21 @@ public sealed class OrderFulfillmentPersistenceTests
             sqlContext.Database.ExecuteSqlAsync(
                 $"UPDATE [OrderFulfillments] SET [Status] = 99 WHERE [OrderId] = {firstOrder.Id}"));
         Assert.Equal(547, checkViolation.Number);
+
+        var actorViolation = await Assert.ThrowsAsync<SqlException>(() =>
+            sqlContext.Database.ExecuteSqlAsync(
+                $"UPDATE [OrderFulfillments] SET [CancelledBy] = 99 WHERE [OrderId] = {secondOrder.Id}"));
+        Assert.Equal(547, actorViolation.Number);
+
+        var reasonViolation = await Assert.ThrowsAsync<SqlException>(() =>
+            sqlContext.Database.ExecuteSqlAsync(
+                $"UPDATE [OrderFulfillments] SET [ReasonCode] = 99 WHERE [OrderId] = {secondOrder.Id}"));
+        Assert.Equal(547, reasonViolation.Number);
+
+        var tooLongNote = new string('x', 501);
+        await Assert.ThrowsAsync<SqlException>(() =>
+            sqlContext.Database.ExecuteSqlAsync(
+                $"UPDATE [OrderFulfillments] SET [ReasonNote] = {tooLongNote} WHERE [OrderId] = {firstOrder.Id}"));
     }
 
     // Design §4 test 28.
