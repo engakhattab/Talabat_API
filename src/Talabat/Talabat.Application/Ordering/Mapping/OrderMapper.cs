@@ -51,6 +51,8 @@ public static class OrderMapper
             items,
             order.TotalAmount,
             progress.Status,
-            progress.DeliveryAgentAssigned);
+            progress.DeliveryAgentAssigned,
+            progress.CancelledBy,
+            progress.ReasonCode);
     }
 }

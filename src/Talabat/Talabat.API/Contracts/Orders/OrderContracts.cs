@@ -1,5 +1,6 @@
 using Talabat.Application.Ordering.Status;
 using Talabat.Customer.API.Contracts.Common;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Customer.API.Contracts.Orders;
 
@@ -27,7 +28,9 @@ public sealed record OrderDetailResponse(
     MoneyDto Total,
     DateTime PlacedAt,
     CustomerOrderStatus Status,
-    bool DeliveryAgentAssigned);
+    bool DeliveryAgentAssigned,
+    CancellationActor? CancelledBy,
+    FulfillmentReasonCode? ReasonCode);
 
 public sealed record OrderDeliveryAddressDto(
     string Street,
@@ -40,3 +43,12 @@ public sealed record OrderLineItemDto(
     MoneyDto UnitPrice,
     int Quantity,
     MoneyDto LineTotal);
+
+/// <summary>An optional customer reason code (design D13) and note; the note is required when the code is Other.</summary>
+public sealed record CancelOrderRequest(FulfillmentReasonCode? ReasonCode, string? Note);
+
+public sealed record CancelOrderResponse(
+    int OrderId,
+    CustomerOrderStatus Status,
+    FulfillmentReasonCode? ReasonCode,
+    DateTime CancelledAt);

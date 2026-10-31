@@ -7,6 +7,7 @@ using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Application.Fulfillment;
 using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Fulfillment.MarkReady;
+using Talabat.Application.Fulfillment.RejectOrder;
 using Talabat.Application.Fulfillment.StartPreparing;
 using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.RestaurantOperations;
@@ -24,17 +25,20 @@ public sealed class OrdersController : ControllerBase
     private readonly AcceptOrderHandler _acceptHandler;
     private readonly StartPreparingHandler _startPreparingHandler;
     private readonly MarkReadyHandler _markReadyHandler;
+    private readonly RejectOrderHandler _rejectHandler;
     private readonly ReleaseDeliveryHandler _releaseDeliveryHandler;
 
     public OrdersController(
         AcceptOrderHandler acceptHandler,
         StartPreparingHandler startPreparingHandler,
         MarkReadyHandler markReadyHandler,
+        RejectOrderHandler rejectHandler,
         ReleaseDeliveryHandler releaseDeliveryHandler)
     {
         _acceptHandler = acceptHandler ?? throw new ArgumentNullException(nameof(acceptHandler));
         _startPreparingHandler = startPreparingHandler ?? throw new ArgumentNullException(nameof(startPreparingHandler));
         _markReadyHandler = markReadyHandler ?? throw new ArgumentNullException(nameof(markReadyHandler));
+        _rejectHandler = rejectHandler ?? throw new ArgumentNullException(nameof(rejectHandler));
         _releaseDeliveryHandler = releaseDeliveryHandler ?? throw new ArgumentNullException(nameof(releaseDeliveryHandler));
     }
 
@@ -55,6 +59,35 @@ public sealed class OrdersController : ControllerBase
             OrderFulfillmentStatus.Accepted.ToString(),
             accepted.DeliveryId,
             accepted.AcceptedAt)));
+    }
+
+    /// <summary>
+    /// Rejects an order the restaurant has not accepted, with a reject reason code (design D2, D13). The recorded
+    /// action is the restaurant's rejection; an Admin acts on its behalf (D11).
+    /// </summary>
+    [HttpPost("{orderId:int}/reject", Name = "RejectOrder")]
+    [ProducesResponseType<RejectOrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reject(
+        int orderId,
+        RejectOrderRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = await _rejectHandler.Handle(
+            new RejectOrderCommand(orderId, new FulfillmentActor.Admin(), request.ReasonCode, request.Note),
+            cancellationToken);
+
+        return result.ToActionResult(rejected => Ok(new RejectOrderResponse(
+            rejected.OrderId,
+            OrderFulfillmentStatus.Rejected.ToString(),
+            rejected.ReasonCode,
+            rejected.RejectedAt)));
     }
 
     [HttpPost("{orderId:int}/start-preparing", Name = "StartPreparingOrder")]
