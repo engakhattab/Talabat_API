@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Admin.API.Auth;
 using Talabat.Admin.API.Contracts.Orders;
 using Talabat.Admin.API.Extensions;
-using Talabat.Application.DeliveryAgents.Release;
+using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Application.Fulfillment;
 using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Fulfillment.MarkReady;
@@ -32,10 +32,10 @@ public sealed class OrdersController : ControllerBase
         MarkReadyHandler markReadyHandler,
         ReleaseDeliveryHandler releaseDeliveryHandler)
     {
-        _releaseDeliveryHandler = releaseDeliveryHandler ?? throw new ArgumentNullException(nameof(releaseDeliveryHandler));
         _acceptHandler = acceptHandler ?? throw new ArgumentNullException(nameof(acceptHandler));
         _startPreparingHandler = startPreparingHandler ?? throw new ArgumentNullException(nameof(startPreparingHandler));
         _markReadyHandler = markReadyHandler ?? throw new ArgumentNullException(nameof(markReadyHandler));
+        _releaseDeliveryHandler = releaseDeliveryHandler ?? throw new ArgumentNullException(nameof(releaseDeliveryHandler));
     }
 
     [HttpPost("{orderId:int}/accept", Name = "AcceptOrder")]

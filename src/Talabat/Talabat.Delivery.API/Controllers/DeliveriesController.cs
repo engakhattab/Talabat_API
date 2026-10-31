@@ -7,11 +7,11 @@ using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
-using Talabat.Application.DeliveryAgents.Release;
 using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
+using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Delivery.API.Contracts.Deliveries;
 using Talabat.Delivery.API.Extensions;
 
