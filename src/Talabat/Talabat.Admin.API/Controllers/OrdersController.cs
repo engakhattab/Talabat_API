@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Talabat.Admin.API.Auth;
 using Talabat.Admin.API.Contracts.Orders;
 using Talabat.Admin.API.Extensions;
+using Talabat.Application.DeliveryAgents.Release;
 using Talabat.Application.Fulfillment;
 using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Fulfillment.MarkReady;
 using Talabat.Application.Fulfillment.StartPreparing;
+using Talabat.Domain.Aggregates.DeliveryManagement;
 using Talabat.Domain.Aggregates.RestaurantOperations;
 
 namespace Talabat.Admin.API.Controllers;
@@ -22,12 +24,15 @@ public sealed class OrdersController : ControllerBase
     private readonly AcceptOrderHandler _acceptHandler;
     private readonly StartPreparingHandler _startPreparingHandler;
     private readonly MarkReadyHandler _markReadyHandler;
+    private readonly ReleaseDeliveryHandler _releaseDeliveryHandler;
 
     public OrdersController(
         AcceptOrderHandler acceptHandler,
         StartPreparingHandler startPreparingHandler,
-        MarkReadyHandler markReadyHandler)
+        MarkReadyHandler markReadyHandler,
+        ReleaseDeliveryHandler releaseDeliveryHandler)
     {
+        _releaseDeliveryHandler = releaseDeliveryHandler ?? throw new ArgumentNullException(nameof(releaseDeliveryHandler));
         _acceptHandler = acceptHandler ?? throw new ArgumentNullException(nameof(acceptHandler));
         _startPreparingHandler = startPreparingHandler ?? throw new ArgumentNullException(nameof(startPreparingHandler));
         _markReadyHandler = markReadyHandler ?? throw new ArgumentNullException(nameof(markReadyHandler));
@@ -86,5 +91,28 @@ public sealed class OrdersController : ControllerBase
             ready.OrderId,
             OrderFulfillmentStatus.ReadyForPickup.ToString(),
             ready.ReadyAt)));
+    }
+
+    /// <summary>
+    /// Releases the order's delivery on behalf of an unresponsive agent (design D6, Q3): the delivery returns to the
+    /// queue and the agent becomes Available. Allowed only before pickup.
+    /// </summary>
+    [HttpPost("{orderId:int}/release-agent", Name = "ReleaseOrderAgent")]
+    [ProducesResponseType<ReleaseAgentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReleaseAgent(int orderId, CancellationToken cancellationToken)
+    {
+        var result = await _releaseDeliveryHandler.Handle(
+            new ReleaseDeliveryCommand.ByAdmin(orderId),
+            cancellationToken);
+
+        return result.ToActionResult(released => Ok(new ReleaseAgentResponse(
+            released.OrderId,
+            released.DeliveryId,
+            released.ReleasedAgentId,
+            DeliveryStatus.PendingAssignment.ToString())));
     }
 }
