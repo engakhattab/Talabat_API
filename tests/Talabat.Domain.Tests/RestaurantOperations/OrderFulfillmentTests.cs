@@ -193,6 +193,160 @@ public sealed class OrderFulfillmentTests
             ready.HandOver(RestaurantId, PlacedAt.AddMinutes(13)));
     }
 
+    // Design §4 test 3 (D2, D13): a rejection records a reject reason code, its note and when it happened.
+    [Fact]
+    public void Reject_requires_a_reject_reason_code()
+    {
+        var fulfillment = NewFulfillment();
+        var rejectedAt = PlacedAt.AddMinutes(2);
+
+        Assert.Throws<ReasonCodeNotAllowedException>(() =>
+            fulfillment.Reject(RestaurantId, FulfillmentReasonCode.ChangedMind, note: null, rejectedAt));
+        Assert.Throws<ReasonCodeNotAllowedException>(() =>
+            fulfillment.Reject(RestaurantId, (FulfillmentReasonCode)0, note: null, rejectedAt));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, fulfillment.Status);
+
+        fulfillment.Reject(RestaurantId, FulfillmentReasonCode.RestaurantBusy, "  Friday rush  ", rejectedAt);
+
+        Assert.Equal(OrderFulfillmentStatus.Rejected, fulfillment.Status);
+        Assert.Equal(FulfillmentReasonCode.RestaurantBusy, fulfillment.ReasonCode);
+        Assert.Equal("Friday rush", fulfillment.ReasonNote);
+        Assert.Equal(rejectedAt, fulfillment.RejectedAt);
+        Assert.Null(fulfillment.CancelledBy);
+        Assert.Null(fulfillment.AcceptedAt);
+    }
+
+    // Design §4 test 3 (D2, D7).
+    [Fact]
+    public void Reject_only_from_awaiting_restaurant()
+    {
+        var accepted = AcceptedFulfillment();
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            accepted.Reject(RestaurantId, FulfillmentReasonCode.ItemsUnavailable, note: null, PlacedAt.AddMinutes(2)));
+        Assert.Equal(OrderFulfillmentStatus.Accepted, accepted.Status);
+        Assert.Null(accepted.ReasonCode);
+
+        var rejected = NewFulfillment();
+        rejected.Reject(RestaurantId, FulfillmentReasonCode.RestaurantClosing, note: null, PlacedAt.AddMinutes(1));
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            rejected.Reject(RestaurantId, FulfillmentReasonCode.RestaurantBusy, note: null, PlacedAt.AddMinutes(2)));
+        Assert.Throws<InvalidOrderFulfillmentStatusTransitionException>(() =>
+            rejected.Accept(RestaurantId, PlacedAt.AddMinutes(2)));
+        Assert.Equal(FulfillmentReasonCode.RestaurantClosing, rejected.ReasonCode);
+
+        var otherRestaurant = NewFulfillment();
+        Assert.Throws<OrderFulfillmentRestaurantMismatchException>(() =>
+            otherRestaurant.Reject(RestaurantId + 1, FulfillmentReasonCode.RestaurantBusy, note: null, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, otherRestaurant.Status);
+    }
+
+    // Design D7 (customer row): the customer may cancel only while the order awaits the restaurant; a reason is
+    // optional.
+    [Fact]
+    public void Customer_cancel_from_awaiting_restaurant_records_customer_and_optional_reason()
+    {
+        var withoutReason = NewFulfillment();
+        var cancelledAt = PlacedAt.AddMinutes(1);
+
+        withoutReason.CancelByCustomer(reasonCode: null, note: null, cancelledAt);
+
+        Assert.Equal(OrderFulfillmentStatus.Cancelled, withoutReason.Status);
+        Assert.Equal(CancellationActor.Customer, withoutReason.CancelledBy);
+        Assert.Null(withoutReason.ReasonCode);
+        Assert.Equal(cancelledAt, withoutReason.CancelledAt);
+
+        var withReason = NewFulfillment();
+        withReason.CancelByCustomer(FulfillmentReasonCode.OrderedByMistake, note: null, cancelledAt);
+        Assert.Equal(FulfillmentReasonCode.OrderedByMistake, withReason.ReasonCode);
+
+        Assert.Throws<OrderNoLongerCancellableException>(() =>
+            withReason.CancelByCustomer(reasonCode: null, note: null, PlacedAt.AddMinutes(2)));
+
+        var accepted = AcceptedFulfillment();
+        Assert.Throws<OrderNoLongerCancellableException>(() =>
+            accepted.CancelByCustomer(reasonCode: null, note: null, PlacedAt.AddMinutes(2)));
+        Assert.Equal(OrderFulfillmentStatus.Accepted, accepted.Status);
+        Assert.Null(accepted.CancelledBy);
+    }
+
+    // Design §4 test 11 (D13): a code is valid only for its own action.
+    [Theory]
+    [InlineData(FulfillmentReasonCode.KitchenIssue, true)]
+    [InlineData(FulfillmentReasonCode.ChangedMind, true)]
+    [InlineData(FulfillmentReasonCode.SuspectedFraud, true)]
+    [InlineData(FulfillmentReasonCode.AcceptanceTimeout, true)]
+    [InlineData(FulfillmentReasonCode.ItemsUnavailable, false)]
+    [InlineData(FulfillmentReasonCode.RestaurantBusy, false)]
+    [InlineData(FulfillmentReasonCode.RestaurantClosing, false)]
+    [InlineData(FulfillmentReasonCode.CustomerRequested, true)]
+    public void Reason_code_must_belong_to_its_action(FulfillmentReasonCode code, bool refusedForReject)
+    {
+        var rejecting = NewFulfillment();
+        if (refusedForReject)
+        {
+            Assert.Throws<ReasonCodeNotAllowedException>(() =>
+                rejecting.Reject(RestaurantId, code, note: null, PlacedAt.AddMinutes(1)));
+            Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, rejecting.Status);
+        }
+        else
+        {
+            rejecting.Reject(RestaurantId, code, note: null, PlacedAt.AddMinutes(1));
+            Assert.Equal(code, rejecting.ReasonCode);
+        }
+
+        // None of these is a customer cancellation code (ChangedMind and OrderedByMistake are; see below).
+        if (code is not FulfillmentReasonCode.ChangedMind)
+        {
+            var cancelling = NewFulfillment();
+            Assert.Throws<ReasonCodeNotAllowedException>(() =>
+                cancelling.CancelByCustomer(code, note: null, PlacedAt.AddMinutes(1)));
+            Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, cancelling.Status);
+        }
+    }
+
+    // Design §4 test 11 (D13).
+    [Fact]
+    public void Other_reason_requires_note()
+    {
+        var rejecting = NewFulfillment();
+        Assert.Throws<ReasonNoteRequiredException>(() =>
+            rejecting.Reject(RestaurantId, FulfillmentReasonCode.Other, note: null, PlacedAt.AddMinutes(1)));
+        Assert.Throws<ReasonNoteRequiredException>(() =>
+            rejecting.Reject(RestaurantId, FulfillmentReasonCode.Other, "   ", PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, rejecting.Status);
+
+        var cancelling = NewFulfillment();
+        Assert.Throws<ReasonNoteRequiredException>(() =>
+            cancelling.CancelByCustomer(FulfillmentReasonCode.Other, note: null, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, cancelling.Status);
+
+        rejecting.Reject(RestaurantId, FulfillmentReasonCode.Other, "Oven broke", PlacedAt.AddMinutes(1));
+        Assert.Equal("Oven broke", rejecting.ReasonNote);
+
+        cancelling.CancelByCustomer(FulfillmentReasonCode.Other, "Wrong address", PlacedAt.AddMinutes(1));
+        Assert.Equal("Wrong address", cancelling.ReasonNote);
+    }
+
+    // Design §4 test 11 (D13): the note is capped at 500 characters.
+    [Fact]
+    public void Note_longer_than_500_throws()
+    {
+        var tooLong = new string('x', 501);
+
+        var rejecting = NewFulfillment();
+        Assert.Throws<ReasonNoteTooLongException>(() =>
+            rejecting.Reject(RestaurantId, FulfillmentReasonCode.Other, tooLong, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, rejecting.Status);
+
+        var cancelling = NewFulfillment();
+        Assert.Throws<ReasonNoteTooLongException>(() =>
+            cancelling.CancelByCustomer(FulfillmentReasonCode.ChangedMind, tooLong, PlacedAt.AddMinutes(1)));
+        Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, cancelling.Status);
+
+        rejecting.Reject(RestaurantId, FulfillmentReasonCode.Other, new string('x', 500), PlacedAt.AddMinutes(1));
+        Assert.Equal(500, rejecting.ReasonNote!.Length);
+    }
+
     private static OrderFulfillment NewFulfillment()
     {
         return new OrderFulfillment(OrderId, RestaurantId, PlacedAt, AcceptanceWindow);
