@@ -90,6 +90,8 @@ public sealed class OrderRejectionTests : IClassFixture<AdminWebApplicationFacto
         var problem = await wrongCode.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("ReasonCodeNotAllowedException", problem.GetProperty("errorCode").GetString());
         Assert.Equal(HttpStatusCode.BadRequest, missingCode.StatusCode);
+        var missingProblem = await missingCode.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("ReasonCodeRequiredException", missingProblem.GetProperty("errorCode").GetString());
         Assert.Equal(OrderFulfillmentStatus.AwaitingRestaurant, (await ReadFulfillmentAsync(orderId)).Status);
     }
 

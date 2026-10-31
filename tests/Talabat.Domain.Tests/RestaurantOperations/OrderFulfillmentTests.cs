@@ -200,6 +200,8 @@ public sealed class OrderFulfillmentTests
         var fulfillment = NewFulfillment();
         var rejectedAt = PlacedAt.AddMinutes(2);
 
+        Assert.Throws<ReasonCodeRequiredException>(() =>
+            fulfillment.Reject(RestaurantId, reasonCode: null, note: null, rejectedAt));
         Assert.Throws<ReasonCodeNotAllowedException>(() =>
             fulfillment.Reject(RestaurantId, FulfillmentReasonCode.ChangedMind, note: null, rejectedAt));
         Assert.Throws<ReasonCodeNotAllowedException>(() =>
