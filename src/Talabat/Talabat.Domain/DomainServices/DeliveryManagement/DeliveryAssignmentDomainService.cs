@@ -50,19 +50,6 @@ public sealed class DeliveryAssignmentDomainService
         agent.MarkAvailable();
     }
 
-    public void CancelDelivery(
-        Delivery delivery,
-        User agent,
-        DateTime currentTime)
-    {
-        ArgumentNullException.ThrowIfNull(delivery);
-        ArgumentNullException.ThrowIfNull(agent);
-
-        EnsureAssignedBusyAgent(delivery, agent);
-        delivery.CancelAssigned(agent.Id, currentTime);
-        agent.MarkAvailable();
-    }
-
     public void FailDelivery(
         Delivery delivery,
         User agent,

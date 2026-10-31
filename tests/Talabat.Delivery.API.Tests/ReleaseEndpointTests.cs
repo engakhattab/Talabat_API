@@ -32,11 +32,11 @@ public sealed class ReleaseEndpointTests : IClassFixture<CustomWebApplicationFac
         Assert.Equal(HttpStatusCode.OK, release.StatusCode);
         using (var body = JsonDocument.Parse(await release.Content.ReadAsStringAsync()))
         {
-            Assert.Equal(_factory.PendingDeliveryId, body.RootElement.GetProperty("deliveryId").GetInt32());
+            Assert.Equal(_factory.PendingDeliveryId, body.RootElement.GetProperty("id").GetInt32());
         }
 
         Assert.Contains(_factory.PendingDeliveryId, await GetPendingDeliveryIdsAsync(agentB));
-        Assert.Equal(HttpStatusCode.NoContent, (await agentB.GetAsync("/api/agent/deliveries/active")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await agentB.GetAsync("/api/agent/deliveries/active")).StatusCode);
         Assert.Equal("Available", await GetAgentStatusAsync(agentB));
     }
 
@@ -67,7 +67,7 @@ public sealed class ReleaseEndpointTests : IClassFixture<CustomWebApplicationFac
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return document.RootElement.EnumerateArray()
-            .Select(item => item.GetProperty("deliveryId").GetInt32())
+            .Select(item => item.GetProperty("id").GetInt32())
             .ToList();
     }
 

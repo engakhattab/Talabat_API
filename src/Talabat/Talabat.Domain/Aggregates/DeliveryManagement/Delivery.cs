@@ -172,13 +172,6 @@ public sealed class Delivery : AuditableEntity
         CancelCore(currentTime);
     }
 
-    internal void CancelAssigned(int agentId, DateTime currentTime)
-    {
-        EnsureNotTerminal();
-        EnsureAssignedToAgent(agentId);
-        CancelCore(currentTime);
-    }
-
     private void CancelCore(DateTime currentTime)
     {
         if (Status is DeliveryStatus.PickedUp or DeliveryStatus.OutForDelivery)
