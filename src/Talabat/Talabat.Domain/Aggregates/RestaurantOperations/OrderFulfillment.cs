@@ -116,11 +116,16 @@ public sealed class OrderFulfillment : AuditableEntity
     }
 
     /// <summary>The restaurant declines the order before accepting it (design D2, D13).</summary>
-    public void Reject(int restaurantId, FulfillmentReasonCode reasonCode, string? note, DateTime currentTime)
+    public void Reject(int restaurantId, FulfillmentReasonCode? reasonCode, string? note, DateTime currentTime)
     {
         EnsureRestaurant(restaurantId);
         EnsureStatus(OrderFulfillmentStatus.AwaitingRestaurant);
         EnsureTimeNotBefore(currentTime, PlacedAt);
+        if (reasonCode is null)
+        {
+            throw new ReasonCodeRequiredException();
+        }
+
         var validNote = FulfillmentReasons.Validate(reasonCode, note, FulfillmentReasons.Reject);
 
         Status = OrderFulfillmentStatus.Rejected;

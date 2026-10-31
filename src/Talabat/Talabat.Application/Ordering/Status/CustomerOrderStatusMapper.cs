@@ -26,8 +26,8 @@ public static class CustomerOrderStatusMapper
                 new CustomerOrderProgress(
                     CustomerOrderStatus.Cancelled,
                     DeliveryAgentAssigned: false,
-                    fulfillment.CancelledBy,
-                    fulfillment.ReasonCode),
+                    CancelledBy: fulfillment.CancelledBy,
+                    ReasonCode: fulfillment.ReasonCode),
             (OrderFulfillmentStatus.Accepted, { } beforePickup) when IsBeforePickup(beforePickup) =>
                 new CustomerOrderProgress(CustomerOrderStatus.Accepted, IsAgentAssigned(beforePickup)),
             (OrderFulfillmentStatus.Preparing, { } beforePickup) when IsBeforePickup(beforePickup) =>

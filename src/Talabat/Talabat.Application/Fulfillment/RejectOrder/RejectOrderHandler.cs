@@ -52,6 +52,6 @@ public sealed class RejectOrderHandler
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return UseCaseResult<RejectedOrder>.Success(new RejectedOrder(fulfillment.OrderId, command.ReasonCode, now));
+        return UseCaseResult<RejectedOrder>.Success(new RejectedOrder(fulfillment.OrderId, fulfillment.ReasonCode!.Value, now));
     }
 }
