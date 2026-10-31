@@ -1192,6 +1192,132 @@
           }
         ]
       }
+    },
+    "/api/me/orders/{orderId}/cancel": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "CancelOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CancelOrderRequest"
+                  }
+                ],
+                "nullable": true
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "object",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CancelOrderRequest"
+                  }
+                ],
+                "nullable": true
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "object",
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CancelOrderRequest"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "customer.api"
+            ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1314,6 +1440,67 @@
           },
           "isDefault": {
             "type": "boolean"
+          }
+        }
+      },
+      "CancellationActor": {
+        "enum": [
+          "Customer",
+          "Restaurant",
+          "Admin",
+          "System",
+          null
+        ]
+      },
+      "CancelOrderRequest": {
+        "required": [
+          "reasonCode",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentReasonCode"
+              }
+            ],
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CancelOrderResponse": {
+        "required": [
+          "orderId",
+          "status",
+          "reasonCode",
+          "cancelledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CustomerOrderStatus"
+          },
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentReasonCode"
+              }
+            ],
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -1473,6 +1660,24 @@
           "DeliveryFailed"
         ]
       },
+      "FulfillmentReasonCode": {
+        "enum": [
+          "ItemsUnavailable",
+          "RestaurantBusy",
+          "RestaurantClosing",
+          "KitchenIssue",
+          "ChangedMind",
+          "OrderedByMistake",
+          "CustomerRequested",
+          "RestaurantRequested",
+          "RestaurantUnresponsive",
+          "NoDeliveryAgentAvailable",
+          "SuspectedFraud",
+          "AcceptanceTimeout",
+          "Other",
+          null
+        ]
+      },
       "MenuProductDto": {
         "required": [
           "id",
@@ -1577,7 +1782,9 @@
           "total",
           "placedAt",
           "status",
-          "deliveryAgentAssigned"
+          "deliveryAgentAssigned",
+          "cancelledBy",
+          "reasonCode"
         ],
         "type": "object",
         "properties": {
@@ -1617,6 +1824,22 @@
           },
           "deliveryAgentAssigned": {
             "type": "boolean"
+          },
+          "cancelledBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CancellationActor"
+              }
+            ],
+            "nullable": true
+          },
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentReasonCode"
+              }
+            ],
+            "nullable": true
           }
         }
       },
