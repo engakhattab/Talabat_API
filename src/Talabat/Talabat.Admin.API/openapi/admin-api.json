@@ -1055,7 +1055,12 @@
         "type": "object",
         "properties": {
           "reasonCode": {
-            "$ref": "#/components/schemas/FulfillmentReasonCode"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentReasonCode"
+              }
+            ],
+            "nullable": true
           },
           "note": {
             "type": "string",
