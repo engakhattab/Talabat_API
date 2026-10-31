@@ -39,9 +39,7 @@ public sealed class PickUpOrderHandler
                     "Delivery was not found."));
         }
 
-        // A delivery exists only after acceptance, so its fulfillment always exists (design D3).
-        var fulfillment = await _fulfillmentRepository.GetByOrderIdAsync(delivery.OrderId, cancellationToken)
-            ?? throw new InvalidOperationException($"Delivery {delivery.Id} has no fulfillment for order {delivery.OrderId}.");
+        var fulfillment = await _fulfillmentRepository.GetRequiredForDeliveryAsync(delivery, cancellationToken);
 
         // Pickup gate (D5, BR-DEL-019): the food leaves the restaurant only once it is ready.
         if (fulfillment.Status != OrderFulfillmentStatus.ReadyForPickup)
@@ -59,9 +57,9 @@ public sealed class PickUpOrderHandler
             delivery.MarkPickedUp(command.AgentId, now);
             fulfillment.HandOver(delivery.RestaurantId, now);
         }
-        catch (DomainException ex)
+        catch (Exception exception) when (exception is DomainException or ArgumentException)
         {
-            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(ex));
+            return UseCaseResult<int>.Failure(DomainExceptionMapper.Map(exception));
         }
 
         // Pickup and hand-over commit together or not at all (D5, D12).

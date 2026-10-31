@@ -61,7 +61,7 @@ public sealed class PickupGateTests : IClassFixture<CustomWebApplicationFactory>
         return document.RootElement.GetProperty(property).GetString();
     }
 
-    /// <summary>The kitchen side runs on the Admin host; here the restaurant marks the order ready directly.</summary>
+    /// <summary>The restaurant side of the Order Fulfillment runs on the Admin host; here the order is marked ready directly.</summary>
     private async Task MarkReadyAsync()
     {
         using var scope = _factory.Services.CreateScope();

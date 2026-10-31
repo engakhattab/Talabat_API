@@ -37,11 +37,11 @@ public sealed class PickUpOrderHandlerTests
     [Theory]
     [InlineData(OrderFulfillmentStatus.Accepted)]
     [InlineData(OrderFulfillmentStatus.Preparing)]
-    public async Task Pickup_before_ready_returns_FulfillmentNotReady(OrderFulfillmentStatus kitchenStatus)
+    public async Task Pickup_before_ready_returns_FulfillmentNotReady(OrderFulfillmentStatus fulfillmentStatus)
     {
         var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
         var fulfillment = AcceptedFulfillment();
-        if (kitchenStatus == OrderFulfillmentStatus.Preparing)
+        if (fulfillmentStatus == OrderFulfillmentStatus.Preparing)
         {
             fulfillment.StartPreparing(RestaurantId, Now);
         }
@@ -55,7 +55,7 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(ApplicationErrorCodes.FulfillmentNotReady, result.Error?.Code);
         Assert.Equal(ApplicationErrorCategory.Conflict, result.Error?.Category);
         Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
-        Assert.Equal(kitchenStatus, fulfillment.Status);
+        Assert.Equal(fulfillmentStatus, fulfillment.Status);
         Assert.Equal(0, unitOfWork.SaveChangesCount);
     }
 
@@ -78,6 +78,63 @@ public sealed class PickUpOrderHandlerTests
         Assert.Equal(1, unitOfWork.TransactionCount);
         Assert.Equal(1, unitOfWork.SaveChangesCount);
         Assert.Equal(1, unitOfWork.SaveChangesInsideTransactionCount);
+    }
+
+    // Check order (D5): agent ownership (404), then the pickup gate, then the delivery's own state machine. An agent
+    // who has not arrived yet and whose order is not ready learns the more useful fact: the food is not ready.
+    [Fact]
+    public async Task Pickup_before_arrival_and_before_ready_returns_FulfillmentNotReady()
+    {
+        var delivery = CreateAssignedDelivery(1, 10);
+        var (handler, _, unitOfWork, _) = CreateHandler(AcceptedFulfillment(), delivery);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCodes.FulfillmentNotReady, result.Error?.Code);
+        Assert.Equal(DeliveryStatus.Assigned, delivery.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
+    // D3: a delivery without a fulfillment is corrupt data, reported like the pending and active queries do.
+    [Fact]
+    public async Task Pickup_of_a_delivery_without_a_fulfillment_is_reported_as_a_broken_invariant()
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var deliveries = new FakeDeliveryRepository();
+        deliveries.Deliveries.Add(delivery);
+        var unitOfWork = new FakeUnitOfWork();
+        var handler = new PickUpOrderHandler(
+            deliveries,
+            new FakeOrderFulfillmentRepository(),
+            unitOfWork,
+            new FakeClock { UtcNow = Now.AddMinutes(5) });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10)));
+
+        Assert.Contains($"order {OrderId}", exception.Message);
+        Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
+    }
+
+    // Same contract as the other fulfillment use cases: argument guards come back as a Validation result, not an
+    // exception, and neither aggregate is saved.
+    [Fact]
+    public async Task Pickup_with_a_non_utc_time_returns_validation_failure_and_saves_nothing()
+    {
+        var delivery = CreateArrivedAtRestaurantDelivery(1, 10);
+        var fulfillment = ReadyFulfillment();
+        var (handler, clock, unitOfWork, _) = CreateHandler(fulfillment, delivery);
+        clock.UtcNow = DateTime.SpecifyKind(Now.AddMinutes(5), DateTimeKind.Unspecified);
+
+        var result = await handler.Handle(new PickUpOrderCommand(DeliveryId: 1, AgentId: 10));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ApplicationErrorCategory.Validation, result.Error?.Category);
+        Assert.Equal(DeliveryStatus.ArrivedAtRestaurant, delivery.Status);
+        Assert.Equal(OrderFulfillmentStatus.ReadyForPickup, fulfillment.Status);
+        Assert.Equal(0, unitOfWork.SaveChangesCount);
     }
 
     [Fact]

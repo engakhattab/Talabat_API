@@ -5,7 +5,7 @@ using Talabat.Domain.Interfaces;
 
 namespace Talabat.Application.Fulfillment.StartPreparing;
 
-/// <summary>The kitchen starts preparing an accepted order (design D2).</summary>
+/// <summary>The restaurant starts preparing an accepted order (design D2).</summary>
 public sealed class StartPreparingHandler
 {
     private readonly IOrderFulfillmentRepository _fulfillmentRepository;

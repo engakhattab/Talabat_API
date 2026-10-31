@@ -67,7 +67,7 @@ public sealed class DeliveryOperationalContractTests : IClassFixture<CustomWebAp
         Assert.False(delivery.TryGetProperty("customerId", out _));
     }
 
-    // Design §4 test 33 (part): agents see the kitchen state (D5, BR-DEL-020).
+    // Design §4 test 33 (part): agents see the order fulfillment status (D5, BR-DEL-020).
     [Fact]
     public async Task Pending_and_active_responses_include_fulfillmentStatus()
     {
