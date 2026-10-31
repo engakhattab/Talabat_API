@@ -7,11 +7,11 @@ using Talabat.Application.DeliveryAgents.GetActiveDelivery;
 using Talabat.Application.DeliveryAgents.GetDeliveryHistory;
 using Talabat.Application.DeliveryAgents.GetPendingDeliveries;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
-using Talabat.Application.DeliveryAgents.ProgressCancel;
 using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
+using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Delivery.API.Contracts.Deliveries;
 using Talabat.Delivery.API.Extensions;
 
@@ -28,7 +28,7 @@ public sealed class DeliveriesController : ControllerBase
     private readonly ArrivedAtRestaurantHandler _arrivedAtRestaurantHandler;
     private readonly PickUpOrderHandler _pickUpOrderHandler;
     private readonly DeliverOrderHandler _deliverOrderHandler;
-    private readonly CancelDeliveryHandler _cancelDeliveryHandler;
+    private readonly ReleaseDeliveryHandler _releaseDeliveryHandler;
     private readonly FailDeliveryHandler _failDeliveryHandler;
     private readonly AssignDeliveryAgentHandler _assignDeliveryAgentHandler;
     private readonly GetActiveDeliveryHandler _getActiveDeliveryHandler;
@@ -41,7 +41,7 @@ public sealed class DeliveriesController : ControllerBase
         ArrivedAtRestaurantHandler arrivedAtRestaurantHandler,
         PickUpOrderHandler pickUpOrderHandler,
         DeliverOrderHandler deliverOrderHandler,
-        CancelDeliveryHandler cancelDeliveryHandler,
+        ReleaseDeliveryHandler releaseDeliveryHandler,
         FailDeliveryHandler failDeliveryHandler,
         AssignDeliveryAgentHandler assignDeliveryAgentHandler,
         GetActiveDeliveryHandler getActiveDeliveryHandler,
@@ -53,7 +53,7 @@ public sealed class DeliveriesController : ControllerBase
         _arrivedAtRestaurantHandler = arrivedAtRestaurantHandler ?? throw new ArgumentNullException(nameof(arrivedAtRestaurantHandler));
         _pickUpOrderHandler = pickUpOrderHandler ?? throw new ArgumentNullException(nameof(pickUpOrderHandler));
         _deliverOrderHandler = deliverOrderHandler ?? throw new ArgumentNullException(nameof(deliverOrderHandler));
-        _cancelDeliveryHandler = cancelDeliveryHandler ?? throw new ArgumentNullException(nameof(cancelDeliveryHandler));
+        _releaseDeliveryHandler = releaseDeliveryHandler ?? throw new ArgumentNullException(nameof(releaseDeliveryHandler));
         _failDeliveryHandler = failDeliveryHandler ?? throw new ArgumentNullException(nameof(failDeliveryHandler));
         _assignDeliveryAgentHandler = assignDeliveryAgentHandler ?? throw new ArgumentNullException(nameof(assignDeliveryAgentHandler));
         _getActiveDeliveryHandler = getActiveDeliveryHandler ?? throw new ArgumentNullException(nameof(getActiveDeliveryHandler));
@@ -220,24 +220,28 @@ public sealed class DeliveriesController : ControllerBase
         return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
     }
 
-    [HttpPost("{deliveryId:int}/cancel", Name = "CancelDelivery")]
+    /// <summary>
+    /// Gives a claimed delivery back before pickup (design D6): it returns to the pending queue and the agent becomes
+    /// Available. Replaces the former agent cancel.
+    /// </summary>
+    [HttpPost("{deliveryId:int}/release", Name = "ReleaseDelivery")]
     [ProducesResponseType<DeliveryIdResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> CancelDelivery(
+    public async Task<IActionResult> ReleaseDelivery(
         int deliveryId,
         CancellationToken cancellationToken)
     {
         if (!TryGetAgentIdHelper.TryGetAgentId(_currentUser, out var agentId))
             return Forbid();
 
-        var result = await _cancelDeliveryHandler.Handle(
-            new CancelDeliveryCommand(deliveryId, agentId),
+        var result = await _releaseDeliveryHandler.Handle(
+            new ReleaseDeliveryCommand.ByAgent(deliveryId, agentId),
             cancellationToken);
 
-        return result.ToActionResult(id => Ok(new DeliveryIdResponse(id)));
+        return result.ToActionResult(released => Ok(new DeliveryIdResponse(released.DeliveryId)));
     }
 
     [HttpPost("{deliveryId:int}/fail", Name = "FailDelivery")]

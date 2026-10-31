@@ -84,11 +84,11 @@ public sealed class DeliveryOwnershipTests : IClassFixture<CustomWebApplicationF
     }
 
     [Fact]
-    public async Task AgentB_Cancel_OnAgentADelivery_Returns404()
+    public async Task AgentB_Release_OnAgentADelivery_Returns404()
     {
         AuthenticateAsAgentB();
 
-        var response = await _client.PostAsync($"/api/agent/deliveries/{_factory.DeliveryId}/cancel", null);
+        var response = await _client.PostAsync($"/api/agent/deliveries/{_factory.DeliveryId}/release", null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

@@ -761,12 +761,12 @@
         ]
       }
     },
-    "/api/agent/deliveries/{deliveryId}/cancel": {
+    "/api/agent/deliveries/{deliveryId}/release": {
       "post": {
         "tags": [
           "Deliveries"
         ],
-        "operationId": "CancelDelivery",
+        "operationId": "ReleaseDelivery",
         "parameters": [
           {
             "name": "deliveryId",

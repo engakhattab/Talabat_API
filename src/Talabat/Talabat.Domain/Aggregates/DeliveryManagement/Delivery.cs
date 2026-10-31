@@ -139,6 +139,27 @@ public sealed class Delivery : AuditableEntity
         DeliveredAt = currentTime;
     }
 
+    /// <summary>
+    /// The assigned agent gives the delivery back before pickup (design D6). The same row returns to the queue.
+    /// </summary>
+    public void Release(int agentId, DateTime currentTime)
+    {
+        EnsureNotTerminal();
+        EnsureAssignedToAgent(agentId);
+
+        if (Status is not (DeliveryStatus.Assigned or DeliveryStatus.ArrivedAtRestaurant))
+        {
+            throw new InvalidDeliveryStatusTransitionException();
+        }
+
+        EnsureTimeNotBefore(currentTime, GetLastTransitionTime());
+
+        AssignedAgentId = null;
+        AssignedAt = null;
+        ArrivedAtRestaurantAt = null;
+        Status = DeliveryStatus.PendingAssignment;
+    }
+
     public void Cancel(DateTime currentTime)
     {
         EnsureNotTerminal();
@@ -148,13 +169,6 @@ public sealed class Delivery : AuditableEntity
             throw new DeliveryAgentCoordinationRequiredException();
         }
 
-        CancelCore(currentTime);
-    }
-
-    internal void CancelAssigned(int agentId, DateTime currentTime)
-    {
-        EnsureNotTerminal();
-        EnsureAssignedToAgent(agentId);
         CancelCore(currentTime);
     }
 

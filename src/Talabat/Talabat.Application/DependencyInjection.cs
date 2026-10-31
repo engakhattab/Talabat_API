@@ -23,11 +23,11 @@ using Talabat.Application.Deliveries.CreateForOrder;
 using Talabat.Application.DeliveryAgents.GoOffline;
 using Talabat.Application.DeliveryAgents.GoOnline;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
-using Talabat.Application.DeliveryAgents.ProgressCancel;
 using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
 using Talabat.Application.DeliveryAgents.ProgressPickup;
+using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Application.DeliveryAgents.UpdateLocation;
 using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Fulfillment.MarkReady;
@@ -90,7 +90,7 @@ public static class DependencyInjection
         services.AddScoped<PickUpOrderHandler>();
         services.AddScoped<OutForDeliveryHandler>();
         services.AddScoped<DeliverOrderHandler>();
-        services.AddScoped<CancelDeliveryHandler>();
+        services.AddScoped<ReleaseDeliveryHandler>();
         services.AddScoped<FailDeliveryHandler>();
 
         // Delivery Agents — Queries (US7, US8, US9)
