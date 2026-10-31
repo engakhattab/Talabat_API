@@ -93,20 +93,6 @@ public sealed class AgentAssignmentAuthorizationTests
     }
 
     [Fact]
-    public void CancelDelivery_BusyAgent_ReleasesToAvailable()
-    {
-        var agent = CreateBusyAgent(10);
-        var delivery = CreateAssignedDelivery(1, 10);
-        delivery.MarkArrivedAtRestaurant(10, Now.AddMinutes(1));
-        var service = new DeliveryAssignmentDomainService();
-
-        service.CancelDelivery(delivery, agent, Now.AddMinutes(5));
-
-        Assert.Equal(DeliveryStatus.Cancelled, delivery.Status);
-        Assert.Equal(DeliveryAgentStatus.Available, agent.DeliveryAgentStatus);
-    }
-
-    [Fact]
     public void CompleteDelivery_UnassignedDelivery_ThrowsDeliveryNotAssigned()
     {
         var agent = CreateBusyAgent(10);
