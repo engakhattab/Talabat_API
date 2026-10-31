@@ -26,6 +26,11 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     PreparingAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ReadyAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     HandedOverAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RejectedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CancelledBy = table.Column<int>(type: "int", nullable: true),
+                    ReasonCode = table.Column<int>(type: "int", nullable: true),
+                    ReasonNote = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
@@ -38,6 +43,8 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderFulfillments", x => x.Id);
+                    table.CheckConstraint("CK_OrderFulfillments_CancelledBy", "[CancelledBy] IS NULL OR [CancelledBy] IN (1, 2, 3, 4)");
+                    table.CheckConstraint("CK_OrderFulfillments_ReasonCode", "[ReasonCode] IS NULL OR [ReasonCode] BETWEEN 1 AND 13");
                     table.CheckConstraint("CK_OrderFulfillments_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
                     table.ForeignKey(
                         name: "FK_OrderFulfillments_Orders_OrderId",
