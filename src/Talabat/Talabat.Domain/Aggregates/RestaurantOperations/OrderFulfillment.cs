@@ -30,6 +30,17 @@ public sealed class OrderFulfillment : AuditableEntity
 
     public DateTime? HandedOverAt { get; private set; }
 
+    public DateTime? RejectedAt { get; private set; }
+
+    public DateTime? CancelledAt { get; private set; }
+
+    public CancellationActor? CancelledBy { get; private set; }
+
+    /// <summary>Why the order was rejected or cancelled (design D13); customers see it, never the note.</summary>
+    public FulfillmentReasonCode? ReasonCode { get; private set; }
+
+    public string? ReasonNote { get; private set; }
+
     public byte[] RowVersion { get; private set; } = [];
 
     private OrderFulfillment()
@@ -102,6 +113,41 @@ public sealed class OrderFulfillment : AuditableEntity
 
         Status = OrderFulfillmentStatus.HandedOver;
         HandedOverAt = currentTime;
+    }
+
+    /// <summary>The restaurant declines the order before accepting it (design D2, D13).</summary>
+    public void Reject(int restaurantId, FulfillmentReasonCode reasonCode, string? note, DateTime currentTime)
+    {
+        EnsureRestaurant(restaurantId);
+        EnsureStatus(OrderFulfillmentStatus.AwaitingRestaurant);
+        EnsureTimeNotBefore(currentTime, PlacedAt);
+        var validNote = FulfillmentReasons.Validate(reasonCode, note, FulfillmentReasons.Reject);
+
+        Status = OrderFulfillmentStatus.Rejected;
+        RejectedAt = currentTime;
+        ReasonCode = reasonCode;
+        ReasonNote = validNote;
+    }
+
+    /// <summary>
+    /// The customer cancels their order; allowed only until the restaurant accepts it, and the reason is optional
+    /// (design D7, D13).
+    /// </summary>
+    public void CancelByCustomer(FulfillmentReasonCode? reasonCode, string? note, DateTime currentTime)
+    {
+        if (Status != OrderFulfillmentStatus.AwaitingRestaurant)
+        {
+            throw new OrderNoLongerCancellableException();
+        }
+
+        EnsureTimeNotBefore(currentTime, PlacedAt);
+        var validNote = FulfillmentReasons.Validate(reasonCode, note, FulfillmentReasons.CustomerCancel);
+
+        Status = OrderFulfillmentStatus.Cancelled;
+        CancelledAt = currentTime;
+        CancelledBy = CancellationActor.Customer;
+        ReasonCode = reasonCode;
+        ReasonNote = validNote;
     }
 
     private void EnsureRestaurant(int restaurantId)
