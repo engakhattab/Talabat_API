@@ -128,7 +128,7 @@ No query changed, but the read models see the effect immediately:
 
 ### Application
 
-**`DeliveryAgents/Release/ReleaseDeliveryCommand.cs`** (new)
+**`DeliveryAgents/ProgressRelease/ReleaseDeliveryCommand.cs`** (new)
 - A closed hierarchy: `ByAgent(DeliveryId, AgentId)` and `ByAdmin(OrderId)`, plus the result `ReleasedDelivery
   (DeliveryId, OrderId, ReleasedAgentId)`.
 - *Why two shapes, one command:* design D11 says the use case takes its actor explicitly so it is written once. The
@@ -136,7 +136,7 @@ No query changed, but the read models see the effect immediately:
   Admin by order id (what an operator looks at). A private constructor keeps the hierarchy closed, like
   `FulfillmentActor`.
 
-**`DeliveryAgents/Release/ReleaseDeliveryHandler.cs`** (new)
+**`DeliveryAgents/ProgressRelease/ReleaseDeliveryHandler.cs`** (new)
 - Finds the delivery (`switch` on the command), reads the assigned agent, calls the domain service, saves once.
 - Returns a `UseCaseResult`; domain exceptions are mapped by `DomainExceptionMapper` (`InvalidDeliveryStatusTransition`
   and `DeliveryNotAssigned` → 409, not found → 404).
@@ -183,7 +183,7 @@ renamed to `/release` (breaking, but no Delivery frontend consumes it yet). Admi
 
 - **Release is not a cancellation.** A cancel ends a lifecycle; a release *rewinds* one. That is why it lives as its
   own transition with its own name instead of a flag on `Cancel`. It is also why the fulfillment is not touched: the
-  kitchen keeps cooking, only the courier changes.
+  kitchen keeps cooking, only the Delivery Agent changes.
 - **Why only before pickup?** After `PickedUp` the food is physically with the agent (and the fulfillment is
   `HandedOver`). Handing it "back to the queue" would leave food with nobody responsible for it. After pickup the way
   out is **delivery failure** (D8, ticket T7).
@@ -204,6 +204,12 @@ renamed to `/release` (breaking, but no Delivery frontend consumes it yet). Admi
 - **A test-arrangement gotcha.** `CustomWebApplicationFactory` seeds its data when the *first client* is created.
   Reading `_factory.AgentBUserId` before any `CreateClient()` returns `0`, and the request is forbidden. The new
   endpoint test creates a client in its constructor, like the other test classes.
+- **A folder name that git silently ignored.** The use case first lived in `DeliveryAgents/Release/`. The Visual
+  Studio `.gitignore` entry `[Rr]elease/` (meant for `bin/Release` build output) matches *any* folder called
+  `Release`, so `git add` skipped both files without a word. Everything passed locally because the files were on disk;
+  a clean checkout would not have compiled. The code review caught it, and `dfc0c5a` moved the files to
+  `ProgressRelease/` (the `Progress*` naming of its siblings) instead of weakening the ignore rule. Lesson: after
+  adding a new folder, check `git status` lists the new files, or run `git check-ignore -v <path>`.
 
 ---
 
@@ -215,13 +221,15 @@ renamed to `/release` (breaking, but no Delivery frontend consumes it yet). Admi
 | `5852650` | feat (green) | `Delivery.Release` with its invariants. |
 | `c2b21e2` | test | Test 13: after pickup / other agent / unassigned are rejected. They passed at once because the guards came with `Release`; removing the status guard was checked to turn them red. |
 | `467e9da` | test (red) | Test 20 at the handler; retires the three agent-cancel tests (§4.1). |
-| `bced674` | feat (green) | `ReleaseDeliveryHandler` + `DeliveryAssignmentDomainService.ReleaseDelivery`. |
+| `bced674` | feat (green) | `DeliveryAssignmentDomainService.ReleaseDelivery` + DI. The handler files were meant to be here but were ignored by git (see §4); `dfc0c5a` adds them. |
 | `f469eaf` | test (red) | Test 33: `/release` over HTTP, `/cancel` gone; ownership test renamed (§4.1). |
-| `429bd8c` | feat (green) | Endpoint swapped; agent-cancel code deleted end to end. |
+| `429bd8c` | feat (green) | Endpoint swapped; agent-cancel code deleted end to end. It also corrects two wrong assumptions in the red test (the response property is `id`, and `/active` with no delivery is `404`), matching the existing contract; the commit body says so. |
 | `bc43afc` | chore | Delivery contract regenerated (`/cancel` → `/release`). |
 | `0415716` | test (red) | Test 34 + Admin path of test 20 over HTTP. |
 | `0622329` | feat (green) | Admin `release-agent` endpoint. |
 | `3449d41` | chore | Admin contract regenerated (additions only). |
+| `7fc1e63` | docs | This walkthrough. |
+| `dfc0c5a` | fix | Review fix: the release use case committed under `ProgressRelease/` (it had been git-ignored). |
 
 ---
 
