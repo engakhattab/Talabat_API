@@ -36,6 +36,20 @@ public sealed class DeliveryAssignmentDomainService
         agent.MarkAvailable();
     }
 
+    /// <summary>Release (D6): the delivery returns to the queue and its agent becomes Available.</summary>
+    public void ReleaseDelivery(
+        Delivery delivery,
+        User agent,
+        DateTime currentTime)
+    {
+        ArgumentNullException.ThrowIfNull(delivery);
+        ArgumentNullException.ThrowIfNull(agent);
+
+        EnsureAssignedBusyAgent(delivery, agent);
+        delivery.Release(agent.Id, currentTime);
+        agent.MarkAvailable();
+    }
+
     public void CancelDelivery(
         Delivery delivery,
         User agent,

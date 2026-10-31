@@ -24,6 +24,7 @@ using Talabat.Application.DeliveryAgents.GoOffline;
 using Talabat.Application.DeliveryAgents.GoOnline;
 using Talabat.Application.DeliveryAgents.ProgressArrive;
 using Talabat.Application.DeliveryAgents.ProgressCancel;
+using Talabat.Application.DeliveryAgents.Release;
 using Talabat.Application.DeliveryAgents.ProgressDeliver;
 using Talabat.Application.DeliveryAgents.ProgressFail;
 using Talabat.Application.DeliveryAgents.ProgressOutForDelivery;
@@ -91,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<OutForDeliveryHandler>();
         services.AddScoped<DeliverOrderHandler>();
         services.AddScoped<CancelDeliveryHandler>();
+        services.AddScoped<ReleaseDeliveryHandler>();
         services.AddScoped<FailDeliveryHandler>();
 
         // Delivery Agents — Queries (US7, US8, US9)
