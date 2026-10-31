@@ -31,7 +31,9 @@ using Talabat.Application.DeliveryAgents.ProgressRelease;
 using Talabat.Application.DeliveryAgents.UpdateLocation;
 using Talabat.Application.Fulfillment.AcceptOrder;
 using Talabat.Application.Fulfillment.MarkReady;
+using Talabat.Application.Fulfillment.RejectOrder;
 using Talabat.Application.Fulfillment.StartPreparing;
+using Talabat.Application.Ordering.CancelOrder;
 using Talabat.Application.Ordering.Checkout;
 using Talabat.Application.Ordering.GetOrderDetails;
 using Talabat.Application.Ordering.GetOrderHistory;
@@ -69,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<CheckoutHandler>();
         services.AddScoped<GetOrderHistoryHandler>();
         services.AddScoped<GetOrderDetailsHandler>();
+        services.AddScoped<CancelOrderHandler>();
 
         // Delivery Agents — Status (US1)
         services.AddScoped<GetDeliveryApplicantProfileHandler>();
@@ -105,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<AcceptOrderHandler>();
         services.AddScoped<StartPreparingHandler>();
         services.AddScoped<MarkReadyHandler>();
+        services.AddScoped<RejectOrderHandler>();
 
         // Domain Services
         services.AddScoped<CheckoutDomainService>();
