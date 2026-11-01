@@ -17,6 +17,17 @@ public static class CustomerOrderStatusMapper
         {
             (OrderFulfillmentStatus.AwaitingRestaurant, null) =>
                 new CustomerOrderProgress(CustomerOrderStatus.Placed, DeliveryAgentAssigned: false),
+            (OrderFulfillmentStatus.Rejected, null) =>
+                new CustomerOrderProgress(
+                    CustomerOrderStatus.Rejected,
+                    DeliveryAgentAssigned: false,
+                    ReasonCode: fulfillment.ReasonCode),
+            (OrderFulfillmentStatus.Cancelled, null) =>
+                new CustomerOrderProgress(
+                    CustomerOrderStatus.Cancelled,
+                    DeliveryAgentAssigned: false,
+                    CancelledBy: fulfillment.CancelledBy,
+                    ReasonCode: fulfillment.ReasonCode),
             (OrderFulfillmentStatus.Accepted, { } beforePickup) when IsBeforePickup(beforePickup) =>
                 new CustomerOrderProgress(CustomerOrderStatus.Accepted, IsAgentAssigned(beforePickup)),
             (OrderFulfillmentStatus.Preparing, { } beforePickup) when IsBeforePickup(beforePickup) =>

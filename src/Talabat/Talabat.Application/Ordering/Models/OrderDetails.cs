@@ -1,4 +1,5 @@
 using Talabat.Application.Ordering.Status;
+using Talabat.Domain.Aggregates.RestaurantOperations;
 using Talabat.Domain.ValueObjects;
 
 namespace Talabat.Application.Ordering.Models;
@@ -12,4 +13,6 @@ public sealed record OrderDetails(
     IReadOnlyCollection<OrderLineItem> Items,
     Money TotalAmount,
     CustomerOrderStatus Status,
-    bool DeliveryAgentAssigned);
+    bool DeliveryAgentAssigned,
+    CancellationActor? CancelledBy,
+    FulfillmentReasonCode? ReasonCode);

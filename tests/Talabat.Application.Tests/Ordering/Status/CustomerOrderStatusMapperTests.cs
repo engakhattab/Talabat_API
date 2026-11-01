@@ -30,6 +30,9 @@ public sealed class CustomerOrderStatusMapperTests
     [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.PickedUp, CustomerOrderStatus.OnTheWay, true)]
     [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.OutForDelivery, CustomerOrderStatus.OnTheWay, true)]
     [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.Delivered, CustomerOrderStatus.Delivered, true)]
+    // T5: an order rejected or cancelled before acceptance never had a delivery (D3, D9).
+    [InlineData(OrderFulfillmentStatus.Rejected, null, CustomerOrderStatus.Rejected, false)]
+    [InlineData(OrderFulfillmentStatus.Cancelled, null, CustomerOrderStatus.Cancelled, false)]
     public void Status_mapper_maps_every_reachable_combination(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus,
@@ -57,6 +60,10 @@ public sealed class CustomerOrderStatusMapperTests
     // The hand-over and the pickup commit together (D5).
     [InlineData(OrderFulfillmentStatus.HandedOver, DeliveryStatus.ArrivedAtRestaurant)]
     [InlineData(OrderFulfillmentStatus.HandedOver, null)]
+    // Rejection happens only before acceptance, so no delivery can exist (D3).
+    [InlineData(OrderFulfillmentStatus.Rejected, DeliveryStatus.PendingAssignment)]
+    // A cancelled order with a live delivery is never reachable (D7: cancelling cancels the delivery).
+    [InlineData(OrderFulfillmentStatus.Cancelled, DeliveryStatus.Assigned)]
     public void Status_mapper_rejects_impossible_combinations(
         OrderFulfillmentStatus fulfillmentStatus,
         DeliveryStatus? deliveryStatus)
@@ -78,6 +85,8 @@ public sealed class CustomerOrderStatusMapperTests
             OrderFulfillmentStatus.Preparing => Preparing(Accepted(fulfillment)),
             OrderFulfillmentStatus.ReadyForPickup => Ready(Accepted(fulfillment)),
             OrderFulfillmentStatus.HandedOver => HandedOver(Ready(Accepted(fulfillment))),
+            OrderFulfillmentStatus.Rejected => Rejected(fulfillment),
+            OrderFulfillmentStatus.Cancelled => CancelledByCustomer(fulfillment),
             _ => throw new NotSupportedException($"Arrange a {status} fulfillment once that transition exists.")
         };
     }
@@ -97,6 +106,18 @@ public sealed class CustomerOrderStatusMapperTests
             DeliveryStatus.Delivered => Delivered(OutForDelivery(PickedUp(ArrivedAtRestaurant(Assigned(delivery))))),
             _ => throw new NotSupportedException($"Arrange a {status} delivery when a test needs it.")
         };
+    }
+
+    private static OrderFulfillment Rejected(OrderFulfillment fulfillment)
+    {
+        fulfillment.Reject(RestaurantId, FulfillmentReasonCode.RestaurantBusy, note: null, TestData.UtcNow.AddMinutes(1));
+        return fulfillment;
+    }
+
+    private static OrderFulfillment CancelledByCustomer(OrderFulfillment fulfillment)
+    {
+        fulfillment.CancelByCustomer(reasonCode: null, note: null, TestData.UtcNow.AddMinutes(1));
+        return fulfillment;
     }
 
     private static OrderFulfillment Accepted(OrderFulfillment fulfillment)

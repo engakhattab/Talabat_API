@@ -573,6 +573,12 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("AcceptedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CancelledBy")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -614,6 +620,16 @@ namespace Talabat.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ReadyAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ReasonCode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReasonNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("RestaurantId")
                         .HasColumnType("int");
 
@@ -636,6 +652,10 @@ namespace Talabat.Infrastructure.Persistence.Migrations
 
                     b.ToTable("OrderFulfillments", null, t =>
                         {
+                            t.HasCheckConstraint("CK_OrderFulfillments_CancelledBy", "[CancelledBy] IS NULL OR [CancelledBy] IN (1, 2, 3, 4)");
+
+                            t.HasCheckConstraint("CK_OrderFulfillments_ReasonCode", "[ReasonCode] IS NULL OR [ReasonCode] BETWEEN 1 AND 13");
+
                             t.HasCheckConstraint("CK_OrderFulfillments_Status", "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
                         });
                 });

@@ -528,6 +528,115 @@
         ]
       }
     },
+    "/api/orders/{orderId}/reject": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "RejectOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectOrderRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectOrderRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectOrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2": [
+              "admin.api"
+            ]
+          }
+        ]
+      }
+    },
     "/api/orders/{orderId}/start-preparing": {
       "post": {
         "tags": [
@@ -874,6 +983,23 @@
           }
         }
       },
+      "FulfillmentReasonCode": {
+        "enum": [
+          "ItemsUnavailable",
+          "RestaurantBusy",
+          "RestaurantClosing",
+          "KitchenIssue",
+          "ChangedMind",
+          "OrderedByMistake",
+          "CustomerRequested",
+          "RestaurantRequested",
+          "RestaurantUnresponsive",
+          "NoDeliveryAgentAvailable",
+          "SuspectedFraud",
+          "AcceptanceTimeout",
+          "Other"
+        ]
+      },
       "MarkReadyResponse": {
         "required": [
           "orderId",
@@ -918,6 +1044,52 @@
           "instance": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "RejectOrderRequest": {
+        "required": [
+          "reasonCode",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentReasonCode"
+              }
+            ],
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "RejectOrderResponse": {
+        "required": [
+          "orderId",
+          "fulfillmentStatus",
+          "reasonCode",
+          "rejectedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "format": "int32"
+          },
+          "fulfillmentStatus": {
+            "type": "string"
+          },
+          "reasonCode": {
+            "$ref": "#/components/schemas/FulfillmentReasonCode"
+          },
+          "rejectedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

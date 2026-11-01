@@ -12,9 +12,18 @@ internal sealed class OrderFulfillmentConfiguration : IEntityTypeConfiguration<O
     {
         builder.ToTable(
             "OrderFulfillments",
-            table => table.HasCheckConstraint(
-                "CK_OrderFulfillments_Status",
-                "[Status] IN (1, 2, 3, 4, 5, 6, 7)"));
+            table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_OrderFulfillments_Status",
+                    "[Status] IN (1, 2, 3, 4, 5, 6, 7)");
+                table.HasCheckConstraint(
+                    "CK_OrderFulfillments_CancelledBy",
+                    "[CancelledBy] IS NULL OR [CancelledBy] IN (1, 2, 3, 4)");
+                table.HasCheckConstraint(
+                    "CK_OrderFulfillments_ReasonCode",
+                    "[ReasonCode] IS NULL OR [ReasonCode] BETWEEN 1 AND 13");
+            });
 
         builder.ConfigureIdentityKey();
         builder.ConfigureAuditableEntity();
@@ -39,6 +48,21 @@ internal sealed class OrderFulfillmentConfiguration : IEntityTypeConfiguration<O
 
         builder.Property(fulfillment => fulfillment.AcceptedAt)
             .HasColumnType("datetime2");
+
+        builder.Property(fulfillment => fulfillment.RejectedAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(fulfillment => fulfillment.CancelledAt)
+            .HasColumnType("datetime2");
+
+        builder.Property(fulfillment => fulfillment.CancelledBy)
+            .HasConversion<int?>();
+
+        builder.Property(fulfillment => fulfillment.ReasonCode)
+            .HasConversion<int?>();
+
+        builder.Property(fulfillment => fulfillment.ReasonNote)
+            .HasMaxLength(500);
 
         builder.Property(fulfillment => fulfillment.RowVersion)
             .IsRowVersion();

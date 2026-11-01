@@ -22,6 +22,7 @@ public static class ApplicationErrorCodes
     public const string InvalidCustomerProfile = nameof(InvalidCustomerProfile);
     public const string InvalidQuantity = nameof(InvalidQuantity);
     public const string OrderNotFound = nameof(OrderNotFound);
+    public const string OrderNoLongerCancellable = nameof(OrderNoLongerCancellable);
     public const string IdentityOperationFailed = nameof(IdentityOperationFailed);
     public const string ProductNotFound = nameof(ProductNotFound);
     public const string ProductUnavailable = nameof(ProductUnavailable);
